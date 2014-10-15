@@ -125,6 +125,7 @@ def blx(d, address, r0=0):
     """Invoke a function with one argument word and two return words."""
     return d.blx(address, r0)
 
+
 @magic.magics_class
 class ShellMagics(magic.Magics):
 

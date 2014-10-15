@@ -97,8 +97,11 @@ def disassemble(d, address, size, thumb = True, leave_temp_files = False):
 
 def assemble(d, address, text, defines = defines, leave_temp_files = False):
     """Assemble some instructions for the ARM and place them in memory.
-       Address must be word aligned.
+       Address must be word aligned. By default assembles thumb instructions,
+       but you can use the '.arm' assembly directive to change this.
+       Multiple instructions can be separated by semicolons.
        """
+
     if address & 3:
         raise ValueError("Address needs to be word aligned")
 
@@ -159,6 +162,9 @@ def compile(d, address, expression, includes = includes, defines = defines,
        go above the function containing our expression. The 'globals' dictionary
        can define uint32_t constants that are available even prior to the includes.
        """
+
+    if address & 3:
+        raise ValueError("Address needs to be word aligned")
 
     src, obj, bin, ld = temps = tempnames('.cpp', '.o', '.bin', '.ld')
     try:
