@@ -1,77 +1,167 @@
 #!/usr/bin/env python
-#
-# Interactive reverse engineering shell using IPython, with lots of terse
-# "magic" functions to give a more debugger-like interface.
-#
+"""
+                        __                             __ __   
+.----.-----.---.-.-----|  |_.-----.----.--------.-----|  |  |_ 
+|  __|  _  |  _  |__ --|   _|  -__|   _|        |  -__|  |   _|
+|____|_____|___._|_____|____|_____|__| |__|__|__|_____|__|____|
+--IPython Shell for Interactive Exploration--------------------
+
+Read, write, or fill ARM memory. Numbers are hex. Trailing _ is
+short for 0000, leading _ adds 'pad' scratchpad RAM offset.
+Internal _ are ignored so you can use them as separators.
+
+    rd 1ff_ 100
+    wr _ fe00
+    fill _10 55aa_55aa 4
+    peek?
+    poke?
+    read_block?
+
+Assemble and disassemble ARM instructions:
+
+    dis 3100
+    asm _4 mov r3, #0x14
+    dis _4 10
+    assemble?
+    disassemble?
+
+Or compile and invoke C++ code:
+
+    ec 0x42
+    ec ((uint16_t*)pad)[40]++
+    compile?
+    evalc?
+
+The 'defines' and 'includes' dicts keep things you can define
+in Python but use when compiling C++ and ASM snippets:
+
+    defines['base'] = pad + 0x100
+    ec base
+    asm _ ldr r0, =base; bx lr
+
+    includes.append('int splat(int x) { return x | (x << 8); }')
+    ec splat(0x50)
+
+Happy hacking!
+~MeS`14
+"""
 
 from IPython import embed
-from IPython.core.magic import Magics, magics_class, line_magic, line_cell_magic
+from IPython.core import magic
 from IPython.core.magic_arguments import magic_arguments, argument, parse_argstring
 from IPython.terminal.embed import InteractiveShellEmbed
 
-from remote import Device
+import remote
 from hilbert import hilbert
 from dump import *
 from code import *
 
-d = Device()
+__all__ = ['hexint', 'ShellMagics', 'peek', 'poke', 'setup_hexoutput']
+
+# Placeholder for global Device in the IPython shell
+d = None
+
+
+def setup_hexoutput(ipy):
+    """Configure an IPython shell to display integers in hex by default.
+       You can convert to decimal with str() still.
+       """
+    def handler(n, p, cycle):
+        return p.text("0x%x" % n)
+
+    formatter = ipy.display_formatter.formatters['text/plain']
+    formatter.for_type(int, handler)
 
 def hexint(s):
-    return int(s.replace('_',''), 16)
+    """This takes a bunch of weird number formats.
 
-@magics_class
-class ShellMagics(Magics):
+    Hex:
+    1234abcd
 
-    @line_magic
+    Internal underscores are ignored, you can use them as separators:
+    1a_bcde
+
+    As a shortcut for numbers that end in lots of zeroes, each
+    trailing '_' expands to four zeroes:
+    20_
+
+    Leading underscores are numbers relative to our scratchpad address "pad"
+    _0
+
+    """
+    if s.startswith('_'):
+        base = pad
+    else:
+        base = 0
+    if s.endswith('_'):
+        s += '0000'
+    return base + int(s.replace('_',''), 16)
+
+# Peek and poke wrappers, for consistency
+def peek(d, address):
+    """Read one 32-bit word from ARM memory. Return it as an unsigned integer."""
+    return d.peek(address)
+
+def poke(d, address, word):
+    """Write one 32-bit word to ARM memory."""
+    return d.poke(address, word);
+
+
+@magic.magics_class
+class ShellMagics(magic.Magics):
+
+    @magic.line_magic
     @magic_arguments()
     @argument('address', type=hexint)
-    @argument('size', type=hexint, nargs='?', default=0x100,
-        help='Address to read from. Hexadecimal. Not necessarily aligned.')
+    @argument('size', type=hexint, nargs='?', default=0x100, help='Address to read from. Hexadecimal. Not necessarily aligned.')
+
     def rd(self, line):
         """Read ARM memory block"""
         args = parse_argstring(self.rd, line)
         dump(d, args.address, args.size)
 
-    @line_magic
+    @magic.line_cell_magic
     @magic_arguments()
     @argument('address', type=hexint, help='Hex address')
-    @argument('word', type=hexint, help='Hex word')
-    def po(self, line):
-        """Poke one word into ARM memory"""
-        args = parse_argstring(self.po, line)
-        d.poke(args.address, args.word)
+    @argument('word', type=hexint, nargs='*', help='Hex words')
 
-    @line_magic
+    def wr(self, line, cell=''):
+        """Write hex words into ARM memory"""
+        args = parse_argstring(self.wr, line)
+        args.word.extend(map(hexint, cell.split()))
+        for i, w in enumerate(args.word):
+            d.poke(args.address + i*4, w)
+
+    @magic.line_magic
     @magic_arguments()
     @argument('address', type=hexint, help='Hex address, word aligned')
     @argument('word', type=hexint, help='Hex word')
     @argument('count', type=hexint, help='Hex wordcount')
+
     def fill(self, line):
         """Fill contiguous words in ARM memory with the same value"""
         args = parse_argstring(self.fill, line)
         for i in range(args.count):
             d.poke(args.address + i*4, args.word)
 
-    @line_magic
+    @magic.line_magic
     @magic_arguments()
     @argument('address', type=hexint, help='Hex address')
-    @argument('size', type=hexint, nargs='?', default=0x100,
-        help='Hex byte count')
+    @argument('size', type=hexint, nargs='?', default=0x40, help='Hex byte count')
+
     def dis(self, line):
         """Disassemble ARM instructions"""
         args = parse_argstring(self.dis, line)
         print disassemble(d, args.address, args.size)
 
-    @line_cell_magic
+    @magic.line_cell_magic
     @magic_arguments()
-    @argument('-b', '--base', type=int, default=0,
-        help='First address in map')
-    @argument('-s', '--scale', type=int, default=256,
-        help='Scale in bytes per pixel')
-    @argument('-w', '--width', type=int, default=4096,
-        help='Size of square hilbert map, in pixels')
+    @argument('-b', '--base', type=int, default=0, help='First address in map')
+    @argument('-s', '--scale', type=int, default=256, help='Scale in bytes per pixel')
+    @argument('-w', '--width', type=int, default=4096, help='Size of square hilbert map, in pixels')
     @argument('x', type=int)
     @argument('y', type=int)
+
     def msl(self, line, cell=''):
         """Memsquare lookup"""
         args = parse_argstring(self.msl, line)
@@ -79,10 +169,11 @@ class ShellMagics(Magics):
         addr = args.base + args.scale * hilbert(args.x, args.y, args.width) 
         print "%08x" % addr
 
-    @line_cell_magic
+    @magic.line_cell_magic
     @magic_arguments()
     @argument('address', type=hexint)
     @argument('code', nargs='*')
+
     def asm(self, line, cell=''):
         """Assemble one or more ARM instructions
 
@@ -91,11 +182,12 @@ class ShellMagics(Magics):
 
         Use with line or cell mode:
 
-            %asm address line
+            %asm address op; op; op
 
             %%asm address
-            line..
-            line..
+            op
+            op
+            op
 
         """
         args = parse_argstring(self.asm, line)
@@ -103,13 +195,15 @@ class ShellMagics(Magics):
         code = ' '.join(args.code) + '\n' + cell
         assemble(d, args.address, code)
 
-    @line_magic
+    @magic.line_magic
     def ec(self, line):
         """Evaluate a 32-bit C++ expression on the target"""
         print "0x%08x" % evalc(d, line)
 
 
 if __name__ == '__main__':
+    d = remote.Device()
     shell = InteractiveShellEmbed()
+    setup_hexoutput(shell)
     shell.register_magics(ShellMagics)
-    shell()
+    shell.mainloop(display_banner = __doc__)

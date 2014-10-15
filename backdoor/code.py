@@ -7,11 +7,32 @@ CC      = 'arm-none-eabi-gcc'
 OBJCOPY = 'arm-none-eabi-objcopy'
 OBJDUMP = 'arm-none-eabi-objdump'
 
-__all__ = ['disassemble_string', 'disassemble', 'assemble', 'compile', 'evalc']
+__all__ = [
+    'disassemble_string', 'disassemble',
+    'assemble', 'compile', 'evalc',
+    'pad', 'defines', 'includes',
+]
 
 import remote, os, random, struct
 from subprocess import check_call, check_output
 from dump import read_block
+
+# Global scratchpad memory. This is the address of the biggest safest area of
+# read-write-execute RAM we can guesstimate about. This is provided as a
+# default location for the backdoor commands here to hastily bludgeon data
+# into. How did we find it? Guesswork! Also, staring at memsquares!
+
+pad = 0x1fffda0
+
+# Default global defines for C++ and assembly code we compile
+
+defines = {
+    'pad': pad
+}
+
+# Default list of C++ snippets.
+
+includes = []
 
 
 def tempnames(*suffixes):
@@ -49,7 +70,7 @@ def disassemble_string(data, address = 0, thumb = True, leave_temp_files = False
         write_file(bin, data)
 
         text = check_output([
-            OBJDUMP, '-D', '-w',
+            OBJDUMP, '-D', '-w', '-z',
             '-b', 'binary', '-m', 'arm7tdmi', 
             '--prefix-addresses',
             '--adjust-vma', '0x%08x' % address,
@@ -64,9 +85,19 @@ def disassemble_string(data, address = 0, thumb = True, leave_temp_files = False
         cleanup(temps, leave_temp_files)
 
 def disassemble(d, address, size, thumb = True, leave_temp_files = False):
+    """Read some bytes of ARM memory and try to disassemble it as code.
+       Returns a string made of up multiple lines, each with the address
+       in hex, a tab, then the disassembled code.
+       """
     return disassemble_string(read_block(d, address, size), address, thumb, leave_temp_files)
 
-def assemble(d, address, text, leave_temp_files = False):
+def assemble(d, address, text, defines = defines, leave_temp_files = False):
+    """Assemble some instructions for the ARM and place them in memory.
+       Address must be word aligned.
+       """
+    if address & 3:
+        raise ValueError("Address needs to be word aligned")
+
     src, obj, bin, ld = temps = tempnames('.s', '.o', '.bin', '.ld')
     try:
 
@@ -91,15 +122,19 @@ def assemble(d, address, text, leave_temp_files = False):
             .text
             .syntax unified
             .thumb
+            %s
             .global _start 
         _start:
             %s
-
             .align  2
             .pool
             .align  2
 
-            ''' % text)
+            ''' % (
+                '\n'.join(['.equ %s, 0x%08x' % i for i in defines.items()]),
+                text
+            )
+        )
 
         check_call([ CC, '-nostdlib', '-nostdinc', '-o', obj, src, '-T', ld ])
         check_call([ OBJCOPY, obj, '-O', 'binary', bin ])
@@ -112,18 +147,30 @@ def assemble(d, address, text, leave_temp_files = False):
     for i, word in enumerate(words):
         d.poke(address + 4*i, word)
 
-def compile(d, address, expression, include = '',
+def compile(d, address, expression, includes = includes, defines = defines,
     show_disassembly = False, thumb = True, leave_temp_files = False):
+    """Compile a C++ expression to a stand-alone patch installed starting at the supplied address.
+
+       The 'includes' list contains text of C++ definitions and declarations that
+       go above the function containing our expression. The 'globals' dictionary
+       can define uint32_t constants that are available even prior to the includes.
+       """
 
     src, obj, bin, ld = temps = tempnames('.cpp', '.o', '.bin', '.ld')
     try:
 
-        # Uglier source here, a little nicer in 'show_disassembly'
-        whole_src = ('  #include <stdint.h>\n'
-                     '  %s\n'
-                     '  uint32_t __attribute__ ((externally_visible, section(".first"))) start(unsigned arg) {\n'
-                     '    return ( %s );\n'
-                     '  }') % (include, expression)
+        whole_src = (
+            '#include <stdint.h>\n'
+            '%s\n'
+            '%s\n'
+            'uint32_t __attribute__ ((externally_visible, section(".first"))) start(unsigned arg) {\n'
+            '  return ( %s );\n'
+            '}'
+        ) % (
+            '\n'.join(['static const uint32_t %s = 0x%08x;' % i for i in defines.items()]),
+            '\n'.join(includes),
+            expression
+        )
 
         # Linker script
         write_file(ld, '''
@@ -165,9 +212,9 @@ def compile(d, address, expression, include = '',
         d.poke(address + 4*i, word)
 
 
-def evalc(d, expression, arg = 0, include = '', address = 0x1fffda0, show_disassembly = False):
+def evalc(d, expression, arg = 0, includes = includes, defines = defines, address = pad, show_disassembly = False):
     """Compile and remotely execute a C++ expression"""
-    compile(d, address, expression, include, show_disassembly)
+    compile(d, address, expression, includes=includes, defines=defines, show_disassembly=show_disassembly)
     return d.blx(address + 1, arg)[0]
 
 
@@ -175,7 +222,6 @@ if __name__ == '__main__':
     # Example
 
     d = remote.Device()
-    pad = 0x1fffda0
 
     print disassemble(d, pad, 0x20)
 

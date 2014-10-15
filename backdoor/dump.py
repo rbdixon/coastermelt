@@ -27,6 +27,14 @@ def read_word_aligned_block(d, address, size):
     return ''.join(parts)
 
 def read_block(d, address, size):
+    """read_block(d, address, size) -> string
+
+    Read a block of ARM memory, return it as a string.
+
+    Reads using LDR (word-aligned) reads only. The requested block
+    does not need to be aligned.
+    """
+
     # Convert to half-open interval [address, end)
     # Round beginning of interval down to nearest word
     # Round end of interval up to nearest word
