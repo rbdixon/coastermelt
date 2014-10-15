@@ -56,19 +56,30 @@ very thorough.
    at 000:fff, hence the encrypted IVT in the bootloader.
 
 
-Memory Map
-----------
+Hardware Memory Map
+-------------------
 
-00000000 - 001fffff      Flash (2MB)
-00000000 - 0000ffff      Write-protected boot block (64kB)
+* 00000000 - 001fffff      Flash (2MB)
+  00000000 - 0000ffff      Write-protected bootloader flash (64kB)
+  00010000 - 001e1fff      Loadable firmware image (1863 kB)
+  001e2000 - 001fffff      Runtime storage and bootloader info (120 kB)
+
+  01c00000 - 01ffffff      Buffer DRAM (4MB)
+  02000000 - 02001fff      Main SRAM (8kB)
+  04000000 - 043fffff      Memory mapped I/O
+
+
+Typical Memory Usage
+--------------------
+
+Currently keeping notes on things I'm less certain about here. The hardware
+includes some memory mapping features, and the standard firmware seems to use
+these for initialization and/or security purposes.
+
 00400000 - 00400fff      Writeable 4kB page
                             Set up via reg [4011f08]=00400000
                             Copy of application IVT (0x10000) written here
                             Mirror of SRAM?
-
-1fff8000                 More SRAM
-02000000                 Main SRAM
-04000000                 Memory mapped I/O
 
 
 DRAM
