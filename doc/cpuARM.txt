@@ -9,6 +9,10 @@ and it relies heavily on inter-processor communication with the other cores.
  - Looks like it does NOT support the full Thumb-2 instruction set.
    Not sure which subset it supports yet.
 
+ - Running in supervisor mode
+
+ - Failed to identify CPU with "mrc p15, 0, r0, c0, c0, 0" (crash)
+
 
 Vector Table
 ------------
