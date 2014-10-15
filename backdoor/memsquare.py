@@ -19,7 +19,7 @@ def categorize_block(d, address, size):
     # they can't be calculated until the whole image is known.
 
     t1 = time.time()
-    head = read_block(d, address, 0x1d)
+    head = read_block(d, address, min(0x1d, size))
     t2 = time.time()
 
     # Red/green channels: Statistics. Red is mean,
@@ -44,7 +44,7 @@ def categorize_block(d, address, size):
         t2 - t1                                    # Blue is in floating point seconds. We post-process below.
     ]
 
-def categorize_block_array(d, base_address = 0, blocksize = 0x100, pixelsize = 4096):
+def categorize_block_array(d, base_address, blocksize, pixelsize):
     print 'Categorizing blocks in memory, following a 2D Hilbert curve'
 
     a = []
@@ -99,7 +99,7 @@ def categorize_block_array(d, base_address = 0, blocksize = 0x100, pixelsize = 4
     print 'Done scaling'
     return a
 
-def memsquare(d, filename = 'memsquare.png', base_address = 0, blocksize = 0x100, pixelsize = 4096):
+def memsquare(d, filename, base_address, blocksize, pixelsize = 4096):
     b = categorize_block_array(d, base_address, blocksize, pixelsize)
     w = png.Writer(len(b[0])/3, len(b))
     f = open(filename, 'wb')
@@ -107,12 +107,18 @@ def memsquare(d, filename = 'memsquare.png', base_address = 0, blocksize = 0x100
     f.close()
     print 'Wrote %s' % filename
 
+def survey():
+    # Survey of all address space, each pixel is 0x100 bytes
+    memsquare(remote.Device(), 'memsquare-scale100-ffffffff.png', 0, 0x100)
 
-if __name__ == "__main__":
-    if len(sys.argv) == 1:
-        memsquare(remote.Device())
-    elif len(sys.argv) > 2 or sys.argv[1][0] == '-':
-        print "usage: %s [filename]" % sys.argv[0]
-        sys.exit(1)
+def detail():
+    # Just the active region in the low 64MB of address space. Each pixel is 4 bytes
+    memsquare(remote.Device(), 'memsquare-scale4-3fffffff.png', 0, 4)
+
+
+if __name__ == '__main__':
+    modes = ['survey', 'detail']
+    if len(sys.argv) == 2 and sys.argv[1] in modes:
+        globals()[sys.argv[1]]()
     else:
-        memsquare(remote.Device(), sys.argv[1])
+        print 'usage: %s (%s)' % (sys.argv[0], '|'.join(modes))
