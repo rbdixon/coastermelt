@@ -64,11 +64,11 @@ def categorize_block_array(d, base_address = 0, blocksize = 0x100, pixelsize = 4
                 # Estimate time
                 completion = (x + y*pixelsize) / float(pixelsize*pixelsize)
                 elapsed = now - first_time
+                remaining = 0
                 if completion > 0.00001:
-                    remaining = elapsed / completion
-                else:
-                    # Placeholder; not complete enough to estimate
-                    remaining = 0
+                    total = elapsed / completion
+                    if total > elapsed:
+                        remaining = total - elapsed
 
                 print 'block %08x - (%4d,%4d) of %d, %6.2f%% -- %2d:%02d:%02d elapsed, %02d:%02d:%02d est. remaining' % (
                     addr, x, y, pixelsize, 100 * completion,
