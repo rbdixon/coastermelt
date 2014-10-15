@@ -107,18 +107,23 @@ def memsquare(d, filename, base_address, blocksize, pixelsize = 4096):
     f.close()
     print 'Wrote %s' % filename
 
+
 def survey():
     # Survey of all address space, each pixel is 0x100 bytes
-    memsquare(remote.Device(), 'memsquare-scale100-ffffffff.png', 0, 0x100)
+    memsquare(remote.Device(), 'memsquare-survey.png', 0, 0x100)
 
 def detail():
     # Just the active region in the low 64MB of address space. Each pixel is 4 bytes
-    memsquare(remote.Device(), 'memsquare-scale4-3fffffff.png', 0, 4)
+    memsquare(remote.Device(), 'memsquare-detail.png', 0, 4)
+
+def mmio():
+    # Map every byte in 4MB of MMIO space
+    memsquare(remote.Device(), 'memsquare-mmio.png', 0x04000000, 1, 2048)
 
 
 if __name__ == '__main__':
-    modes = ['survey', 'detail']
+    modes = ['survey', 'detail', 'mmio']
     if len(sys.argv) == 2 and sys.argv[1] in modes:
         globals()[sys.argv[1]]()
     else:
-        print 'usage: %s (%s)' % (sys.argv[0], '|'.join(modes))
+        print 'usage: %s (%s)' % (sys.argv[0], ' | '.join(modes))
