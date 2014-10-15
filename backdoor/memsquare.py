@@ -70,7 +70,7 @@ def categorize_block_array(d, base_address, blocksize, pixelsize):
                     if total > elapsed:
                         remaining = total - elapsed
 
-                print 'block %08x - (%4d,%4d) of %d, %6.2f%% -- %2d:%02d:%02d elapsed, %02d:%02d:%02d est. remaining' % (
+                print 'block %08x - (%4d,%4d) of %d, %6.2f%% -- %2d:%02d:%02d elapsed, %2d:%02d:%02d est. remaining' % (
                     addr, x, y, pixelsize, 100 * completion,
                     elapsed / (60 * 60), (elapsed / 60) % 60, elapsed % 60,
                     remaining / (60 * 60), (remaining / 60) % 60, remaining % 60)
