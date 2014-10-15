@@ -35,12 +35,11 @@ Or compile and invoke C++ code:
 The 'defines' and 'includes' dicts keep things you can define
 in Python but use when compiling C++ and ASM snippets:
 
-    defines['base'] = pad + 0x100
-    ec base
-    asm _ ldr r0, =base; bx lr
-
-    includes.append('int splat(int x) { return x | (x << 8); }')
-    ec splat(0x50)
+    defines['buffer'] = pad + 0x10000
+    includes += ['int slide(int x) { return x << 8; }']
+    ec buffer
+    ec slide(0x50)
+    asm _ ldr r0, =buffer; bx lr
 
 Happy hacking!
 ~MeS`14

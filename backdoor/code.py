@@ -21,8 +21,12 @@ from dump import read_block
 # read-write-execute RAM we can guesstimate about. This is provided as a
 # default location for the backdoor commands here to hastily bludgeon data
 # into. How did we find it? Guesswork! Also, staring at memsquares!
+#
+# This is halfway through DRAM, in a spot that seems to exhibit uninitialized
+# memory patterns even after quite a lot of time running memsquare.py
+# Hopefully our code won't get trashed by a SCSI packet!
 
-pad = 0x1fffda0
+pad = 0x1e00000
 
 # Default global defines for C++ and assembly code we compile
 
@@ -245,7 +249,7 @@ if __name__ == '__main__':
         '''
 
     # C++ one-liners
-    compile(d, pad, 'multiply(arg, 5)', lib, show_disassembly = True)
+    compile(d, pad, 'multiply(arg, 5)', includes = [lib], show_disassembly = True)
 
     # Test the C++ function
     for n in 1, 2, 3, 500, 0:
@@ -254,6 +258,6 @@ if __name__ == '__main__':
     # An even higher level C++ example
     assert 5 == evalc(d, '5')
     assert 10 == evalc(d, 'arg', 10)
-    assert 0xe59ff018 ==  evalc(d, '*(uint32_t*)0')
+    assert 0xabc0000 ==  evalc(d, 'funk << 16', defines={'funk':0xabc})
 
     print "\nSuccessfully called compiled C++ code on the target!"
