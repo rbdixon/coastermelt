@@ -19,8 +19,16 @@ def categorize_block(d, address, size):
     # they can't be calculated until the whole image is known.
 
     t1 = time.time()
-    head = read_block(d, address, min(0x1d, size))
+    try:
+        head = read_block(d, address, min(0x1d, size))    
+    except IOError, e:
+        print e
+        head = None
     t2 = time.time()
+
+    if head is None:
+        # Error marker
+        return [0xFF, 0x00, t2-t1]
 
     # Red/green channels: Statistics. Red is mean,
     # green is mod-256 sum of squared differences between
@@ -110,19 +118,29 @@ def memsquare(d, filename, base_address, blocksize, pixelsize = 4096):
 
 def survey():
     # Survey of all address space, each pixel is 0x100 bytes
-    memsquare(remote.Device(), 'memsquare-survey.png', 0, 0x100)
+    memsquare(remote.Device(), 'memsquare-00000000-ffffffff.png', 0, 0x100)
 
-def detail():
-    # Just the active region in the low 64MB of address space. Each pixel is 4 bytes
-    memsquare(remote.Device(), 'memsquare-detail.png', 0, 4)
+def low64():
+    # Just the active region in the low 64MB of address space.
+    # Each pixel is 4 bytes, so this is about as much resolution as we could want.
+    memsquare(remote.Device(), 'memsquare-00000000-3fffffff.png', 0, 4)
 
 def mmio():
     # Map every byte in 4MB of MMIO space
-    memsquare(remote.Device(), 'memsquare-mmio.png', 0x04000000, 1, 2048)
+    memsquare(remote.Device(), 'memsquare-04000000-043fffff.png', 0x04000000, 1, 2048)
+
+def dram():
+    # Fast dump of DRAM. 512x512, 16 byte scale.
+    # Runs in a few minutes, okay for differential testing.
+    memsquare(remote.Device(), 'memsquare-01c00000-01ffffff.png', 0x01c00000, 16, 512)
+
+def sram():
+    # Small 8kB mapping, looks like SRAM. 2-byte scale.
+    memsquare(remote.Device(), 'memsquare-02000000-02001fff.png', 0x02000000, 2, 64)
 
 
 if __name__ == '__main__':
-    modes = ['survey', 'detail', 'mmio']
+    modes = ['survey', 'low64', 'mmio', 'dram', 'sram']
     if len(sys.argv) == 2 and sys.argv[1] in modes:
         globals()[sys.argv[1]]()
     else:
