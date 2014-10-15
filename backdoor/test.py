@@ -2,6 +2,7 @@
 from struct import pack, unpack
 from binascii import a2b_hex, b2a_hex
 import random, struct, remote, hilbert
+from dump import *
 d = remote.Device()
 
 # Working our way up to "Hello World"!
@@ -49,5 +50,10 @@ for i in range(L):
 
 # Hilbert self-test
 hilbert.test()
+
+# Test alignment in block reads
+b = read_block(d, 0, 0x100)
+for offset in range(0x50):
+    assert b[offset:offset+0x40] == read_block(d, offset, 0x40)
 
 print "Looks good!"
