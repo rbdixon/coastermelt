@@ -49,8 +49,14 @@ def read_block(d, address, size):
 
     return read_word_aligned_block(d, word_address, word_size)[sub_begin:sub_end]
 
-# Based on https://gist.github.com/sbz/1080258
-def hexdump(src, length=16, address=0):
+
+def hexdump(src, length = 16, address = 0, log_file = None):
+    if log_file:
+        f = open(log_file, 'wb')
+        f.write(src)
+        f.close()
+
+    # Based on https://gist.github.com/sbz/1080258
     FILTER = ''.join([(len(repr(chr(x))) == 3) and chr(x) or '.' for x in range(256)])
     lines = []
     for c in xrange(0, len(src), length):
@@ -60,11 +66,10 @@ def hexdump(src, length=16, address=0):
         lines.append("%08x  %-*s  %s\n" % (address + c, length*3, hex, printable))
     return ''.join(lines)
 
+
 def dump(d, address, size, log_file = 'result.log'):
     data = read_block(d, address, size)
-    if log_file:
-        open(log_file, 'wb').write(data)
-    sys.stdout.write(hexdump(data, 16, address))
+    sys.stdout.write(hexdump(data, 16, address, log_file))
 
 
 if __name__ == "__main__":

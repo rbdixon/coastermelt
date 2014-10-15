@@ -41,6 +41,16 @@ in Python but use when compiling C++ and ASM snippets:
     ec slide(0x50)
     asm _ ldr r0, =buffer; bx lr
 
+You can script the device's SCSI interface too:
+
+    sc c ac              # Backdoor signature
+    sc 8 ff 00 ff        # Undocumented firmware version
+    sc_eject
+    sc_sense
+    sc_read 100
+    scsi_in?
+    scsi_out?
+
 Happy hacking!
 ~MeS`14
 """
@@ -50,10 +60,12 @@ from IPython.core import magic
 from IPython.core.magic_arguments import magic_arguments, argument, parse_argstring
 from IPython.terminal.embed import InteractiveShellEmbed
 
-import remote
+import remote, struct, sys
 from hilbert import hilbert
 from dump import *
 from code import *
+
+from binascii import a2b_hex, b2a_hex
 
 __all__ = ['hexint', 'ShellMagics', 'peek', 'poke', 'setup_hexoutput']
 
@@ -72,22 +84,7 @@ def setup_hexoutput(ipy):
     formatter.for_type(int, handler)
 
 def hexint(s):
-    """This takes a bunch of weird number formats.
-
-    Hex:
-    1234abcd
-
-    Internal underscores are ignored, you can use them as separators:
-    1a_bcde
-
-    As a shortcut for numbers that end in lots of zeroes, each
-    trailing '_' expands to four zeroes:
-    20_
-
-    Leading underscores are numbers relative to our scratchpad address "pad"
-    _0
-
-    """
+    """This takes a bunch of weird number formats, as explained in the module docs"""
     if s.startswith('_'):
         base = pad
     else:
@@ -96,7 +93,18 @@ def hexint(s):
         s += '0000'
     return base + int(s.replace('_',''), 16)
 
-# Peek and poke wrappers, for consistency
+def get_signature(d):
+    """Return a 12-byte signature identifying the firmware patch."""
+    return d.get_signature()
+
+def scsi_out(d, cdb, data):
+    """Send a low-level SCSI packet with outgoing data."""
+    return d.scsi_out(cdb, data)
+
+def scsi_in(d, cdb, size):
+    """Send a low-level SCSI packet that expects incoming data."""
+    return d.scsi_in(cdb, size)
+
 def peek(d, address):
     """Read one 32-bit word from ARM memory. Return it as an unsigned integer."""
     return d.peek(address)
@@ -105,6 +113,17 @@ def poke(d, address, word):
     """Write one 32-bit word to ARM memory."""
     return d.poke(address, word);
 
+def peek_byte(d, address):
+    """Read one 8-bit byte from ARM memory. Return it as an unsigned integer."""
+    return d.peek(address)
+
+def poke_byte(d, address, byte):
+    """Write one 8-bit byte to ARM memory."""
+    return d.poke(address, byte);
+
+def blx(d, address, r0=0):
+    """Invoke a function with one argument word and two return words."""
+    return d.blx(address, r0)
 
 @magic.magics_class
 class ShellMagics(magic.Magics):
@@ -187,7 +206,6 @@ class ShellMagics(magic.Magics):
             op
             op
             op
-
         """
         args = parse_argstring(self.asm, line)
         assert 0 == (args.address & 3)
@@ -198,6 +216,41 @@ class ShellMagics(magic.Magics):
     def ec(self, line):
         """Evaluate a 32-bit C++ expression on the target"""
         print "0x%08x" % evalc(d, line)
+
+    @magic.line_magic
+    @magic_arguments()
+    @argument('len', type=hexint, help='Length of input transfer')
+    @argument('cdb', type=hexint, nargs='*', help='Up to 12 SCSI CDB bytes')
+
+    def sc(self, line, cell=''):
+        """Send a low-level SCSI command with a 12-byte CDB"""
+        args = parse_argstring(self.sc, line)
+        cdb = struct.pack('12B', *(args.cdb + [0]*12)[:12])
+        data = d.scsi_in(cdb, args.len)
+        sys.stdout.write(hexdump(data))
+
+    @magic.line_magic
+    def sc_eject(self, line):
+        """Ask the drive to eject its disc."""
+        self.sc('0 1b 0 0 0 2')
+
+    @magic.line_magic
+    def sc_sense(self, line):
+        """Send a Request Sense command."""
+        self.sc('20 3 0 0 0 20')
+
+    @magic.line_magic
+    @magic_arguments()
+    @argument('lba', type=hexint, help='Logical Block Address')
+    @argument('length', type=hexint, nargs='?', default=1, help='Transfer length, in 2kb blocks')
+    @argument('-f', type=str, default=None, metavar='FILE', help='Log binary data to a file also')
+
+    def sc_read(self, line, cell=''):
+        """Read blocks from the SCSI device."""
+        args = parse_argstring(self.sc_read, line)
+        cdb = struct.pack('>BBIIBB', 0xA8, 0, args.lba, args.length, 0, 0)
+        data = d.scsi_in(cdb, args.length * 2048)
+        sys.stdout.write(hexdump(data, log_file=args.f))
 
 
 if __name__ == '__main__':
