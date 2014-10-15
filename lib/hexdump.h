@@ -1,5 +1,5 @@
 /*
- * Dumb C++ hex dump to stderr
+ * Dumb C++ hex dump
  *
  * Micah Elizabeth Scott, 2014. This file is released into the public domain.
  */
