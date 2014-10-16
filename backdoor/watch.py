@@ -121,11 +121,14 @@ def watch_scanner(d, addrs, verbose = True, block_wordcount = 0x1c, memo_filenam
     # Scan in an endless series of shuffled rounds
     while True:
         round_number += 1
+        byte_count = 0
+
         for addr, fn in break_up_addresses(d, addrs, block_wordcount):
 
             # Timestamp as soon as the block read comes back
             block = fn()
             timestamp = time.time()
+            byte_count += len(block)
 
             # Keep track of differences with our memo buffer
             memo.seek(addr)
@@ -151,7 +154,7 @@ def watch_scanner(d, addrs, verbose = True, block_wordcount = 0x1c, memo_filenam
         now = time.time()
         if verbose and now > output_timestamp + 1.0:
             output_timestamp = now
-            print "* scanning at %.03f Hz" % (round_number / (now - start_timestamp))
+            print "* scanning %d bytes at %.03f Hz" % (byte_count, round_number / (now - start_timestamp))
 
 
 def watch_tabulator(change_iterator, legend_interval = 40, warmup_seconds = 1):
