@@ -146,6 +146,9 @@ Very rough notes, may be wildly wrong.
                                                readable via GPIO.
                                       2
 
+            4002028   uint32      Interrupt flags?
+            400202c   uint32      Interrupt vector pointer?
+
             4002058   uint32      "App select", affects bootloader in many ways
 
             4002078   uint32      System tick counter
