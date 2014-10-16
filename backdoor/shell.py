@@ -20,7 +20,7 @@ Assemble and disassemble ARM instructions:
     dis 3100
     asm _4 mov r3, #0x14
     dis _4 10
-    ALSO: assemble, disassemble,
+    ALSO: assemble, disassemble, blx
 
 Or compile and invoke C++ code:
 
