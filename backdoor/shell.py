@@ -13,7 +13,7 @@ Internal _ are ignored so you can use them as separators.
     rd 1ff_ 100
     wr _ fe00
     fill _10 55aa_55aa 4
-    ALSO: peek, poke, read_block, watch
+    ALSO: peek, poke, read_block, watch, find
 
 Assemble and disassemble ARM instructions:
 
@@ -75,6 +75,10 @@ def setup_hexoutput(ipy):
     formatter = ipy.display_formatter.formatters['text/plain']
     formatter.for_type(int, handler)
 
+def hexstr(s):
+    """Compact inline hexdump"""
+    return ' '.join(['%02x' % ord(b) for b in s])
+
 def hexint(s):
     """This takes a bunch of weird number formats, as explained in the module docs"""
     if s.startswith('_'):
@@ -127,8 +131,8 @@ class ShellMagics(magic.Magics):
 
     @magic.line_magic
     @magic_arguments()
-    @argument('address', type=hexint)
-    @argument('size', type=hexint, nargs='?', default=0x100, help='Address to read from. Hexadecimal. Not necessarily aligned.')
+    @argument('address', type=hexint, help='Address to read from. Hexadecimal. Not necessarily aligned')
+    @argument('size', type=hexint, nargs='?', default=0x100, help='Number of bytes to read')
 
     def rd(self, line):
         """Read ARM memory block"""
@@ -178,6 +182,19 @@ class ShellMagics(magic.Magics):
                 print line
         except KeyboardInterrupt:
             pass
+
+    @magic.line_magic
+    @magic_arguments()
+    @argument('address', type=hexint, help='First address to search')
+    @argument('size', type=hexint, help='Size of region to search')
+    @argument('byte', type=hexint, nargs='+', help='List of bytes to search for, at any alignment')
+
+    def find(self, line):
+        """Read ARM memory block, and look for all occurrences of a byte sequence"""
+        args = parse_argstring(self.find, line)
+        substr = ''.join(map(chr, args.byte))
+        for address, before, after in search_block(d, args.address, args.size, substr):
+            print "%08x %52s [ %s ] %s" % (address, hexstr(before), hexstr(substr), hexstr(after))
 
     @magic.line_magic
     @magic_arguments()

@@ -4,7 +4,7 @@ import remote, sys, struct, time
 # Use on the command line to interactively dump regions of memory.
 # Or import as a library for higher level dumping functions.
 
-__all__ = ['read_block', 'hexdump', 'dump']
+__all__ = ['read_block', 'hexdump', 'dump', 'search_block']
 
 
 def read_word_aligned_block(d, address, size):
@@ -26,10 +26,9 @@ def read_word_aligned_block(d, address, size):
 
     return ''.join(parts)
 
-def read_block(d, address, size):
-    """read_block(d, address, size) -> string
 
-    Read a block of ARM memory, return it as a string.
+def read_block(d, address, size):
+    """Read a block of ARM memory, return it as a string.
 
     Reads using LDR (word-aligned) reads only. The requested block
     does not need to be aligned.
@@ -48,6 +47,30 @@ def read_block(d, address, size):
     sub_end = sub_begin + size
 
     return read_word_aligned_block(d, word_address, word_size)[sub_begin:sub_end]
+
+
+def search_block(d, address, size, substring, context_length = 16):
+    """Read a block of ARM memory, and search for all occurrences of a byte string.
+
+    Yields tuples every time a match is found:
+    (address, context_before, context_after) 
+    """
+
+    # We may have a way to do this gradually later, but for now we read all at once
+    # then search all at once.
+    block = read_block(d, address, size)
+
+    offset = 0
+    while True:
+        offset = block.find(substring, offset)
+        if offset < 0:
+            break
+        yield (
+            address + offset,
+            block[max(0, offset - context_length):offset],
+            block[offset + len(substring):offset + len(substring) + context_length]
+        )
+        offset += len(substring)
 
 
 def hexdump(src, length = 16, address = 0, log_file = None):
