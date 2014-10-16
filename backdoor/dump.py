@@ -95,7 +95,7 @@ def hexdump(src, length = 16, address = 0, log_file = None):
     return ''.join(lines)
 
 
-def hexdump_words(src, words_per_line = 16, address = 0, log_file = None):
+def hexdump_words(src, words_per_line = 8, address = 0, log_file = None):
     if log_file:
         f = open(log_file, 'wb')
         f.write(src)
@@ -109,7 +109,7 @@ def hexdump_words(src, words_per_line = 16, address = 0, log_file = None):
     for c in xrange(0, len(words), words_per_line):
         w = words[c:c+words_per_line]
         hex = ' '.join(["%08x" % i for i in w])
-        lines.append("%08x  %-*s\n" % (address + c, words_per_line*9, hex))
+        lines.append("%08x  %-*s\n" % (address + c*4, words_per_line*9, hex))
     return ''.join(lines)
 
 
