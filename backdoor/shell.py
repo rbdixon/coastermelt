@@ -12,14 +12,15 @@ Internal _ are ignored so you can use them as separators.
 
     rd 1ff_ 100
     wr _ fe00
-    ALSO: rdw, fill, peek, poke, read_block, watch, find
+    ALSO: rdw, orr, bic, fill, watch, find
+          peek, poke, read_block
 
 Assemble and disassemble ARM instructions:
 
     dis 3100
     asm _4 mov r3, #0x14
     dis _4 10
-    ALSO: assemble, disassemble, blx
+    ALSO: assemble, disassemble, blx, trap
 
 Or compile and invoke C++ code:
 
@@ -55,7 +56,9 @@ from hilbert import hilbert
 from dump import *
 from code import *
 from watch import *
+from trap import *
 
+# These are super handy in the shell
 from binascii import a2b_hex, b2a_hex
 
 __all__ = ['hexint', 'ShellMagics', 'peek', 'poke', 'setup_hexoutput']
@@ -160,6 +163,32 @@ class ShellMagics(magic.Magics):
         for i, w in enumerate(args.word):
             d.poke(args.address + i*4, w)
 
+    @magic.line_cell_magic
+    @magic_arguments()
+    @argument('address', type=hexint, help='Hex address')
+    @argument('word', type=hexint, nargs='*', help='Hex words')
+
+    def orr(self, line, cell=''):
+        """Read/modify/write hex words into ARM memory, [mem] |= arg"""
+        args = parse_argstring(self.orr, line)
+        args.word.extend(map(hexint, cell.split()))
+        for i, w in enumerate(args.word):
+            a = args.address + i*4
+            d.poke(a, d.peek(a) | w)
+
+    @magic.line_cell_magic
+    @magic_arguments()
+    @argument('address', type=hexint, help='Hex address')
+    @argument('word', type=hexint, nargs='*', help='Hex words')
+
+    def bic(self, line, cell=''):
+        """Read/modify/write hex words into ARM memory, [mem] &= ~arg"""
+        args = parse_argstring(self.bic, line)
+        args.word.extend(map(hexint, cell.split()))
+        for i, w in enumerate(args.word):
+            a = args.address + i*4
+            d.poke(a, d.peek(a) | w)
+
     @magic.line_magic
     @magic_arguments()
     @argument('address', type=hexint, help='Hex address, word aligned')
@@ -214,6 +243,16 @@ class ShellMagics(magic.Magics):
         """Disassemble ARM instructions"""
         args = parse_argstring(self.dis, line)
         print disassemble(d, args.address, args.size)
+
+    @magic.line_magic
+    @magic_arguments()
+    @argument('first_address', type=hexint)
+    @argument('last_address', type=hexint)
+
+    def trap(self, line):
+        """Set up a mapping that will (hopefully) crash when using memory in a range."""
+        args = parse_argstring(self.trap, line)
+        trap_set(d, args.first_address, args.last_address)
 
     @magic.line_cell_magic
     @magic_arguments()

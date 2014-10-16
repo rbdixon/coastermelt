@@ -192,23 +192,37 @@ Very rough notes, may be wildly wrong.
             4011064   uint32      Flags
                                       4    Transparent encryption enabled
             4011068   uint32      First address of transparent encryption region
-            401106c   uint32      Final address in transparent encryption region
+            401106c   uint32      Last address in transparent encryption region
 
             - Movable memory regions
 
-            These normally live at 000:3ff and 400:fff (over the bootloader encrypted area)
-            but during app boot they temporarily move above flash so we can copy the app
-            IVT to them transparently.
+            There are a bunch of these! They are either memory mirroring regions or
+            they're some kind of transparent decryption. Either way, they replace
+            memory with totally different memory.
+
+            This register runs the show:
 
             4011f04   uint32      Flags
                                     800    Set by boot0
                                     400    Enable flag
                                     200    Enable flag, set by boot0
                                     100    Enable flag, set by boot0
-            4011f08   uint32      Base address 1
-            4011f0c   uint32      Final address 1
-            4011f10   uint32      Base address 2
-            4011f14   uint32      Final address 2
+
+            Then we have these pairs of first-address / last-address registers.
+            Just the ones that are definitely addresses:
+
+                4011f08 / 4011f0c    First 4k of address space
+                4011f10 / 4011f14    Function in app flash, cfbe4
+                                     Also seen at 400000:400bff:400c00:400fff for mapped memcpys
+                4011f20 / 4011f24    All of flash
+                4011f50 / 4011f54    In the firmware startup code, 1ec00:1efff
+                4011f58 / 4011f5c    Much later in flash, 169220:16961f
+                4011f60 / 4011f64    Bootloader, 2800:2fff
+
+            4011f08   uint32      First address 1
+            4011f0c   uint32      Last address 1
+            4011f10   uint32      First address 2
+            4011f14   uint32      Last address 2
 
 4020000
 4020f00     Related to RAM region 2000000, set up during boot0
