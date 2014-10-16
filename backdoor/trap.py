@@ -9,9 +9,9 @@ import remote, sys
 # happen. Most likely, if the trapped area is in use, the firmware will crash.
 # But really, anything.
 #
-# What does it do right now? It seems to pull 0x1000 bytes from 0xcfbe4 in flash.
-# If the mapping is longer, the region repeats. The mapping can go anywhere in
-# the low 8MB of virtual address space.
+# What does it do right now? It seems to pull up to 0x1000 bytes from 0xcfbe4
+# in flash. If the mapping is longer, the region repeats. The mapping can go
+# anywhere in the low 8MB of virtual address space.
 #
 # Right now, here's what you get:
 #    
@@ -51,7 +51,7 @@ __all__ = [
 ]
 
 
-def trap_set(d, address, wordcount):
+def trap_set(d, address, wordcount = 1):
     # pulling from cfbe4
 
     control = 0x4011f04
