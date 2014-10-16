@@ -48,27 +48,39 @@ updates, but TSSC clearly went their own route. Looks like these might be
 fully custom, or they might be some vestiges of official spec support that
 they decided to drop. Whatever the reason, these turn out to be super useful.
 
-  3c 02 00 aa aa aa ll ll ll      Read 0xllllll bytes from address 0xaaaaaa
-                                  This appears to be able to access anything
-                                  in the low 16MB of... whatever address
-                                  space this is. Seems like DRAM buffer memory,
-                                  possibly also what the 8051It would make sense for this
-                                  to be the normal ARM address space, but the
-                                  data doesn't line up.
+  3c 02 00 aa aa aa ll ll ll      Read 0xllllll bytes from address 0xaaaaaa.
+                                  This is a new address space, possibly a bus
+                                  address for the USB controller. The
+                                  implementation of this command passes the
+                                  address directly to the same DMA controller
+                                  that usually receives the address of an
+                                  allocated DRAM buffer.
 
-  3c 06 00 aa aa aa ll ll ll      Another read command, this time it seems to
-                                  be the ARM copying from its address space to
-                                  the DMA space. Addresses < 0x200000 return
-                                  flash, other addresses seem to crash.
+                                  This address space has access to DRAM, but
+                                  it's unclear whether there's a linear
+                                  mapping. For now, I've noticed this one
+                                  correspondence which seems to be the second
+                                  (larger) DSP firmware image.
+
+  [EXAMPLE]  Correspondence between I/O address space and firmware in DRAM
+
+              %sc 1000 3c 2 0  0 10 0  0 10 0
+              %rd 1ff2022 1000
+
+  3c 06 00 aa aa aa ll ll ll      Read from ARM memory. Since the address is
+                                  only 24 bits, this can't reach RAM or MMIO.
+                                  It can read from flash, including the weird
+                                  mapped regions like the one at 0x000.
+
+  [EXAMPLE]  These backdoor shell commands return identical data:
+
+              %sc 100 3c 6 0  2 ab cd  0 1 0
+              %rd 2abcd 100
 
       (*) Bonus! It's possible to use this command to "see" through the data
           cache, to see what values the firmware has been using recently. Just
           after erasing the flash, you can use this command to dump memory.
           Anything still in the cache will show up against the background of ff
-
-      So far no luck in using this to read anything except flash. Can it read
-      SRAM or MMIO? 
-
 
   3b 01 00            Much simpler
 
