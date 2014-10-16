@@ -13,43 +13,34 @@ Internal _ are ignored so you can use them as separators.
     rd 1ff_ 100
     wr _ fe00
     fill _10 55aa_55aa 4
-    peek?
-    poke?
-    read_block?
+    ALSO: peek, poke, read_block
 
 Assemble and disassemble ARM instructions:
 
     dis 3100
     asm _4 mov r3, #0x14
     dis _4 10
-    assemble?
-    disassemble?
+    ALSO: assemble, disassemble,
 
 Or compile and invoke C++ code:
 
     ec 0x42
     ec ((uint16_t*)pad)[40]++
-    compile?
-    evalc?
+    ALSO: compile, evalc
 
 The 'defines' and 'includes' dicts keep things you can define
 in Python but use when compiling C++ and ASM snippets:
 
     defines['buffer'] = pad + 0x10000
     includes += ['int slide(int x) { return x << 8; }']
-    ec buffer
-    ec slide(0x50)
+    ec slide(buffer)
     asm _ ldr r0, =buffer; bx lr
 
 You can script the device's SCSI interface too:
 
     sc c ac              # Backdoor signature
     sc 8 ff 00 ff        # Undocumented firmware version
-    sc_eject
-    sc_sense
-    sc_read 100
-    scsi_in?
-    scsi_out?
+    ALSO: sc_eject, sc_sense, sc_read, scsi_in, scsi_out
 
 Happy hacking!
 ~MeS`14
