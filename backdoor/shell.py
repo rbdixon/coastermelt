@@ -13,7 +13,7 @@ Internal _ are ignored so you can use them as separators.
     rd 1ff_ 100
     wr _ fe00
     fill _10 55aa_55aa 4
-    ALSO: peek, poke, read_block
+    ALSO: peek, poke, read_block, watch
 
 Assemble and disassemble ARM instructions:
 
@@ -55,6 +55,7 @@ import remote, struct, sys
 from hilbert import hilbert
 from dump import *
 from code import *
+from watch import *
 
 from binascii import a2b_hex, b2a_hex
 
@@ -83,6 +84,10 @@ def hexint(s):
     if s.endswith('_'):
         s += '0000'
     return base + int(s.replace('_',''), 16)
+
+def hexint_tuple(s):
+    """A tuple of colon-separated hexints"""
+    return tuple(hexint(i) for i in s.split(':'))
 
 def get_signature(d):
     """Return a 12-byte signature identifying the firmware patch."""
@@ -153,6 +158,20 @@ class ShellMagics(magic.Magics):
         args = parse_argstring(self.fill, line)
         for i in range(args.count):
             d.poke(args.address + i*4, args.word)
+
+    @magic.line_magic
+    @magic_arguments()
+    @argument('address', type=hexint_tuple, nargs='*', help='Single hex address, or a range start:end including both endpoints')
+
+    def watch(self, line):
+        """Watch memory for changes"""
+        args = parse_argstring(self.watch, line)
+        changes = watch_scanner(d, args.address)
+        try:
+            for line in watch_tabulator(changes):
+                print line
+        except KeyboardInterrupt:
+            pass
 
     @magic.line_magic
     @magic_arguments()

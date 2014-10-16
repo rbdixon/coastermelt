@@ -4,7 +4,7 @@ import remote, sys, time, random, struct, cStringIO, binascii
 # Scan regions of memory for changes, and display those changes in real-time.
 # It's like My First Temporal Hex Dump. Great for kids!
 
-__all__ = ['watch', 'watch_tabulator']
+__all__ = ['watch_scanner', 'watch_tabulator']
 
 
 def break_up_addresses(device, addrs, block_wordcount):
@@ -77,7 +77,7 @@ def break_up_addresses(device, addrs, block_wordcount):
     return parts
 
 
-def watch(d, addrs, verbose = True, block_wordcount = 0x1c, memo_filename = None):
+def watch_scanner(d, addrs, verbose = True, block_wordcount = 0x1c, memo_filename = None):
     """Repeatedly scan memory, in randomized order, looking for changes.
 
     When a change is found, we yield:
@@ -137,9 +137,9 @@ def watch(d, addrs, verbose = True, block_wordcount = 0x1c, memo_filename = None
             memo.seek(addr)
             memo.write(block)
 
-            block_wordcount = len(block) / 4
-            block_words = struct.unpack('<%dI' % block_wordcount, block)
-            memo_words = struct.unpack('<%dI' % block_wordcount, memo_block)
+            block_wordcount = len(block) // 4
+            block_words = struct.unpack('<%dI' % block_wordcount, block[:block_wordcount * 4])
+            memo_words = struct.unpack('<%dI' % block_wordcount, memo_block[:block_wordcount * 4])
 
             for i in range(block_wordcount):
                 old_value = memo_words[i]
@@ -197,6 +197,6 @@ if __name__ == "__main__":
 
     d = remote.Device()      
     addrs = [tuple(int(n.replace('_',''), 16) for n in arg.split(':')) for arg in sys.argv[1:]]
-    changes = watch(d, addrs)
+    changes = watch_scanner(d, addrs)
     for line in watch_tabulator(changes):
         print line
