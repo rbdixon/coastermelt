@@ -246,13 +246,13 @@ class ShellMagics(magic.Magics):
 
     @magic.line_magic
     @magic_arguments()
-    @argument('first_address', type=hexint)
-    @argument('last_address', type=hexint)
+    @argument('address', type=hexint)
+    @argument('wordcount', type=hexint, nargs='?', default=1, help='Number of words to remap')
 
     def trap(self, line):
         """Set up a mapping that will (hopefully) crash when using memory in a range."""
         args = parse_argstring(self.trap, line)
-        trap_set(d, args.first_address, args.last_address)
+        trap_set(d, args.address, args.wordcount)
 
     @magic.line_cell_magic
     @magic_arguments()

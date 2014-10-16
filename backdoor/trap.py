@@ -17,19 +17,19 @@ __all__ = [
 ]
 
 
-def trap_set(d, first_address, last_address):
+def trap_set(d, address, wordcount):
     control = 0x4011f04
     d.poke(control, d.peek(control) & ~0x200)
     d.poke(control, d.peek(control) & ~0x2000)
-    d.poke(0x4011f10, first_address)
-    d.poke(0x4011f14, last_address)
+    d.poke(0x4011f10, address)
+    d.poke(0x4011f14, address + wordcount*4 - 1)
     d.poke(control, d.peek(control) | 0x200)
     d.poke(control, d.peek(control) | 0x2000)
 
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print "usage: %s first_address last_address" % sys.argv[0]
+        print "usage: %s address wordcount" % sys.argv[0]
         sys.exit(1)
     trap_set(remote.Device(),
         int(sys.argv[1].replace('_',''), 16), 
