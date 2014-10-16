@@ -125,8 +125,13 @@ def watch_scanner(d, addrs, verbose = True, block_wordcount = 0x1c, memo_filenam
 
         for addr, fn in break_up_addresses(d, addrs, block_wordcount):
 
-            # Timestamp as soon as the block read comes back
-            block = fn()
+            # Timestamp as soon as the block read comes back.
+            # If there's an error, keep on going. TinySCSI complains enough already.
+            try:
+                block = fn()
+            except IOError:
+                continue
+
             timestamp = time.time()
             byte_count += len(block)
 
