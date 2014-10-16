@@ -28,6 +28,17 @@ firmware where several firmware images can be seen laid out in order and
 clearly separated by small alignment padding regions. These are, in order:
 
 1:  at 0x17F800, 0x2000 byte (8 KiB) for the 8051 CPU
+
+   A copy of this appears in DRAM at 0x1c09000, and it's clear that the
+   copy has been modified since loading- possibly used as a communications
+   page, or possibly just in freed memory. It isn't a live mapping to the
+   8051 program memory, however, since erasing this copy in DRAM leaves
+   the SCSI interface functional.
+
+   It doesn't seem like the ARM has direct access to the 8051's program
+   memory. This makes sense if the two are more like distinct processors
+   than two CPUs that share access to the same memory bus.
+
 2:  at 0x181800, 0xc800 byte (50 kiB)
 3:  at 0x18e000, 0x54000 byte (336 kiB)
 
