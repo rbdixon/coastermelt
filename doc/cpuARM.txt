@@ -130,8 +130,28 @@ Very rough notes, may be wildly wrong.
                                      10    Global interrupt enable?
 
 4001000     Reset control
-4002000     Timer
-4002058     "App select", affects bootloader in many ways
+
+4002000     GPIO, System Timer
+
+            4002004   uint32      Flags
+                                    800
+                                     40
+                                     10    Eject button, 1=open, 0=pressed
+                                      8
+                                      4    Tray sensor nearest to edge, 1=open 0=closed
+                                             - Both tray sensors affect other registers,
+                                               probably because they have hardware power supply
+                                               interlocks to prevent the laser from firing when
+                                               open. But only the outermost switch is directly
+                                               readable via GPIO.
+                                      2
+
+            4002058   uint32      "App select", affects bootloader in many ways
+
+            4002078   uint32      System tick counter
+                                    - Measured this at about 527350 Hz. It's probably
+                                      actually an even (1 << 19) Hz
+
 4003000
 4004000
 4004800
