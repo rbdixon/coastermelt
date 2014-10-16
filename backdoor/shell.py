@@ -13,6 +13,7 @@ Internal _ are ignored so you can use them as separators.
     rd 1ff_ 100
     wr _ fe00
     ALSO: rdw, orr, bic, fill, watch, find
+          ovl, wrf
           peek, poke, read_block
 
 Assemble and disassemble ARM instructions:
@@ -20,7 +21,7 @@ Assemble and disassemble ARM instructions:
     dis 3100
     asm _4 mov r3, #0x14
     dis _4 10
-    ALSO: assemble, disassemble, blx, trap
+    ALSO: asmf, assemble, disassemble, blx
 
 Or compile and invoke C++ code:
 
@@ -58,7 +59,7 @@ from hilbert import hilbert
 from dump import *
 from code import *
 from watch import *
-from trap import *
+from mem import *
 
 # These are super handy in the shell
 import binascii, random
@@ -146,11 +147,14 @@ def all_defines():
 @magic.magics_class
 class ShellMagics(magic.Magics):
 
+
+    ############################################################ Memory
+
+
     @magic.line_magic
     @magic_arguments()
     @argument('address', type=hexint, help='Address to read from. Hexadecimal. Not necessarily aligned')
     @argument('size', type=hexint, nargs='?', default=0x100, help='Number of bytes to read')
-
     def rd(self, line):
         """Read ARM memory block"""
         args = parse_argstring(self.rd, line)
@@ -160,7 +164,6 @@ class ShellMagics(magic.Magics):
     @magic_arguments()
     @argument('address', type=hexint, help='Address to read from')
     @argument('wordcount', type=hexint, nargs='?', default=0x100, help='Number of words to read')
-
     def rdw(self, line):
         """Read ARM memory block, displaying the result as words"""
         args = parse_argstring(self.rdw, line)
@@ -170,7 +173,22 @@ class ShellMagics(magic.Magics):
     @magic_arguments()
     @argument('address', type=hexint, help='Hex address')
     @argument('word', type=hexint, nargs='*', help='Hex words')
+    def wrf(self, line, cell=''):
+        """Write hex words into the RAM overlay region, then instantly move the overlay into place.
+           It's a sneaky trick that looks like a temporary way to write to Flash.
+           """
+        va = 0x500000
+        args = parse_argstring(self.wr, line)
+        args.word.extend(map(hexint, cell.split()))
+        overlay_set(d, va, len(args.word))
+        for i, w in enumerate(args.word):
+            d.poke(va + i*4, w)
+        overlay_set(d, args.address, len(args.word))
 
+    @magic.line_cell_magic
+    @magic_arguments()
+    @argument('address', type=hexint, help='Hex address')
+    @argument('word', type=hexint, nargs='*', help='Hex words')
     def wr(self, line, cell=''):
         """Write hex words into ARM memory"""
         args = parse_argstring(self.wr, line)
@@ -182,7 +200,6 @@ class ShellMagics(magic.Magics):
     @magic_arguments()
     @argument('address', type=hexint, help='Hex address')
     @argument('word', type=hexint, nargs='*', help='Hex words')
-
     def orr(self, line, cell=''):
         """Read/modify/write hex words into ARM memory, [mem] |= arg"""
         args = parse_argstring(self.orr, line)
@@ -195,7 +212,6 @@ class ShellMagics(magic.Magics):
     @magic_arguments()
     @argument('address', type=hexint, help='Hex address')
     @argument('word', type=hexint, nargs='*', help='Hex words')
-
     def bic(self, line, cell=''):
         """Read/modify/write hex words into ARM memory, [mem] &= ~arg"""
         args = parse_argstring(self.bic, line)
@@ -209,7 +225,6 @@ class ShellMagics(magic.Magics):
     @argument('address', type=hexint, help='Hex address, word aligned')
     @argument('word', type=hexint, help='Hex word')
     @argument('count', type=hexint, help='Hex wordcount')
-
     def fill(self, line):
         """Fill contiguous words in ARM memory with the same value"""
         args = parse_argstring(self.fill, line)
@@ -219,7 +234,6 @@ class ShellMagics(magic.Magics):
     @magic.line_magic
     @magic_arguments()
     @argument('address', type=hexint_tuple, nargs='+', help='Single hex address, or a range start:end including both endpoints')
-
     def watch(self, line):
         """Watch memory for changes, shows the results in an ASCII data table.
 
@@ -241,7 +255,6 @@ class ShellMagics(magic.Magics):
     @argument('address', type=hexint, help='First address to search')
     @argument('size', type=hexint, help='Size of region to search')
     @argument('byte', type=hexint, nargs='+', help='List of bytes to search for, at any alignment')
-
     def find(self, line):
         """Read ARM memory block, and look for all occurrences of a byte sequence"""
         args = parse_argstring(self.find, line)
@@ -249,25 +262,37 @@ class ShellMagics(magic.Magics):
         for address, before, after in search_block(d, args.address, args.size, substr):
             print "%08x %52s [ %s ] %s" % (address, hexstr(before), hexstr(substr), hexstr(after))
 
+
+    @magic.line_magic
+    @magic_arguments()
+    @argument('address', type=hexint, nargs='?')
+    @argument('wordcount', type=hexint, nargs='?', default=1, help='Number of words to remap')
+    def ovl(self, line):
+        """Position a movable RAM overlay at the indicated virtual address range.
+        With no parameters, shows the current location of the RAM.
+
+        It can go anywhere in the first 8MB. So, put it between 20_ and 80_, fill it with
+        tasty data, then move it overtop of flash. Or see the wrf / asmf commands to do this
+        quickly in one step.
+        """
+        args = parse_argstring(self.ovl, line)
+        if args.address is None:
+            print "overlay: base = %x, wordcount = %x" % overlay_get(d)
+        else:
+            overlay_set(d, args.address, args.wordcount)
+
+
+    ############################################################ Code
+
+
     @magic.line_magic
     @magic_arguments()
     @argument('address', type=hexint, help='Hex address')
     @argument('size', type=hexint, nargs='?', default=0x40, help='Hex byte count')
-
     def dis(self, line):
         """Disassemble ARM instructions"""
         args = parse_argstring(self.dis, line)
         print disassemble(d, args.address, args.size)
-
-    @magic.line_magic
-    @magic_arguments()
-    @argument('address', type=hexint)
-    @argument('wordcount', type=hexint, nargs='?', default=1, help='Number of words to remap')
-
-    def trap(self, line):
-        """Set up a mapping that will (hopefully) crash when using memory in a range."""
-        args = parse_argstring(self.trap, line)
-        trap_set(d, args.address, args.wordcount)
 
     @magic.line_cell_magic
     @magic_arguments()
@@ -276,7 +301,6 @@ class ShellMagics(magic.Magics):
     @argument('-w', '--width', type=int, default=4096, help='Size of square hilbert map, in pixels')
     @argument('x', type=int)
     @argument('y', type=int)
-
     def msl(self, line, cell=''):
         """Memsquare lookup"""
         args = parse_argstring(self.msl, line)
@@ -288,7 +312,6 @@ class ShellMagics(magic.Magics):
     @magic_arguments()
     @argument('address', type=hexint)
     @argument('code', nargs='*')
-
     def asm(self, line, cell=''):
         """Assemble one or more ARM instructions
 
@@ -305,7 +328,6 @@ class ShellMagics(magic.Magics):
             op
         """
         args = parse_argstring(self.asm, line)
-        assert 0 == (args.address & 3)
         code = ' '.join(args.code) + '\n' + cell
 
         try:
@@ -315,6 +337,31 @@ class ShellMagics(magic.Magics):
             # The errors can be overwhelming from both python and the assembler,
             # so quiet the python errors and just let gcc talk.
             pass
+
+    @magic.line_cell_magic
+    @magic_arguments()
+    @argument('address', type=hexint)
+    @argument('code', nargs='*')
+    def asmf(self, line, cell=''):
+        """Assemble ARM instructions into a patch we instantly overlay onto Flash.
+        Combines the 'asm' and 'wrf' commands.
+        """
+
+        va = 0x500000
+        args = parse_argstring(self.asmf, line)
+        code = ' '.join(args.code) + '\n' + cell
+
+        try:
+            data = assemble_string(d, args.address, code, defines=all_defines())
+        except subprocess.CalledProcessError:
+            return
+
+        # Write assembled code to the virtual apping
+        words = struct.unpack('<%dI' % (len(data)/4), data)
+        overlay_set(d, va, len(words))
+        for i, word in enumerate(words):
+            d.poke(va + 4*i, word)
+        overlay_set(d, args.address, len(words))
 
     @magic.line_magic
     def ec(self, line):
@@ -380,11 +427,14 @@ class ShellMagics(magic.Magics):
             body = line + ';'
             includes[dict_key] = body
 
+
+    ############################################################ SCSI
+
+
     @magic.line_magic
     @magic_arguments()
     @argument('len', type=hexint, help='Length of input transfer')
     @argument('cdb', type=hexint, nargs='*', help='Up to 12 SCSI CDB bytes')
-
     def sc(self, line, cell=''):
         """Send a low-level SCSI command with a 12-byte CDB"""
         args = parse_argstring(self.sc, line)
@@ -412,7 +462,6 @@ class ShellMagics(magic.Magics):
     @argument('lba', type=hexint, help='Logical Block Address')
     @argument('length', type=hexint, nargs='?', default=1, help='Transfer length, in 2kb blocks')
     @argument('-f', type=str, default=None, metavar='FILE', help='Log binary data to a file also')
-
     def sc_read(self, line, cell=''):
         """Read blocks from the SCSI device."""
         args = parse_argstring(self.sc_read, line)

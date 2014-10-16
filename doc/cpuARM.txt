@@ -196,10 +196,6 @@ Very rough notes, may be wildly wrong.
 
             - Movable memory regions
 
-            There are a bunch of these! They are either memory mirroring regions or
-            they're some kind of transparent decryption. Either way, they replace
-            memory with totally different memory.
-
             This register runs the show:
 
             4011f04   uint32      Flags
@@ -214,6 +210,8 @@ Very rough notes, may be wildly wrong.
                 4011f08 / 4011f0c    First 4k of address space
                 4011f10 / 4011f14    Function in app flash, cfbe4
                                      Also seen at 400000:400bff:400c00:400fff for mapped memcpys
+                                     This seems to be an SRAM page used by the firmware to accelerate
+                                     specific functions in flash by copying them to RAM.
                 4011f20 / 4011f24    All of flash
                 4011f50 / 4011f54    In the firmware startup code, 1ec00:1efff
                 4011f58 / 4011f5c    Much later in flash, 169220:16961f

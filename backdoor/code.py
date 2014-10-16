@@ -9,7 +9,8 @@ OBJDUMP = 'arm-none-eabi-objdump'
 
 __all__ = [
     'disassemble_string', 'disassemble',
-    'assemble', 'compile', 'evalc',
+    'assemble_string', 'assemble',
+    'compile_string', 'compile', 'evalc',
     'pad', 'defines', 'includes',
 ]
 
@@ -96,8 +97,9 @@ def disassemble(d, address, size, thumb = True, leave_temp_files = False):
        """
     return disassemble_string(read_block(d, address, size), address, thumb, leave_temp_files)
 
-def assemble(d, address, text, defines = defines, leave_temp_files = False):
-    """Assemble some instructions for the ARM and place them in memory.
+
+def assemble_string(d, address, text, defines = defines, leave_temp_files = False):
+    """Assemble some instructions for the ARM and return them in a string.
        Address must be word aligned. By default assembles thumb instructions,
        but you can use the '.arm' assembly directive to change this.
        Multiple instructions can be separated by semicolons.
@@ -153,16 +155,26 @@ def assemble(d, address, text, defines = defines, leave_temp_files = False):
 
         check_call([ CC, '-nostdlib', '-nostdinc', '-o', obj, src, '-T', ld ])
         check_call([ OBJCOPY, obj, '-O', 'binary', bin ])
-        data = read_file(bin)
-        words = struct.unpack('<%dI' % (len(data)/4), data)
+        return read_file(bin)
 
     finally:
         cleanup(temps, leave_temp_files)
 
+
+def assemble(d, address, text, defines = defines, leave_temp_files = False):
+    """Assemble some instructions for the ARM and place them in memory.
+       Address must be word aligned. By default assembles thumb instructions,
+       but you can use the '.arm' assembly directive to change this.
+       Multiple instructions can be separated by semicolons.
+       """
+
+    data = assemble_string(d, address, text, defines=defines, leave_temp_files=leave_temp_files)
+    words = struct.unpack('<%dI' % (len(data)/4), data)
     for i, word in enumerate(words):
         d.poke(address + 4*i, word)
 
-def compile(d, address, expression, includes = includes, defines = defines,
+
+def compile_string(d, address, expression, includes = includes, defines = defines,
     show_disassembly = False, thumb = True, leave_temp_files = False):
     """Compile a C++ expression to a stand-alone patch installed starting at the supplied address.
 
@@ -242,11 +254,28 @@ def compile(d, address, expression, includes = includes, defines = defines,
             print disassemble_string(data, address, thumb)
             print "=============================="
 
-        words = struct.unpack('<%dI' % (len(data)/4), data)
-
+        return data
     finally:
         cleanup(temps, leave_temp_files)
 
+
+def compile(d, address, expression, includes = includes, defines = defines,
+    show_disassembly = False, thumb = True, leave_temp_files = False):
+    """Compile a C++ expression to a stand-alone patch installed starting at the supplied address.
+
+       The 'includes' list is a dictionary of C++ definitions and declarations
+       that go above the function containing our expression. (Key names are
+       ignored by the compiler)
+
+       The 'defines' dictionary can define uint32_t constants that are
+       available even prior to the includes. To seamlessly bridge with Python
+       namespaces, things that aren't integers are ignored here.
+       """
+
+    data = compile_string(d, address, expression, includes=includes, defines=defines,
+        show_disassembly=show_disassembly, thumb=thumb, leave_temp_files=leave_temp_files)
+
+    words = struct.unpack('<%dI' % (len(data)/4), data)
     for i, word in enumerate(words):
         d.poke(address + 4*i, word)
 
