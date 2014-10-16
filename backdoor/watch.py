@@ -151,37 +151,56 @@ def watch_scanner(d, addrs, verbose = True, block_wordcount = 0x1c, memo_filenam
         now = time.time()
         if verbose and now > output_timestamp + 1.0:
             output_timestamp = now
-            print "[ round %6d ] avg %.03f / second" % (round_number, round_number / (now - start_timestamp))
+            print "* scanning at %.03f Hz" % (round_number / (now - start_timestamp))
 
 
-def watch_tabulator(change_iterator, legend_interval = 40):
+def watch_tabulator(change_iterator, legend_interval = 40, warmup_seconds = 1):
     """A tabular console interface for watch(). Yields lines of text.
 
     Every time we see a new address change, it gets added as a column.
     When this happens, we print a new legend immediately.
+
+    To avoid a storm of unsorted columns when monitoring rapidly changing
+    values, we first spend warmup_seconds just scanning for changes so we can
+    start out with a sorted list of columns.
     """
 
+    warmup_addresses = {}
     column_to_address = []
     address_to_column = {}
     legend_countdown = 0
     start_time = time.time()
+
+    def add_column(address):
+        address_to_column[address] = len(column_to_address)
+        column_to_address.append(address)
+        legend_countdown = 0
 
     for timestamp, address, new_value, old_value in change_iterator:
 
         timestamp_str = '%10.03f  ' % (timestamp - start_time)
         timestamp_blank = ' ' * len(timestamp_str)
 
+        # Still in warmup? Save this address and do nothing else yet
+        if timestamp < start_time + warmup_seconds:
+            warmup_addresses[address] = True
+            continue
+
+        # If we're done with warmup and have a list of addresses, create sorted columns
+        if warmup_addresses:
+            for address in sorted(warmup_addresses.keys()):
+                add_column(address)
+            warmup_addresses = {}
+
         # Allocate new columns first-come-first-serve
         if address not in address_to_column:
-            address_to_column[address] = len(column_to_address)
-            column_to_address.append(address)
-            legend_countdown = 0
+            add_column(address)
 
         # Print the legend when we get new columns, or every 'legend_interval' lines
         if legend_countdown == 0:
-            yield timestamp_blank + '-'.join(['=' * 8 for a in column_to_address])
+            yield timestamp_blank + ' '.join(['_' * 8 for a in column_to_address])
             yield timestamp_blank + ' '.join(['%08x' % a for a in column_to_address])
-            yield timestamp_blank + '-'.join(['=' * 8 for a in column_to_address])
+            yield timestamp_blank + '+'.join(['-' * 8 for a in column_to_address])
             legend_countdown = legend_interval
 
         # Put this change in the right column
