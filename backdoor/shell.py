@@ -415,7 +415,8 @@ class ShellMagics(magic.Magics):
         - We default to ARM instead of Thumb, since code density is less
           important than having access to all the instructions.
 
-        - Automatically appends a 'bx lr' instruction
+        - Automatically adds a function preamble that saves all registers
+          except r0 and r1, which are available for returns.
 
         - Bridges shell variable r0 on input, and r0-r1 on output.
 
@@ -425,8 +426,9 @@ class ShellMagics(magic.Magics):
         try:
             assemble(d, pad, """
                 .arm
+                push    {r2-r12, lr}
                 %s
-                bx lr
+                pop     {r2-r12, pc}
                 """ % line,
                 defines = all_defines()
             )
