@@ -203,7 +203,7 @@ def compile_string(d, address, expression, includes = includes, defines = define
             '#include <stdint.h>\n'
             '%s\n'
             '%s\n'
-            'uint32_t __attribute__ ((externally_visible, section(".first"))) start(unsigned arg) {\n'
+            'unsigned __attribute__ ((externally_visible, section(".first"))) start(unsigned arg) {\n'
             '  return ( %s );\n'
             '}'
         ) % (

@@ -406,6 +406,13 @@ class ShellMagics(magic.Magics):
 
             ec sum(words, 10)
 
+        It's also worth noting that include files are re-read every time you evaluate
+        a C++ expression, so a command like this will allow you to edit code in one
+        window and interactively run expressions in another:
+
+            fc #include "my_functions.h"
+
+
         """
         if cell:
             dict_key = ' '.join(line.split())
@@ -424,7 +431,7 @@ class ShellMagics(magic.Magics):
 
         else:
             dict_key = ' '.join(line.split()).split('{')[0].split('=')[0]
-            body = line + ';'
+            body = line + '\n;'
             includes[dict_key] = body
 
 
