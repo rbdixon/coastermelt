@@ -10,7 +10,8 @@ OBJDUMP = 'arm-none-eabi-objdump'
 __all__ = [
     'disassemble_string', 'disassemble',
     'assemble_string', 'assemble',
-    'compile_string', 'compile', 'evalc',
+    'compile_string', 'compile',
+    'evalc', 'evalasm',
     'pad', 'defines', 'includes',
 ]
 
@@ -280,10 +281,27 @@ def compile(d, address, expression, includes = includes, defines = defines,
         d.poke(address + 4*i, word)
 
 
-def evalc(d, expression, arg = 0, includes = includes, defines = defines, address = pad, show_disassembly = False):
+def evalc(d, expression, arg = 0, includes = includes, defines = defines,
+          address = pad, show_disassembly = False, leave_temp_files = False):
     """Compile and remotely execute a C++ expression"""
-    compile(d, address, expression, includes=includes, defines=defines, show_disassembly=show_disassembly)
+    compile(d, address, expression,
+        includes=includes, defines=defines, show_disassembly=show_disassembly, leave_temp_files=leave_temp_files)
     return d.blx(address + 1, arg)[0]
+
+
+def evalasm(d, text, r0 = 0, defines = defines, address = pad):
+    """Compile and remotely execute an assembly snippet.
+       32-bit ARM instruction set.
+       Saves and restores r1-r12 and lr. Returns (r0, r1).
+       """
+    assemble(d, address, """
+        .arm
+        push    {r2-r12, lr}
+        %s
+        pop     {r2-r12, pc}
+        """
+        % text, defines=defines)
+    return d.blx(pad, r0)
 
 
 if __name__ == '__main__':

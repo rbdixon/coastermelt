@@ -22,7 +22,7 @@ Disassemble, assemble, and invoke ARM assembly:
     asm _4 mov r3, #0x14
     dis _4 10
     ea mrs r0, cpsr; ldr r1, =0xaa000000; orr r0, r1
-    ALSO: asmf, assemble, disassemble, blx
+    ALSO: asmf, assemble, disassemble, blx, evalasm
 
 Or compile and invoke C++ code:
 
@@ -421,23 +421,14 @@ class ShellMagics(magic.Magics):
         - Bridges shell variable r0 on input, and r0-r1 on output.
 
         - Calls the routine.
-
         """
         try:
-            assemble(d, pad, """
-                .arm
-                push    {r2-r12, lr}
-                %s
-                pop     {r2-r12, pc}
-                """ % line,
-                defines = all_defines()
-            )
+            global r0, r1
+            r0, r1 = evalasm(d, line, r0 or 0, defines=all_defines())
+            print "  r0 = %08x, r1 = %08x" % (r0, r1)
         except subprocess.CalledProcessError:
             return
 
-        global r0, r1
-        r0, r1 = d.blx(pad, r0 or 0)
-        print "  r0 = %08x, r1 = %08x" % (r0, r1)
 
     @magic.line_cell_magic
     def fc(self, line, cell=None):
@@ -475,7 +466,6 @@ class ShellMagics(magic.Magics):
         window and interactively run expressions in another:
 
             fc #include "my_functions.h"
-
 
         """
         if cell:
