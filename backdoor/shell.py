@@ -161,10 +161,16 @@ class ShellMagics(magic.Magics):
 
     @magic.line_magic
     @magic_arguments()
-    @argument('address', type=hexint_tuple, nargs='*', help='Single hex address, or a range start:end including both endpoints')
+    @argument('address', type=hexint_tuple, nargs='+', help='Single hex address, or a range start:end including both endpoints')
 
     def watch(self, line):
-        """Watch memory for changes"""
+        """Watch memory for changes, shows the results in an ASCII data table.
+
+        To use the results programmatically, see the watch_scanner() and
+        watch_tabulator() functions.
+
+        Keeps running until you kill it with a KeyboardInterrupt.
+        """
         args = parse_argstring(self.watch, line)
         changes = watch_scanner(d, args.address)
         try:
