@@ -9,7 +9,12 @@ __all__ = [
 
 
 def overlay_set(d, address, wordcount = 1):
-    """Set up a RAM overlay region, up to 4kB, mappable anywhere in the low 8MB."""
+    """Set up a RAM overlay region, up to 4kB, mappable anywhere in the low 8MB.
+
+       WARNING: This mapping appears behind the instruction cache! If you've executed
+                code in the mapping recently, changing the mapping won't necessarily
+                work. To be sure, install the new mapping after a reset.
+    """
 
     if address & 3:
         raise ValueError("Overlay mapping address must be word aligned")
