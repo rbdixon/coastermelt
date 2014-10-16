@@ -12,13 +12,14 @@ __all__ = [
 ]
 
 
-def read_word_aligned_block(d, address, size, verbose = True):
+def read_word_aligned_block(d, address, size, verbose = True, reporting_interval = 0.2):
 
     assert (address & 3) == 0
     assert (size & 3) == 0
     i = 0
     parts = []
     timestamp = time.time()
+    first_timestamp = timestamp
     num_reports = 0
 
     while i < size:
@@ -26,9 +27,11 @@ def read_word_aligned_block(d, address, size, verbose = True):
         parts.append(d.read_block(address + i, wordcount))
         i += 4 * wordcount
 
-        if verbose:
-            now = time.time()
-            if i >= size or now > timestamp + 0.2:
+        now = time.time()
+        if ( verbose
+             and now > first_timestamp + reporting_interval
+             and ( i >= size or now > timestamp + reporting_interval )
+             ):
                 print "%d / %d bytes read" % (i, size)
                 timestamp = now
                 num_reports += 1
