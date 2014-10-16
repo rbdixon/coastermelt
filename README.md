@@ -16,7 +16,7 @@ What it has
 
 For the Samsung SE-506CB external Blu-Ray burner, it provides a way to install 'backdoored' firmware to support a set of programmatic and interactive reverse engineering tools.
 
-Mac OS X only for now. Compiling the backdoor patch requires arm-none-eabi-gcc and friends, but it requires no specialized tools other than XCode if you use the included binary.
+Mac OS X only for now. Requires an ARM cross compiler (arm-none-eabi-gcc and friends) as well as a local compiler (XCode).
 
 NOTE that there are NO copyrighted firmware images included here in this open source project! To be on the safe side, we don't include large disassemblies or reverse engineering databases either. This project includes tools written from scratch, notes based on guesswork and extensive experimentation. The installation process requires modifying an official (copyrighted) firmware image, which this project does not redistribute. The build system will automatically download this file from the official source.
 
