@@ -45,8 +45,8 @@ You can script the device's SCSI interface too:
     sc 8 ff 00 ff        # Undocumented firmware version
     ALSO: reset, eject, sc_sense, sc_read, scsi_in, scsi_out
 
-Happy hacking!
-~MeS`14
+Happy hacking!         -- Type 'thing?' for info on 'thing'
+~MeS`14                   Or '?' to learn about IPython
 """
 
 from IPython import embed
