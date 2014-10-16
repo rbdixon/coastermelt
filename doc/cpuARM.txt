@@ -219,10 +219,10 @@ Very rough notes, may be wildly wrong.
                 4011f58 / 4011f5c    Much later in flash, 169220:16961f
                 4011f60 / 4011f64    Bootloader, 2800:2fff
 
-            4011f08   uint32      First address 1
-            4011f0c   uint32      Last address 1
-            4011f10   uint32      First address 2
-            4011f14   uint32      Last address 2
+            Mappings have a fixed source size, after which they repeat.
+            Mappings work for any address below 800000 (First 8MB). So,
+            these mappings it seems can't overwrite DRAM or MMIO space, but
+            they can be in the address space accessible to DMA.
 
 4020000
 4020f00     Related to RAM region 2000000, set up during boot0
