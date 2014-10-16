@@ -1,7 +1,12 @@
-coastermelt
-===========
+```
+                        __                             __ __   
+.----.-----.---.-.-----|  |_.-----.----.--------.-----|  |  |_ 
+|  __|  _  |  _  |__ --|   _|  -__|   _|        |  -__|  |   _|
+|____|_____|___._|_____|____|_____|__| |__|__|__|_____|__|____|
+--A fun way to break your Blu-Ray burner-----------------------
+```
 
-An effort to make open source firmware for burning anything other than Blu-Ray data onto plastic discs with a BD-R drive.
+The **coastermelt** project is an effort to make open source firmware for creatively repurposing BD-R drives.
 
 Still TOTALLY NOT REAL YET. Just a pie-in-the-sky reverse engineering effort. When details come along that I can publicize, they'll go here for now. Eventually this repo will become an open source firmware, I hope.
 
