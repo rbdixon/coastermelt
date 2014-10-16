@@ -4,7 +4,12 @@ import remote, sys, struct, time
 # Use on the command line to interactively dump regions of memory.
 # Or import as a library for higher level dumping functions.
 
-__all__ = ['read_block', 'hexdump', 'dump', 'search_block']
+__all__ = [
+    'read_block',
+    'hexdump', 'hexdump_words',
+    'dump', 'dump_words',
+    'search_block'
+]
 
 
 def read_word_aligned_block(d, address, size):
@@ -90,9 +95,31 @@ def hexdump(src, length = 16, address = 0, log_file = None):
     return ''.join(lines)
 
 
+def hexdump_words(src, words_per_line = 16, address = 0, log_file = None):
+    if log_file:
+        f = open(log_file, 'wb')
+        f.write(src)
+        f.close()
+
+    assert (address & 3) == 0
+    assert (len(src) & 3) == 0
+    words = struct.unpack('<%dI' % (len(src)/4), src)
+
+    lines = []
+    for c in xrange(0, len(words), words_per_line):
+        w = words[c:c+words_per_line]
+        hex = ' '.join(["%08x" % i for i in w])
+        lines.append("%08x  %-*s\n" % (address + c, words_per_line*9, hex))
+    return ''.join(lines)
+
+
 def dump(d, address, size, log_file = 'result.log'):
     data = read_block(d, address, size)
     sys.stdout.write(hexdump(data, 16, address, log_file))
+
+def dump_words(d, address, wordcount, log_file = 'result.log'):
+    data = read_block(d, address, wordcount * 4)
+    sys.stdout.write(hexdump_words(data, 8, address, log_file))
 
 
 if __name__ == "__main__":

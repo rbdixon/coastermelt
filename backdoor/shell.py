@@ -12,8 +12,7 @@ Internal _ are ignored so you can use them as separators.
 
     rd 1ff_ 100
     wr _ fe00
-    fill _10 55aa_55aa 4
-    ALSO: peek, poke, read_block, watch, find
+    ALSO: rdw, fill, peek, poke, read_block, watch, find
 
 Assemble and disassemble ARM instructions:
 
@@ -138,6 +137,16 @@ class ShellMagics(magic.Magics):
         """Read ARM memory block"""
         args = parse_argstring(self.rd, line)
         dump(d, args.address, args.size)
+
+    @magic.line_magic
+    @magic_arguments()
+    @argument('address', type=hexint, help='Address to read from')
+    @argument('wordcount', type=hexint, nargs='?', default=0x100, help='Number of words to read')
+
+    def rdw(self, line):
+        """Read ARM memory block, displaying the result as words"""
+        args = parse_argstring(self.rdw, line)
+        dump_words(d, args.address, args.wordcount)
 
     @magic.line_cell_magic
     @magic_arguments()
