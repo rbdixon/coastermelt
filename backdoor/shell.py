@@ -16,11 +16,12 @@ Internal _ are ignored so you can use them as separators.
           ovl, wrf
           peek, poke, read_block
 
-Assemble and disassemble ARM instructions:
+Disassemble, assemble, and invoke ARM assembly:
 
     dis 3100
     asm _4 mov r3, #0x14
     dis _4 10
+    ea mrs r0, cpsr; ldr r1, =0xaa000000; orr r0, r1
     ALSO: asmf, assemble, disassemble, blx
 
 Or compile and invoke C++ code:
@@ -73,6 +74,10 @@ __all__ = ['hexint', 'ShellMagics', 'peek', 'poke', 'setup_hexoutput']
 # which we'll need to support multiple devices or to do weird proxy things.
 # But here in the shell it's handy to have the concept of a global device.
 d = None
+
+# Placeholder for register argument and results in 'ea'
+r0 = None
+r1 = None
 
 
 def setup_hexoutput(ipy):
@@ -340,7 +345,8 @@ class ShellMagics(magic.Magics):
         """Assemble one or more ARM instructions
 
         NOTE that the assembled instructions will be padded to the
-        nearest 32-bit word.
+        nearest 32-bit word. Uses thumb mode by default, but you can
+        switch to ARM with the '.arm' directive.
 
         Use with line or cell mode:
 
@@ -398,6 +404,38 @@ class ShellMagics(magic.Magics):
             # The errors can be overwhelming from both python and the compiler,
             # so quiet the python errors and just let gcc talk.
             pass
+
+    @magic.line_magic
+    def ea(self, line):
+        """Evaluate an assembly one-liner
+
+        This is an even more reduced and simplified counterpart to %asm,
+        like the %ec for assembly.
+
+        - We default to ARM instead of Thumb, since code density is less
+          important than having access to all the instructions.
+
+        - Automatically appends a 'bx lr' instruction
+
+        - Bridges shell variable r0 on input, and r0-r1 on output.
+
+        - Calls the routine.
+
+        """
+        try:
+            assemble(d, pad, """
+                .arm
+                %s
+                bx lr
+                """ % line,
+                defines = all_defines()
+            )
+        except subprocess.CalledProcessError:
+            return
+
+        global r0, r1
+        r0, r1 = d.blx(pad, r0 or 0)
+        print "  r0 = %08x, r1 = %08x" % (r0, r1)
 
     @magic.line_cell_magic
     def fc(self, line, cell=None):
