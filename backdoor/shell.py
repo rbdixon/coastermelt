@@ -40,7 +40,7 @@ You can script the device's SCSI interface too:
 
     sc c ac              # Backdoor signature
     sc 8 ff 00 ff        # Undocumented firmware version
-    ALSO: sc_eject, sc_sense, sc_read, scsi_in, scsi_out
+    ALSO: reset, eject, sc_sense, sc_read, scsi_in, scsi_out
 
 Happy hacking!
 ~MeS`14
@@ -247,7 +247,12 @@ class ShellMagics(magic.Magics):
         sys.stdout.write(hexdump(data))
 
     @magic.line_magic
-    def sc_eject(self, line):
+    def reset(self, line):
+        """Reset and reopen the device."""
+        d.reset()
+
+    @magic.line_magic
+    def eject(self, line):
         """Ask the drive to eject its disc."""
         self.sc('0 1b 0 0 0 2')
 

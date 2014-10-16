@@ -34,6 +34,28 @@ typedef struct {
 } Device;
 
 
+static PyObject* device_open(Device *self)
+{
+    if (!self->scsi) {
+        TinySCSI *scsi = new TinySCSI();
+        bool ok;
+    
+        Py_BEGIN_ALLOW_THREADS;
+        ok = MT1939::open(*scsi);
+        Py_END_ALLOW_THREADS;
+
+        if (ok) {
+            self->scsi = scsi;
+        } else {
+            delete scsi;
+            PyErr_SetString(PyExc_IOError, "Failed to open SCSI device");
+            return 0;
+        }
+    }
+    Py_RETURN_NONE;
+}
+
+
 static PyObject* device_close(Device *self)
 {
     if (self->scsi) {
@@ -44,24 +66,40 @@ static PyObject* device_close(Device *self)
 }
 
 
+static PyObject* device_reset(Device *self)
+{
+    PyObject *open_result = device_open(self);
+    if (!open_result) {
+        return 0;
+    }
+    Py_DECREF(open_result);
+
+    bool ok;    
+    Py_BEGIN_ALLOW_THREADS;
+    ok = MT1939::reset(*self->scsi);
+    Py_END_ALLOW_THREADS;
+
+    if (!ok) {
+        PyErr_SetString(PyExc_IOError, "Failed to reset / reopen SCSI device");
+        Py_XDECREF(device_close(self));
+        return 0;
+    }
+
+    Py_RETURN_NONE;
+}
+
+
 static int device_init(Device *self, PyObject *args, PyObject *kw)
 {
     if (!PyArg_ParseTuple(args, "")) {
         return -1;
     }
 
-    self->scsi = new TinySCSI();
-    bool ok;
-    
-    Py_BEGIN_ALLOW_THREADS;
-    ok = MT1939::open(*self->scsi);
-    Py_END_ALLOW_THREADS;
-
-    if (!ok) {
-        PyErr_SetString(PyExc_IOError, "Failed to open SCSI device");
-        Py_DECREF(device_close(self));
+    PyObject *open_result = device_open(self);
+    if (!open_result) {
         return -1;
     }
+    Py_DECREF(open_result);
 
     return 0;
 }
@@ -379,6 +417,21 @@ static PyMethodDef device_methods[] =
 {
     { "close", (PyCFunction) device_close, METH_NOARGS,
       "close() -> None\n"
+      "Disconnect from the device, giving it back to the OS.\n"
+      "You can get it back again by calling open().\n"
+    },
+    { "open", (PyCFunction) device_open, METH_NOARGS,
+      "open() -> None\n"
+      "Open the device. Normally the constructor does this, but you\n"
+      "can also explicitly open the device if it's been closed.\n"
+      "Has no effect if the device is already open.\n"
+    },
+    { "reset", (PyCFunction) device_reset, METH_NOARGS,
+      "reset() -> None\n"
+      "Send the strongest reboot we know how to send, and try to reopen the device.\n"
+      "This uses the USB stack to send a hardware reset and re-enumeration request.\n"
+      "The operating system will get a chance to talk to the device again, so if there's\n"
+      "a CD loaded you may have to eject before we can get it back.\n"
     },
     { "get_signature", (PyCFunction) device_get_signature, METH_NOARGS,
       "get_signature() -> string\n"
