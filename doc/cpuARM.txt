@@ -223,8 +223,8 @@ Very rough notes, may be wildly wrong.
 
             40300f4   uint32      =   1_ffff  during boot0 (SRAM size?)
             4030f04   uint32      =        2  during boot0, then =8802 at end of boot0
-            4030f20   uint32      = 1e0_0000  during boot0
-            4030f24   uint32      = 1ff_ffff  during boot0
+            4030f20   uint32      DRAM mapping begin
+            4030f24   uint32      DRAM mapping end
             4030f40   uint32      = 200_0000  during boot0
             4030f44   uint32      = 200_19ff  during boot0
 
