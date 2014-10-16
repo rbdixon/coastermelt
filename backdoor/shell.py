@@ -176,6 +176,30 @@ class ShellMagics(magic.Magics):
     def wrf(self, line, cell=''):
         """Write hex words into the RAM overlay region, then instantly move the overlay into place.
            It's a sneaky trick that looks like a temporary way to write to Flash.
+
+           For example, this patches the signature as it appears in the
+           current version of the Backdoor patch itself. Normally this can't
+           be modified, since it's in flash:
+
+            : rd c9720 50
+            000c9720  ac 42 4c 58 ac 6c 6f 63 ac 65 65 42 ac 6f 6b 42   .BLX.loc.eeB.okB
+            000c9730  e6 0c 00 02 a8 00 04 04 c0 46 c0 46 c0 46 c0 46   .........F.F.F.F
+            000c9740  7e 4d 65 53 60 31 34 20 76 2e 30 32 20 20 20 20   ~MeS`14 v.02    
+            000c9750  53 1c 0b 60 16 70 0a 68 53 1c 0b 60 16 70 0a 68   S..`.p.hS..`.p.h
+            000c9760  53 1c 0b 60 16 70 0a 68 53 1c 0b 60 16 70 29 88   S..`.p.hS..`.p).
+
+            : wrf c9740 55555555
+
+            : rd c9720 50
+            000c9720  ac 42 4c 58 ac 6c 6f 63 ac 65 65 42 ac 6f 6b 42   .BLX.loc.eeB.okB
+            000c9730  e6 0c 00 02 a8 00 04 04 c0 46 c0 46 c0 46 c0 46   .........F.F.F.F
+            000c9740  55 55 55 55 60 31 34 20 76 2e 30 32 20 20 20 20   UUUU`14 v.02    
+            000c9750  53 1c 0b 60 16 70 0a 68 53 1c 0b 60 16 70 0a 68   S..`.p.hS..`.p.h
+            000c9760  53 1c 0b 60 16 70 0a 68 53 1c 0b 60 16 70 29 88   S..`.p.hS..`.p).
+
+            : sc c ac
+            00000000  55 55 55 55 60 31 34 20 76 2e 30 32               UUUU`14 v.02
+
            """
         va = 0x500000
         args = parse_argstring(self.wr, line)
