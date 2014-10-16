@@ -28,13 +28,14 @@ Or compile and invoke C++ code:
     ec ((uint16_t*)pad)[40]++
     ALSO: compile, evalc
 
-The 'defines' and 'includes' dicts keep things you can define
-in Python but use when compiling C++ and ASM snippets:
+You can use integer globals in C++ and ASM snippets, or
+define/replace a named C++ function:
 
-    defines['buffer'] = pad + 0x10000
-    includes += ['int slide(int x) { return x << 8; }']
-    ec slide(buffer)
+    fc uint32_t* words = (uint32_t*) buffer
+    buffer = pad + 0x100
+    ec words[0] += 0x50
     asm _ ldr r0, =buffer; bx lr
+    ALSO: includes, %%fc
 
 You can script the device's SCSI interface too:
 
@@ -51,7 +52,8 @@ from IPython.core import magic
 from IPython.core.magic_arguments import magic_arguments, argument, parse_argstring
 from IPython.terminal.embed import InteractiveShellEmbed
 
-import remote, struct, sys
+# Stuff we need, but also keep the shell namespace in mind here
+import remote, struct, sys, subprocess
 from hilbert import hilbert
 from dump import *
 from code import *
@@ -59,11 +61,16 @@ from watch import *
 from trap import *
 
 # These are super handy in the shell
+import binascii, random
 from binascii import a2b_hex, b2a_hex
+from random import randint
 
 __all__ = ['hexint', 'ShellMagics', 'peek', 'poke', 'setup_hexoutput']
 
-# Placeholder for global Device in the IPython shell
+# Placeholder for global Device in the IPython shell.
+# Our Python code uses the convention of taking a device as a first argument,
+# which we'll need to support multiple devices or to do weird proxy things.
+# But here in the shell it's handy to have the concept of a global device.
 d = None
 
 
@@ -126,6 +133,14 @@ def poke_byte(d, address, byte):
 def blx(d, address, r0=0):
     """Invoke a function with one argument word and two return words."""
     return d.blx(address, r0)
+
+def all_defines():
+    """Return a merged dictionary of all defines: First the implicit environment
+    of the shell's globals, then the explicit environment of the 'defines' dict.
+    """
+    d = dict(globals())
+    d.update(defines)
+    return d
 
 
 @magic.magics_class
@@ -292,12 +307,78 @@ class ShellMagics(magic.Magics):
         args = parse_argstring(self.asm, line)
         assert 0 == (args.address & 3)
         code = ' '.join(args.code) + '\n' + cell
-        assemble(d, args.address, code)
+
+        try:
+            assemble(d, args.address, code, defines=all_defines())
+
+        except subprocess.CalledProcessError:
+            # The errors can be overwhelming from both python and the assembler,
+            # so quiet the python errors and just let gcc talk.
+            pass
 
     @magic.line_magic
     def ec(self, line):
-        """Evaluate a 32-bit C++ expression on the target"""
-        print "0x%08x" % evalc(d, line)
+        """Evaluate a 32-bit C++ expresdesion on the target"""
+
+        try:
+            print "0x%08x" % evalc(d, line, defines=all_defines())
+
+        except subprocess.CalledProcessError:
+            # The errors can be overwhelming from both python and the compiler,
+            # so quiet the python errors and just let gcc talk.
+            pass
+
+    @magic.line_cell_magic
+    def fc(self, line, cell=None):
+        """Define or replace a C++ include definition
+
+        - Without any argument, lists all existing definitions
+        - In line mode, stores a one-line function, variable, or structure definition
+        - In block mode, stores a multiline function, struct, or class definition
+
+        The key for the includes ditcionary is automatically chosen. In cell mode,
+        it's a whitespace-normalized version of the header line. In line mode, it
+        extends until the first '{' or '=' character.
+
+        Example:
+
+            fill _100 1 100
+            wr _100 abcdef
+            rd _100
+
+            fc uint32_t* words = (uint32_t*) buffer
+            buffer = pad + 0x100
+            ec words[0]
+
+            %%fc uint32_t sum(uint32_t* values, int count)
+            uint32_t result = 0;
+            while (count--) {
+                result += *(values++);
+            }
+            return result;
+
+            ec sum(words, 10)
+
+        """
+        if cell:
+            dict_key = ' '.join(line.split())
+            body = "%s {\n%s\n;};\n" % (line, cell)
+            includes[dict_key] = body
+
+        elif not line.strip():
+            for key, value in includes.items():
+                print ' '.join([
+                    '=' * 10,
+                    key,
+                    '=' * max(0, 70 - len(key))
+                ])
+                print value
+                print
+
+        else:
+            dict_key = ' '.join(line.split()).split('{')[0].split('=')[0]
+            body = line + ';'
+            includes[dict_key] = body
 
     @magic.line_magic
     @magic_arguments()

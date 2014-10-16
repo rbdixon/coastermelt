@@ -34,9 +34,10 @@ defines = {
     'pad': pad
 }
 
-# Default list of C++ snippets.
+# Default dictionary of named C++ snippets.
+# The names are ignored by the compiler, but they help the shell manage.
 
-includes = []
+includes = {}
 
 
 def tempnames(*suffixes):
@@ -105,6 +106,13 @@ def assemble(d, address, text, defines = defines, leave_temp_files = False):
     if address & 3:
         raise ValueError("Address needs to be word aligned")
 
+    define_lines = []
+    for i in defines.items():
+        try:
+            define_lines.append('.equ %s, 0x%08x' % i)
+        except TypeError:
+            pass
+
     src, obj, bin, ld = temps = tempnames('.s', '.o', '.bin', '.ld')
     try:
 
@@ -138,7 +146,7 @@ def assemble(d, address, text, defines = defines, leave_temp_files = False):
             .align  2
 
             ''' % (
-                '\n'.join(['.equ %s, 0x%08x' % i for i in defines.items()]),
+                '\n'.join(define_lines),
                 text
             )
         )
@@ -158,17 +166,27 @@ def compile(d, address, expression, includes = includes, defines = defines,
     show_disassembly = False, thumb = True, leave_temp_files = False):
     """Compile a C++ expression to a stand-alone patch installed starting at the supplied address.
 
-       The 'includes' list contains text of C++ definitions and declarations that
-       go above the function containing our expression. The 'globals' dictionary
-       can define uint32_t constants that are available even prior to the includes.
+       The 'includes' list is a dictionary of C++ definitions and declarations
+       that go above the function containing our expression. (Key names are
+       ignored by the compiler)
+
+       The 'defines' dictionary can define uint32_t constants that are
+       available even prior to the includes. To seamlessly bridge with Python
+       namespaces, things that aren't integers are ignored here.
        """
 
     if address & 3:
         raise ValueError("Address needs to be word aligned")
 
+    define_lines = []
+    for i in defines.items():
+        try:
+            define_lines.append('static const uint32_t %s = 0x%08x;' % i)
+        except TypeError:
+            pass
+
     src, obj, bin, ld = temps = tempnames('.cpp', '.o', '.bin', '.ld')
     try:
-
         whole_src = (
             '#include <stdint.h>\n'
             '%s\n'
@@ -177,8 +195,8 @@ def compile(d, address, expression, includes = includes, defines = defines,
             '  return ( %s );\n'
             '}'
         ) % (
-            '\n'.join(['static const uint32_t %s = 0x%08x;' % i for i in defines.items()]),
-            '\n'.join(includes),
+            '\n'.join(define_lines),
+            '\n'.join(includes.values()),
             expression
         )
 
@@ -198,10 +216,21 @@ def compile(d, address, expression, includes = includes, defines = defines,
             ''' % address)
 
         write_file(src, whole_src)
-        check_call([ CC, '-nostdlib',
+        check_call([ CC,
+
+            # Ins and outs
             '-o', obj, src, '-T', ld,
-            '-Os', '-fwhole-program',
-            ('-mthumb', '-mno-thumb')[not thumb]])
+
+            # Important to keep this as tiny as possible
+            '-Os', '-fwhole-program', '-nostdlib',
+
+            # Be lax about typecasting, this is a debugger.
+            '-fpermissive',
+
+            # Thumb or not?
+            ('-mthumb', '-mno-thumb')[not thumb]
+
+        ])
         
         check_call([ OBJCOPY, obj, '-O', 'binary', bin ])
         data = read_file(bin)
