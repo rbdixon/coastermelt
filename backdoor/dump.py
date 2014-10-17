@@ -5,6 +5,7 @@ import remote, sys, struct, time
 # Or import as a library for higher level dumping functions.
 
 __all__ = [
+    'words_from_string',
     'read_block',
     'hexdump', 'hexdump_words',
     'dump', 'dump_words',
@@ -12,7 +13,15 @@ __all__ = [
 ]
 
 
+def words_from_string(s):
+    """A common conversion to give a list of integers from a little endian string.
+       Assumes the string is a multiple of 4 bytes in length.
+       """
+    return struct.unpack('<%dI' % (len(s)/4), s)
+
+
 def read_word_aligned_block(d, address, size, verbose = True, reporting_interval = 0.2):
+    # Implementation detail for read_block
 
     assert (address & 3) == 0
     assert (size & 3) == 0
@@ -110,8 +119,7 @@ def hexdump_words(src, words_per_line = 8, address = 0, log_file = None):
 
     assert (address & 3) == 0
     assert (len(src) & 3) == 0
-    words = struct.unpack('<%dI' % (len(src)/4), src)
-
+    words = words_from_string(src)
     lines = []
     for c in xrange(0, len(words), words_per_line):
         w = words[c:c+words_per_line]

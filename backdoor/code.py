@@ -17,7 +17,7 @@ __all__ = [
 
 import remote, os, random, struct
 from subprocess import check_call, check_output
-from dump import read_block
+from dump import *
 
 # Global scratchpad memory. This is the address of the biggest safest area of
 # read-write-execute RAM we can guesstimate about. This is provided as a
@@ -170,8 +170,7 @@ def assemble(d, address, text, defines = defines, leave_temp_files = False):
        """
 
     data = assemble_string(d, address, text, defines=defines, leave_temp_files=leave_temp_files)
-    words = struct.unpack('<%dI' % (len(data)/4), data)
-    for i, word in enumerate(words):
+    for i, word in enumerate(words_from_string(data)):
         d.poke(address + 4*i, word)
 
 
@@ -276,8 +275,7 @@ def compile(d, address, expression, includes = includes, defines = defines,
     data = compile_string(d, address, expression, includes=includes, defines=defines,
         show_disassembly=show_disassembly, thumb=thumb, leave_temp_files=leave_temp_files)
 
-    words = struct.unpack('<%dI' % (len(data)/4), data)
-    for i, word in enumerate(words):
+    for i, word in enumerate(words_from_string(data)):
         d.poke(address + 4*i, word)
 
 

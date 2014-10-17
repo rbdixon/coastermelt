@@ -28,7 +28,7 @@ Or compile and invoke C++ code:
 
     ec 0x42
     ec ((uint16_t*)pad)[40]++
-    ALSO: compile, evalc
+    ALSO: compile, evalc, hook
 
 You can use integer globals in C++ and ASM snippets, or
 define/replace a named C++ function:
@@ -46,7 +46,7 @@ You can script the device's SCSI interface too:
     ALSO: reset, eject, sc_sense, sc_read, scsi_in, scsi_out
 
 Happy hacking!         -- Type 'thing?' for info on 'thing'
-~MeS`14                   Or '?' to learn about IPython
+~MeS`14                   or '?' to learn about IPython
 """
 
 from IPython import embed
@@ -178,7 +178,7 @@ class ShellMagics(magic.Magics):
     @magic_arguments()
     @argument('address', type=hexint, help='Hex address')
     @argument('word', type=hexint, nargs='*', help='Hex words')
-    def wrf(self, line, cell=''):
+    def wrf(self, line, cell='', va=0x500000):
         """Write hex words into the RAM overlay region, then instantly move the overlay into place.
            It's a sneaky trick that looks like a temporary way to write to Flash.
 
@@ -206,7 +206,6 @@ class ShellMagics(magic.Magics):
             00000000  55 55 55 55 60 31 34 20 76 2e 30 32               UUUU`14 v.02
 
            """
-        va = 0x500000
         args = parse_argstring(self.wr, line)
         args.word.extend(map(hexint, cell.split()))
         overlay_set(d, va, len(args.word))
@@ -255,10 +254,15 @@ class ShellMagics(magic.Magics):
     @argument('word', type=hexint, help='Hex word')
     @argument('count', type=hexint, help='Hex wordcount')
     def fill(self, line):
-        """Fill contiguous words in ARM memory with the same value"""
+        """Fill contiguous words in ARM memory with the same value.
+
+        The current impementation uses many poke()s for a general case,
+        but values which can be made of a repeating one-byte pattern
+        can be filled orders of magnitude faster by using a Backdoor
+        command.
+        """
         args = parse_argstring(self.fill, line)
-        for i in range(args.count):
-            d.poke(args.address + i*4, args.word)
+        d.fill(args.address, args.word, args.count)
 
     @magic.line_magic
     @magic_arguments()
@@ -372,12 +376,10 @@ class ShellMagics(magic.Magics):
     @magic_arguments()
     @argument('address', type=hexint)
     @argument('code', nargs='*')
-    def asmf(self, line, cell=''):
+    def asmf(self, line, cell='', va=0x500000):
         """Assemble ARM instructions into a patch we instantly overlay onto Flash.
         Combines the 'asm' and 'wrf' commands.
         """
-
-        va = 0x500000
         args = parse_argstring(self.asmf, line)
         code = ' '.join(args.code) + '\n' + cell
 
@@ -387,7 +389,7 @@ class ShellMagics(magic.Magics):
             return
 
         # Write assembled code to the virtual apping
-        words = struct.unpack('<%dI' % (len(data)/4), data)
+        words = words_from_string(data)
         overlay_set(d, va, len(words))
         for i, word in enumerate(words):
             d.poke(va + 4*i, word)
@@ -429,6 +431,36 @@ class ShellMagics(magic.Magics):
         except subprocess.CalledProcessError:
             return
 
+    @magic.cell_magic
+    @magic_arguments()
+    @argument('hook_address', type=hexint)
+    @argument('handler_address', nargs='?', type=hexint, default=pad)
+    def hook(self, line, cell):
+        """Use the overlay mapping to install an 8-byte hook that invokes a block of
+        compiled C++ code installed in the scratchpad RAM.
+
+        You can use this to install live C++ patches into code that's executing directly
+        from flash memory. With some constraints...
+
+        WARNING: Currently the 8-byte block is monkeypatched into RAM without any
+           relocation. So, aside from the expected constraint of avoiding any
+           instructions straddling block boundaries or branch targets inside the
+           block, there are the addtional constraints of avoiding any instructions
+           with PC-relative addressing.
+
+        An example, any time the disc ejects this will increment a counter and store
+        some registers:
+
+            fill _100 0 100
+            fc uint32_t* result = (uint32_t*) (pad + 0x100)
+            ec result
+
+            %%hook 8564c
+
+        """
+        args = parse_argstring(self.asmf, line)
+        overlay_hook(d, args.hook_address, cell,
+            defines=all_defines(), handler_address=args.handler_address)
 
     @magic.line_cell_magic
     def fc(self, line, cell=None):
@@ -441,6 +473,10 @@ class ShellMagics(magic.Magics):
         The key for the includes ditcionary is automatically chosen. In cell mode,
         it's a whitespace-normalized version of the header line. In line mode, it
         extends until the first '{' or '=' character.
+
+        The underlying dictionary is 'includes'. You can remove all includes with:
+
+            includes.clear()
 
         Example:
 

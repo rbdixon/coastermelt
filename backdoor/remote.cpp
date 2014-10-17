@@ -275,6 +275,56 @@ static PyObject* device_poke(Device *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
+static PyObject* device_fill(Device *self, PyObject *args)
+{
+    unsigned address, word, wordcount;
+
+    if (!PyArg_ParseTuple(args, "III", &address, &word, &wordcount)) {
+        return 0;
+    }
+
+    if (!self->scsi) {
+        PyErr_SetString(PyExc_IOError, "Device closed");
+        return 0;
+    }
+
+    unsigned pat8 = word & 0xff000000;
+    bool ok;
+
+    Py_BEGIN_ALLOW_THREADS
+    
+    if (word == (pat8 | (pat8 >> 8) | (pat8 >> 16) | (pat8 >> 24))) {
+        // This is a commpn repeating byte pattern that we have a special command for
+
+        uint32_t cdb[3] = { 0x3e77ac | (word & 0xff000000), address, wordcount };
+        uint32_t result[2] = { 0 };
+        ok = self->scsi->in((uint8_t*) cdb, sizeof cdb, (uint8_t*)result, sizeof result);
+        ok = ok && result[0] == address;
+
+    } else {
+        // Some other strange fill. Do it with a lot of pokes.
+
+        while (wordcount) {
+            uint32_t cdb[3] = { 0x656b6fac, address, word };
+            uint32_t result[2];
+            ok = self->scsi->in((uint8_t*) cdb, sizeof cdb, (uint8_t*)result, sizeof result);
+            if (!ok) {
+                break;
+            }
+            address += 4;
+            wordcount--;
+        }
+    }
+
+    Py_END_ALLOW_THREADS
+
+    if (!ok) {
+        PyErr_SetString(PyExc_IOError, "Backdoor command failed");
+        return 0;
+    }
+    
+    Py_RETURN_NONE;
+}
 
 static PyObject* device_peek_byte(Device *self, PyObject *args)
 {
@@ -450,6 +500,9 @@ static PyMethodDef device_methods[] =
     },
     { "poke", (PyCFunction) device_poke, METH_VARARGS,
       "poke(address, word) -> None\n"
+    },
+    { "fill", (PyCFunction) device_fill, METH_VARARGS,
+      "fill(address, word, wordcount) -> None\n"
     },
     { "peek_byte", (PyCFunction) device_peek_byte, METH_VARARGS,
       "peek_byte(address) -> byte\n"

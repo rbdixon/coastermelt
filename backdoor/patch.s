@@ -13,13 +13,14 @@
 @
 @ Commands:
 @
-@   Default       ac xx                                         --> [string, 12 bytes]
-@   Peek          ac 65 65 6b [address/LE32]                    --> [address/LE32] [data/LE32]
-@   Poke          ac 6f 6b 65 [address/LE32] [data/LE32]        --> [address/LE32] [data/LE32]
-@   Peek byte     ac 65 65 42 [address/LE32]                    --> [address/LE32] [data/LE32]
-@   Poke byte     ac 6f 6b 42 [address/LE32] [data/LE32]        --> [address/LE32] [data/LE32]
-@   BLX           ac 42 4c 58 [address/LE32] [r0/LE32]          --> [r0/LE32] [r1/LE32]
-@   Read block    ac 6c 6f 63 [address/LE32] [wordcount/LE32]   --> [data/LE32] * wordcount
+@   Peek         ac 65 65 6b [address/LE32]                           --> [address/LE32] [data/LE32]
+@   Poke         ac 6f 6b 65 [address/LE32] [data/LE32]               --> [address/LE32] [data/LE32]
+@   Peek byte    ac 65 65 42 [address/LE32]                           --> [address/LE32] [data/LE32]
+@   Poke byte    ac 6f 6b 42 [address/LE32] [data/LE32]               --> [address/LE32] [data/LE32]
+@   BLX          ac 42 4c 58 [address/LE32] [r0/LE32]                 --> [r0/LE32] [r1/LE32]
+@   Read block   ac 6c 6f 63 [address/LE32] [wordcount/LE32]          --> [data/LE32] * wordcount
+@   Fill words   ac 77 3e [pattern/8] [address/LE32] [wordcount/LE32] --> [address/LE32]
+@   Signature    ac [other values]                                    --> [signature string, 12 bytes]
 @
 @ Copyright (c) 2014 Micah Elizabeth Scott
 @ 
@@ -74,6 +75,8 @@ _start:
     ldr     r1, [r0, #0]        @ Pointer to SCSI CDB structure
     bl      unaligned_read32
 
+    @@@@@@@@@@@@@@@@@@@ Commands @@@@@@@@@@@@@@@@@@@@@
+
     ldr     r2, =0x6b6565ac     @ Peek
     cmp     r0, r2
     beq.n   cmd_peek
@@ -97,6 +100,13 @@ _start:
     ldr     r2, =0x426b6fac     @ Poke byte
     cmp     r0, r2  
     beq.n   cmd_poke_byte
+
+    ldr     r2, =0x3e77ac       @ Fill words: 24-bit op, 8-bit arg
+    eors    r2, r0
+    lsls    r2, #8
+    beq.n   cmd_fill_words
+
+    @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     ldr     r0, signature+0x0   @ No command recognized, send back signature
     bl      fifo_write32
@@ -167,17 +177,17 @@ cmd_read_block:
     mov     r4, r0
     bl      unaligned_read32
     mov     r5, r0
-    b.n     word_test
+    b.n     _read_test
 
-word_loop:
+_read_loop:
     ldr     r0, [r4]
     bl      fifo_write32
     subs    r5, #1
     adds    r4, #4
 
-word_test:
+_read_test:
     cmp     r5, #0
-    bne.n   word_loop
+    bne.n   _read_loop
 
     pop     {r4-r5}
     b.n     complete
@@ -203,6 +213,38 @@ cmd_poke_byte:
     bl      unaligned_read32
     strb    r0, [r3]
     bl      fifo_write32        @ Echo data after write
+    b.n     complete
+
+
+    @ Fill(pattern/8, address, wordcount) -> (address)
+
+cmd_fill_words:
+    push    {r4-r5}
+
+    lsrs    r0, #24             @ Expand fill pattern into r4
+    mov     r4, r0              @   copy of byte 0
+    lsls    r0, #8              @   << 8, for byte 1
+    orrs    r0, r4              @   combine low halfword in r0
+    mov     r4, r0              @   copy of the combined halfword
+    lsls    r0, #16             @   shift one copy up by 16 bits
+    orrs    r4, r0              @   combine halfwords for a full word
+
+    bl      unaligned_read32
+    mov     r3, r0
+    bl      fifo_write32        @ Echo address
+    bl      unaligned_read32
+    mov     r5, r0              @ Wordcount in r5
+    b.n     _fill_test
+
+_fill_loop:
+    str     r4, [r3]
+    subs    r5, #1
+    adds    r3, #4
+
+_fill_test:
+    cmp     r5, #0
+    bne.n   _fill_loop
+    pop     {r4-r5}
     b.n     complete
 
 
@@ -247,4 +289,4 @@ fifo_write32:
     .align 4
 signature:
     .ascii "~MeS`14 "
-    .ascii "v.02    "
+    .ascii "v.03    "
