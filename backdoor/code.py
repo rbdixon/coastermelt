@@ -72,6 +72,10 @@ def disassemble_string(data, address = 0, thumb = True, leave_temp_files = False
        Returns a string made of up multiple lines, each with
        the address in hex, a tab, then the disassembled code.
        """
+
+    if address & 3:
+        raise ValueError("Address needs to be word aligned")
+
     bin, = temps = tempnames('.bin')
     try:
         write_file(bin, data)
@@ -84,22 +88,25 @@ def disassemble_string(data, address = 0, thumb = True, leave_temp_files = False
             '-M', ('force-thumb', 'no-force-thumb')[not thumb],
             bin])
 
-        lines = text.split('\n')
-        lines = ['%s\t%s' % (l[2:10], l[11:]) for l in lines if l.startswith('0x')]
-        return '\n'.join(lines)
-
+        return '\n'.join([
+            '%s\t%s' % (l[2:10], l[11:])
+            for l in text.split('\n')
+            if l.startswith('0x')
+        ])
     finally:
         cleanup(temps, leave_temp_files)
+
 
 def disassemble(d, address, size, thumb = True, leave_temp_files = False):
     """Read some bytes of ARM memory and try to disassemble it as code.
        Returns a string made of up multiple lines, each with the address
        in hex, a tab, then the disassembled code.
        """
-    return disassemble_string(read_block(d, address, size), address, thumb, leave_temp_files)
+    return disassemble_string(read_block(d, address, size), address,
+        thumb=thumb, leave_temp_files=leave_temp_files)
 
 
-def assemble_string(d, address, text, defines = defines, leave_temp_files = False):
+def assemble_string(address, text, defines = defines, leave_temp_files = False):
     """Assemble some instructions for the ARM and return them in a string.
        Address must be word aligned. By default assembles thumb instructions,
        but you can use the '.arm' assembly directive to change this.
@@ -167,14 +174,17 @@ def assemble(d, address, text, defines = defines, leave_temp_files = False):
        Address must be word aligned. By default assembles thumb instructions,
        but you can use the '.arm' assembly directive to change this.
        Multiple instructions can be separated by semicolons.
+
+       Returns the length of the assembled code, in bytes.
        """
 
-    data = assemble_string(d, address, text, defines=defines, leave_temp_files=leave_temp_files)
+    data = assemble_string(address, text, defines=defines, leave_temp_files=leave_temp_files)
     for i, word in enumerate(words_from_string(data)):
         d.poke(address + 4*i, word)
+    return len(data)
 
 
-def compile_string(d, address, expression, includes = includes, defines = defines,
+def compile_string(address, expression, includes = includes, defines = defines,
     show_disassembly = False, thumb = True, leave_temp_files = False):
     """Compile a C++ expression to a stand-alone patch installed starting at the supplied address.
 
@@ -236,8 +246,8 @@ def compile_string(d, address, expression, includes = includes, defines = define
             # Important to keep this as tiny as possible
             '-Os', '-fwhole-program', '-nostdlib',
 
-            # Be lax about typecasting, this is a debugger.
-            '-fpermissive',
+            # Relax, this is a debugger.
+            '-fpermissive', '-Wno-multichar',
 
             # Thumb or not?
             ('-mthumb', '-mno-thumb')[not thumb]
@@ -270,13 +280,16 @@ def compile(d, address, expression, includes = includes, defines = defines,
        The 'defines' dictionary can define uint32_t constants that are
        available even prior to the includes. To seamlessly bridge with Python
        namespaces, things that aren't integers are ignored here.
+
+       Returns the length of the compiled code, in bytes.
        """
 
-    data = compile_string(d, address, expression, includes=includes, defines=defines,
+    data = compile_string(address, expression, includes=includes, defines=defines,
         show_disassembly=show_disassembly, thumb=thumb, leave_temp_files=leave_temp_files)
 
     for i, word in enumerate(words_from_string(data)):
         d.poke(address + 4*i, word)
+    return len(data)
 
 
 def evalc(d, expression, arg = 0, includes = includes, defines = defines,
@@ -305,6 +318,7 @@ def evalasm(d, text, r0 = 0, defines = defines, address = pad):
 if __name__ == '__main__':
     # Example
 
+    import remote
     d = remote.Device()
 
     print disassemble(d, pad, 0x20)
