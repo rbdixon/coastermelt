@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import remote, sys, time, random, struct, cStringIO, binascii
+import sys, time, random, struct, cStringIO, binascii
 
 # Scan regions of memory for changes, and display those changes in real-time.
 # It's like My First Temporal Hex Dump. Great for kids!
@@ -217,6 +217,8 @@ def watch_tabulator(change_iterator, legend_interval = 40, warmup_seconds = 1):
 
 
 if __name__ == "__main__":
+    import remote
+
     if len(sys.argv) < 2:
         print "usage: %s address [addresses ...]" % sys.argv[0]
         print "  Each address can be a single word or a range a:b including both ends"

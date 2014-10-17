@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import remote, sys, struct, time
+import sys, struct, time
 
 # Use on the command line to interactively dump regions of memory.
 # Or import as a library for higher level dumping functions.
@@ -138,6 +138,7 @@ def dump_words(d, address, wordcount, log_file = 'result.log'):
 
 
 if __name__ == "__main__":
+    import remote
     if len(sys.argv) != 3:
         print "usage: %s address size" % sys.argv[0]
         sys.exit(1)
