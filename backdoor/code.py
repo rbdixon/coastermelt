@@ -15,7 +15,7 @@ __all__ = [
     'pad', 'defines', 'includes',
 ]
 
-import remote, os, random, struct
+import os, random, struct, collections
 from subprocess import check_call, check_output
 from dump import *
 
@@ -32,14 +32,14 @@ pad = 0x1e00000
 
 # Default global defines for C++ and assembly code we compile
 
-defines = {
-    'pad': pad
-}
+defines = collections.OrderedDict()
+defines['pad'] = pad
 
 # Default dictionary of named C++ snippets.
 # The names are ignored by the compiler, but they help the shell manage.
 
-includes = {}
+includes = collections.OrderedDict()
+includes['builtins'] = '#include "shell_builtins.h"'
 
 
 def tempnames(*suffixes):
