@@ -12,6 +12,17 @@ and it relies heavily on inter-processor communication with the other cores.
  - Running in supervisor mode
 
  - Failed to identify CPU with "mrc p15, 0, r0, c0, c0, 0" (crash)
+ - Also missing cache control via cp15.
+
+ - There exists some kind of flash cache. Not sure how instruction / data /
+   peripheral-specific are arranged, or which exist, or how to control them.
+
+ - Seems to be an old ARM core, pre-Thumb-2, and before cp15 was mandatory
+ - ARM7 perhaps
+ - At this age range, everything interesting is vendor specific
+ - Seems to have a 64MB implementable physical address space
+
+ - Basically an overclocked Game Boy Advance
 
 
 Vector Table
