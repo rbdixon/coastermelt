@@ -18,6 +18,7 @@ import mem
 from mem import *
 
 from watch import *
+from console import *
 from hilbert import hilbert
 
 import IPython

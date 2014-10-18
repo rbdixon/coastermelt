@@ -337,7 +337,10 @@ Very rough notes, may be wildly wrong.
 41f5f00
 
 4200000
-4201000
+4201000    <--- waaay out there. Visible on memsquare, in the area that didn't
+                seem to even have a bus. Is this on some more-internal bus
+                than the other peripherals? Is the 64MB timing thing caused by
+                some other issue?
 4204000
 420c000
 

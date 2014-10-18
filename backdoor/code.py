@@ -11,10 +11,13 @@ __all__ = [
     'CodeError',
     'pad', 'defines', 'includes',
     'disassemble_string', 'disassemble',
+
     'assemble_string', 'assemble',
     'compile_string', 'compile',
     'evalc', 'evalasm',
+
     'disassemble_for_relocation',
+    'disassembly_lines',
 ]
 
 import os, random, re, struct, collections, subprocess
@@ -129,13 +132,12 @@ class temp_file_names:
         return tuples
 
 
-def prepare_defines(defines, fmt, excluded = ''):
+def prepare_defines(defines, fmt, excluded = None):
     """Prepare defines for a C++ or Assembly program.
     """
-    excluded_re = re.compile(excluded + '$')
     lines = []
     for name, value in defines.items():
-        if excluded_re.match(name):
+        if excluded and re.match(excluded + '$', name):
             continue
         try:
             lines.append(fmt % (name, value))
@@ -150,9 +152,6 @@ def disassemble_string(data, address = 0, thumb = True):
     Returns a string made of up multiple lines, each with the address in hex,
     a tab, then the disassembled code.
     """
-    if address & 3:
-        raise ValueError("Address needs to be word aligned")
-
     with temp_file_names('bin') as temp:
         with open(temp.bin, 'wb') as f:
             f.write(data)
@@ -333,7 +332,7 @@ def evalc(d, expression, arg = 0, includes = includes, defines = defines, addres
         compile(d, address, '(uint32_t)(%s)' % expression, includes=includes, defines=defines)
         return d.blx(address + 1, arg)[0]
     except CodeError:
-        compile(d, address, '{ %s; 0; }' % expression)
+        compile(d, address, '{ %s; 0; }' % expression, includes=includes, defines=defines)
         d.blx(address | 1, arg)
 
 
@@ -370,6 +369,32 @@ text:
             pop     { r2-r12, pc }
         ''' % locals(), defines=defines, thumb=False)
         return d.blx(address, r0)
+
+
+def disassembly_lines(text):
+    """Convert disassembly text to a sequence of objects
+    Each object has attributes:
+        - address
+        - op
+        - args
+        - comment
+    """
+    class disassembly_line:
+        def __repr__(self):
+            return 'disassembly_line(address=%08x, op=%r, args=%r, comment=%r)' % (
+                self.address, self.op, self.args, self.comment)
+
+    line_re = re.compile(r'^([^\t]+)\t([^\t]+)([^;]*)(.*)')
+    for line in text.split('\n'):
+        obj = disassembly_line()
+        m = line_re.match(line)
+        if not m:
+            raise ValueError('Bad disassembly,\n%s' % line)
+        obj.address = int(m.group(1), 16)
+        obj.op = m.group(2)
+        obj.args = m.group(3).strip()
+        obj.comment = m.group(4)[1:].strip()
+        yield obj
 
 
 def disassemble_for_relocation(d, address, size, thumb = True):

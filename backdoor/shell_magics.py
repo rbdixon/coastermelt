@@ -17,6 +17,7 @@ from code import *
 from dump import *
 from mem import *
 from watch import *
+from console import *
 
 
 @magic.magics_class
@@ -212,7 +213,7 @@ class ShellMagics(magic.Magics):
 
     @magic.line_magic
     @magic_arguments()
-    @argument('address', type=hexint_aligned, help='Hex address')
+    @argument('address', type=hexint, help='Hex address')
     @argument('size', type=hexint, nargs='?', default=0x40, help='Hex byte count')
     @argument('-a', '--arm', action='store_true', help='Use 32-bit ARM mode instead of the default Thumb')
     def dis(self, line):
@@ -314,37 +315,20 @@ class ShellMagics(magic.Magics):
 
     @magic.line_cell_magic
     @magic_arguments()
-    @argument('hook_address', type=hexint_aligned)
+    @argument('hook_address', type=hexint)
     @argument('handler_address', nargs='?', type=hexint_aligned, default=pad+0x100)
     @argument('-q', '--quiet', action='store_true')
     def hook(self, line, cell=None):
-        """Use the overlay mapping to install an 8-byte hook that invokes a block of
-        compiled C++ code installed in the scratchpad RAM.
+        """Inject a C++ hook into Thumb code executing from Flash memory.
+ 
+        By default, the C++ code itself lives at _100, leaving some room to
+        keep using the beginning of the pad interactively. Handlers have
+        read/write access to the saved state of all ARM registers by name,
+        as well as through a regs[] array.
 
-        You can use this to install live C++ patches into code that's
-        executing directly from flash memory. With some constraints... The
-        patch occupies 8 bytes of virtual address space, and control flow may
-        only enter the block at the very beginning. The edges of this block
-        can't cut any instructions in half.
-
-        Simple example, counts disc ejects and saves a register, writing its
-        status to words at the beginning of the pad:
-
-            fill _ 0 1_
-            
-            %%hook 8564c
-            wordp[0]++;
-            wordp[1] = r0;
-
-        Without any arguments, this uses the hook body "default_hook(regs)"
-        which traces register state in the pad, in a format that's easy to
-        interact with using %rd, %rdw, and %trace commands.
-
-        Example, visualize invocations of a timer IRQ:
-
-            hook <timer interrupt>
-            rd _
-            trace _:_3f
+        In line mode, this uses the "default hook" which traces register state
+        in the pad, in a format that's easy to interact with using %rd, %rdw,
+        and %trace commands.
         """
         args = parse_argstring(self.hook, line)
         d = self.shell.user_ns['d']
@@ -356,6 +340,19 @@ class ShellMagics(magic.Magics):
                 verbose = not args.quiet)
         except CodeError, e:
             usage_error_from_code(e)
+
+    @magic.line_magic
+    @magic_arguments()
+    @argument('buffer_address', type=hexint_aligned, nargs='?', default=console_address)
+    @argument('-f', type=str, default=None, metavar='FILE', help='Append output to a text file')
+    def console(self, line):
+        """Read console output until KeyboardInterrupt.
+        Optionally append the output to a file also.
+        To write to this console from C++, use the functions in console.h
+        """
+        args = parse_argstring(self.console, line)
+        d = self.shell.user_ns['d']
+        console_mainloop(d, buffer=args.buffer_address, log_filename=args.f)
 
     @magic.line_cell_magic
     def fc(self, line, cell=None):

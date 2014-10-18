@@ -5,8 +5,7 @@
  */
 
 #pragma once
-
-// Anything that references specific firmware belongs in a separate file
+#include "console.h"
 #include "ts01_defs.h"
 
 // Aliases for the pad
@@ -54,9 +53,8 @@ char *strcpy(char *dst, const char *src)
 // ------------------------------------------------------------------------
 
 
-// Default handler for %hook, saves hexdump-readable state to the pad
+// Default handler for %hook, logs to the console
 void default_hook(uint32_t* regs)
 {
-	memset(bytep, 0, 0x100);
-	strcpy(bytep, "Hello from default_hook");
+	console("Hello World\n");
 }

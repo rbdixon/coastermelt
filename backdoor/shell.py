@@ -29,7 +29,7 @@ Or compile and invoke C++ code:
 
     ec 0x42
     ec ((uint16_t*)pad)[40]++
-    ALSO: compile, evalc, hook
+    ALSO: compile, evalc, hook, console
 
 You can use integer globals in C++ and ASM snippets, or
 define/replace a named C++ function:
