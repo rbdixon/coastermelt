@@ -79,8 +79,10 @@ Hardware Memory Map
   00010000 - 001e1fff      Loadable firmware image (1863 kB)
   001e2000 - 001fffff      Runtime storage and bootloader info (120 kB)
 
-  01c00000 - 01ffffff      Buffer DRAM (4MB)
-  02000000 - 02001fff      Main SRAM (8kB)
+* 01c08000 - 02007fff      DRAM (4MB)
+  01c08000 - 01ffffff      Shared DRAM
+  02000000 - 02001fff      System DRAM (32 kB)
+
   04000000 - 043fffff      Memory mapped I/O
 
 
