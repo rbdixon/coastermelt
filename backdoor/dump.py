@@ -13,10 +13,13 @@ __all__ = [
 ]
 
 
-def words_from_string(s):
+def words_from_string(s, padding_byte = chr(255)):
     """A common conversion to give a list of integers from a little endian string.
-       Assumes the string is a multiple of 4 bytes in length.
-       """
+    Uses the indicated padding byte if the string isn't a word multiple.
+    """
+    residual = len(s) & 3
+    if residual:
+        s += padding_byte * (4 - residual)
     return struct.unpack('<%dI' % (len(s)/4), s)
 
 def poke_words(d, address, words):

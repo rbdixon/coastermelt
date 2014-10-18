@@ -288,6 +288,8 @@ start(unsigned arg)
             '-o', temp.o, temp.cpp, '-T', temp.ld,    # Ins and outs
             '-Os', '-fwhole-program', '-nostdlib',    # Important to keep this as tiny as possible
             '-fpermissive', '-Wno-multichar',         # Relax, this is a debugger.            
+            '-fno-exceptions',                        # Lol, no
+            '-std=gnu++11',                           # But compile-time abstraction is awesome
             ('-mthumb', '-mno-thumb')[not thumb]      # Thumb or not?
             ],
             stderr = subprocess.STDOUT,
