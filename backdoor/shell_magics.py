@@ -190,10 +190,11 @@ class ShellMagics(magic.Magics):
     @magic_arguments()
     @argument('address', type=hexint, help='Hex address')
     @argument('size', type=hexint, nargs='?', default=0x40, help='Hex byte count')
+    @argument('-a', '--arm', action='store_true', help='Use 32-bit ARM mode instead of the default Thumb')
     def dis(self, line):
         """Disassemble ARM instructions"""
         args = parse_argstring(self.dis, line)
-        print disassemble(d, args.address, args.size)
+        print disassemble(d, args.address, args.size, thumb = not args.arm)
 
     @magic.line_cell_magic
     @magic_arguments()
