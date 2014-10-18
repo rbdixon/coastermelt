@@ -10,11 +10,11 @@ __all__ = [
     'get_signature',
     'scsi_out', 'scsi_in',
     'peek', 'poke', 'peek_byte', 'poke_byte', 'blx',
-    'setup_hexoutput', 'usage_error_from_code', 'all_defines',
+    'usage_error_from_code', 'all_defines',
 ]
 
 from IPython.core.error import UsageError
-from code import *
+import code
 
 
 def hexstr(s):
@@ -24,7 +24,7 @@ def hexstr(s):
 def hexint(s):
     """This takes a bunch of weird number formats, as explained in the module docs"""
     if s.startswith('_'):
-        base = pad
+        base = code.pad
     else:
         base = 0
     if s.endswith('_'):
@@ -35,15 +35,17 @@ def hexint_tuple(s):
     """A tuple of colon-separated hexints"""
     return tuple(hexint(i) for i in s.split(':'))
 
+def pad_cdb(cdb):
+    """Pad a SCSI CDB to the required 12 bytes"""
+    return (cdb + chr(0)*12)[:12]
+
 def scsi_out(d, cdb, data):
     """Send a low-level SCSI packet with outgoing data."""
-    cdb = (cdb + chr(0)*12)[:12]
-    return d.scsi_out(cdb, data)
+    return d.scsi_out(pad_cdb(cdb), data)
 
 def scsi_in(d, cdb, size=0x20):
     """Send a low-level SCSI packet that expects incoming data."""
-    cdb = (cdb + chr(0)*12)[:12]
-    return d.scsi_in(cdb, size)
+    return d.scsi_in(pad_cdb(cdb), size)
 
 def get_signature(d):
     """Return a 12-byte signature identifying the firmware patch."""
@@ -69,28 +71,14 @@ def blx(d, address, r0=0):
     """Invoke a function with one argument word and two return words."""
     return d.blx(address, r0)
 
-def setup_hexoutput(ipy):
-    """Configure an IPython shell to display integers in hex by default.
-       You can convert to decimal with str() still.
-       """
-    def handler(n, p, cycle):
-        if n < 0:
-            return p.text("-0x%x" % -n)
-        else :
-            return p.text("0x%x" % n)
-
-    formatter = ipy.display_formatter.formatters['text/plain']
-    formatter.for_type(int, handler)
-    formatter.for_type(long, handler)
-
 def all_defines():
     """Return a merged dictionary of all defines.
 
     - First the implicit environment of the shell's globals
     - Then the explicit environment of the code.defines dict
     """
-    import shell, code
-    d = dict(shell.__dict__)
+    import shell_namespace
+    d = dict(shell_namespace.__dict__)
     d.update(code.defines)
     return d
 

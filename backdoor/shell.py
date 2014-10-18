@@ -49,53 +49,21 @@ Happy hacking!         -- Type 'thing?' for info on 'thing'
 ~MeS`14                   or '?' to learn about IPython
 """
 
-# This module becomes the shell namespace.
-# Put some useful things in it.
-
-import struct, sys, os, re
-
-import shell_functions
-from shell_functions import *
-
-import shell_magics
-from shell_magics import *
-
-import dump
-from dump import *
-
-import code
-from code import *
-
-import mem
-from mem import *
-
-from watch import *
-from hilbert import hilbert
-
-import remote
+from IPython.terminal.embed import InteractiveShellEmbed
+from shell_magics import ShellMagics
 from remote import Device
+import shell_namespace
 
-import IPython
-import IPython.terminal.embed
+# Make a global device, but only give it to the user namespace
+shell_namespace.d = Device()
 
-import binascii
-from binascii import a2b_hex, b2a_hex
+# Make a shell that feels like a debugger
+ipy = InteractiveShellEmbed(user_ns = shell_namespace.__dict__)
+ipy.register_magics(ShellMagics)
 
-import random
-from random import randint
+# Some aliases we like
+ipy.alias_manager.define_alias('git', 'git')
+ipy.alias_manager.define_alias('make', 'make')
 
-
-if __name__ == '__main__':
-    # Create the global device (required by our 'magic' commands)
-    shell_magics.d = Device()
-
-    # Make a customized IPython shell
-    ipy = IPython.terminal.embed.InteractiveShellEmbed()
-    setup_hexoutput(ipy)
-    ipy.register_magics(ShellMagics)
-
-    # Also set up some more aliases :)
-    ipy.alias_manager.define_alias('git', 'git')
-    ipy.alias_manager.define_alias('make', 'make')
-
-    ipy.mainloop(display_banner = __doc__)
+# Hello, tiny world
+ipy.mainloop(display_banner = __doc__)

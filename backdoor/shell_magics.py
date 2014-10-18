@@ -3,10 +3,7 @@
 # functions you can use in the debugger shell.
 #
 
-__all__ = [
-    'ShellMagics',
-    'd', 'r0', 'r1',
-]
+__all__ = [ 'ShellMagics' ]
 
 from IPython.core import magic
 from IPython.core.magic_arguments import magic_arguments, argument, parse_argstring
@@ -21,17 +18,34 @@ from dump import *
 from mem import *
 from watch import *
 
-# Global Device interface to support magics.
-# This can also be used by shell python code, but it shouldn't be used outside the shell.
-d = None
-
-# We use r0 and r1 for argument and results in %ea
-r0 = None
-r1 = None
-
 
 @magic.magics_class
 class ShellMagics(magic.Magics):
+
+    def __init__(self, shell, *kw):
+        magic.Magics.__init__(self, shell, *kw)
+
+        # Hex output mode
+        self.hex_mode = True
+        formatter = self.shell.display_formatter.formatters['text/plain']
+        formatter.for_type(int, self.int_formatter)
+        formatter.for_type(long, self.int_formatter)
+
+    def int_formatter(self, n, p, cycle):
+        if not self.hex_mode:
+            return p.text(str(n))
+        elif n < 0:
+            return p.text("-0x%x" % -n)
+        else:
+            return p.text("0x%x" % n)
+
+    @magic.line_magic
+    @magic_arguments()
+    @argument('enabled', type=int, help='(0 | 1)')
+    def hex(self, line):
+        """Enable or disable hexadecimal number output mode."""
+        args = parse_argstring(self.hex, line)
+        self.hex_mode = args.enabled
 
     @magic.line_magic
     @magic_arguments()
@@ -40,6 +54,7 @@ class ShellMagics(magic.Magics):
     def rd(self, line):
         """Read ARM memory block"""
         args = parse_argstring(self.rd, line)
+        d = self.shell.user_ns['d']
         dump(d, args.address, args.size)
 
     @magic.line_magic
@@ -49,6 +64,7 @@ class ShellMagics(magic.Magics):
     def rdw(self, line):
         """Read ARM memory block, displaying the result as words"""
         args = parse_argstring(self.rdw, line)
+        d = self.shell.user_ns['d']
         dump_words(d, args.address, args.wordcount)
 
     @magic.line_cell_magic
@@ -84,6 +100,7 @@ class ShellMagics(magic.Magics):
 
            """
         args = parse_argstring(self.wr, line)
+        d = self.shell.user_ns['d']
         args.word.extend(map(hexint, cell.split()))
         overlay_set(d, va, len(args.word))
         poke_words(d, va, args.word)
@@ -96,6 +113,7 @@ class ShellMagics(magic.Magics):
     def wr(self, line, cell=''):
         """Write hex words into ARM memory"""
         args = parse_argstring(self.wr, line)
+        d = self.shell.user_ns['d']
         args.word.extend(map(hexint, cell.split()))
         poke_words(d, args.address, args.word)
 
@@ -106,6 +124,7 @@ class ShellMagics(magic.Magics):
     def orr(self, line, cell=''):
         """Read/modify/write hex words into ARM memory, [mem] |= arg"""
         args = parse_argstring(self.orr, line)
+        d = self.shell.user_ns['d']
         args.word.extend(map(hexint, cell.split()))
         for i, w in enumerate(args.word):
             poke_orr(d, args.address + i*4, w)
@@ -117,6 +136,7 @@ class ShellMagics(magic.Magics):
     def bic(self, line, cell=''):
         """Read/modify/write hex words into ARM memory, [mem] &= ~arg"""
         args = parse_argstring(self.bic, line)
+        d = self.shell.user_ns['d']
         args.word.extend(map(hexint, cell.split()))
         for i, w in enumerate(args.word):
             poke_bic(d, args.address + i*4, w)
@@ -135,6 +155,7 @@ class ShellMagics(magic.Magics):
         command.
         """
         args = parse_argstring(self.fill, line)
+        d = self.shell.user_ns['d']
         d.fill(args.address, args.word, args.count)
 
     @magic.line_magic
@@ -149,6 +170,7 @@ class ShellMagics(magic.Magics):
         Keeps running until you kill it with a KeyboardInterrupt.
         """
         args = parse_argstring(self.watch, line)
+        d = self.shell.user_ns['d']
         changes = watch_scanner(d, args.address)
         try:
             for line in watch_tabulator(changes):
@@ -164,6 +186,7 @@ class ShellMagics(magic.Magics):
     def find(self, line):
         """Read ARM memory block, and look for all occurrences of a byte sequence"""
         args = parse_argstring(self.find, line)
+        d = self.shell.user_ns['d']
         substr = ''.join(map(chr, args.byte))
         for address, before, after in search_block(d, args.address, args.size, substr):
             print "%08x %52s [ %s ] %s" % (address, hexstr(before), hexstr(substr), hexstr(after))
@@ -181,6 +204,7 @@ class ShellMagics(magic.Magics):
         quickly in one step.
         """
         args = parse_argstring(self.ovl, line)
+        d = self.shell.user_ns['d']
         if args.address is None:
             print "overlay: base = %x, wordcount = %x" % overlay_get(d)
         else:
@@ -194,6 +218,7 @@ class ShellMagics(magic.Magics):
     def dis(self, line):
         """Disassemble ARM instructions"""
         args = parse_argstring(self.dis, line)
+        d = self.shell.user_ns['d']
         print disassemble(d, args.address, args.size, thumb = not args.arm)
 
     @magic.line_cell_magic
@@ -229,6 +254,7 @@ class ShellMagics(magic.Magics):
             op
         """
         args = parse_argstring(self.asm, line)
+        d = self.shell.user_ns['d']
         code = ' '.join(args.code) + '\n' + cell
         try:
             assemble(d, args.address, code, defines=all_defines())
@@ -244,6 +270,7 @@ class ShellMagics(magic.Magics):
         Combines the 'asm' and 'wrf' commands.
         """
         args = parse_argstring(self.asmf, line)
+        d = self.shell.user_ns['d']
         code = ' '.join(args.code) + '\n' + cell
         data = assemble_string(args.address, code, defines=all_defines())
 
@@ -256,6 +283,7 @@ class ShellMagics(magic.Magics):
     @magic.line_cell_magic
     def ec(self, line, cell='', address=pad+0x100):
         """Evaluate a 32-bit C++ expression on the target"""
+        d = self.shell.user_ns['d']
         try:
             return evalc(d, line + cell, defines=all_defines(), address=address)
         except CodeError, e:
@@ -268,8 +296,8 @@ class ShellMagics(magic.Magics):
         This is an even more reduced and simplified counterpart to %asm,
         like the %ec for assembly.
 
-        - We default to ARM instead of Thumb, since code density is less
-          important than having access to all the instructions.
+        - We default to ARM instead of Thumb, since code density is
+          not important and we want access to all instructions.
 
         - Automatically adds a function preamble that saves all registers
           except r0 and r1, which are available for returns.
@@ -278,12 +306,17 @@ class ShellMagics(magic.Magics):
 
         - Calls the routine.
         """
+        d = self.shell.user_ns['d']
+        r0 = int(self.shell.user_ns.get('r0') or 0)
+
         try:
-            global r0, r1
-            r0, r1 = evalasm(d, line, r0 or 0, defines=all_defines(), address=address)
-            print "  r0 = 0x%08x, r1 = 0x%08x" % (r0, r1)
+            r0, r1 = evalasm(d, line, r0, defines=all_defines(), address=address)
         except CodeError, e:
             usage_error_from_code(e)
+
+        self.shell.user_ns['r0'] = r0
+        self.shell.user_ns['r1'] = r1
+        print "  r0 = 0x%08x, r1 = 0x%08x" % (r0, r1)
 
     @magic.line_cell_magic
     @magic_arguments()
@@ -323,6 +356,7 @@ class ShellMagics(magic.Magics):
             trace _:_3f
         """
         args = parse_argstring(self.hook, line)
+        d = self.shell.user_ns['d']
         try:
             overlay_hook(d, args.hook_address,
                 cell or "default_hook(regs)",
@@ -400,6 +434,7 @@ class ShellMagics(magic.Magics):
     def sc(self, line, cell=''):
         """Send a low-level SCSI command with a 12-byte CDB"""
         args = parse_argstring(self.sc, line)
+        d = self.shell.user_ns['d']
         cdb = ''.join(map(chr, args.cdb))
         data = scsi_in(d, cdb, args.len)
         sys.stdout.write(hexdump(data))
@@ -407,6 +442,7 @@ class ShellMagics(magic.Magics):
     @magic.line_magic
     def reset(self, line):
         """Reset and reopen the device."""
+        d = self.shell.user_ns['d']
         d.reset()
 
     @magic.line_magic
@@ -427,6 +463,7 @@ class ShellMagics(magic.Magics):
     def sc_read(self, line, cell=''):
         """Read blocks from the SCSI device."""
         args = parse_argstring(self.sc_read, line)
+        d = self.shell.user_ns['d']
         cdb = struct.pack('>BBII', 0xA8, 0, args.lba, args.length)
         data = scsi_in(d, cdb, args.length * 2048)
         sys.stdout.write(hexdump(data, log_file=args.f))

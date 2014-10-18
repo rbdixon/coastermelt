@@ -57,5 +57,6 @@ char *strcpy(char *dst, const char *src)
 // Default handler for %hook, saves hexdump-readable state to the pad
 void default_hook(uint32_t* regs)
 {
-	wordp[0] = 'H';
+	memset(bytep, 0, 0x100);
+	strcpy(bytep, "Hello from default_hook");
 }
