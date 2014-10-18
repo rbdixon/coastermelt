@@ -32,8 +32,7 @@ def ivt_find_target(d, address):
     This uses the disassembly to find out.
     """
     text = code.disassemble(d, address, 4, thumb=False)
-    m = re.search(r'\tldr\t[^;]*; *0x(.*)', text)
-    return int(m.group(1), 16)
+    return code.ldrpc_source_address(code.disassembly_lines(text)[0])
 
 
 def ivt_get(d, address):
@@ -79,11 +78,14 @@ def overlay_get(d):
 
 def overlay_hook(d, hook_address, handler,
     includes = code.includes, defines = code.defines,
-    handler_address = code.pad, va = 0x500000, verbose = False
+    handler_address = code.pad, va = 0x500000, verbose = False,
     ):
     """Inject a C++ hook into Thumb code executing from Flash memory.
     All registers are bridged bi-directionally to C++ variables in the hook.
     """
+
+    if hook_address & 1:
+        raise ValueError("Hook address must be halfword aligned")
 
     # Steps to make this crazy thing work:
     #
@@ -102,8 +104,6 @@ def overlay_hook(d, hook_address, handler,
     #     to use this on live code, which we will be.
 
     handler_len = code.compile(d, handler_address, """{
-
-        // Registers saved on the stack by our asm trampoline
         uint32_t* regs = (uint32_t*) arg;
 
         %s                     // Alias array to r0-15
@@ -111,6 +111,7 @@ def overlay_hook(d, hook_address, handler,
         uint32_t& sp = r13;
         uint32_t& lr = r14;
         uint32_t& pc = r15;
+        uint32_t& cpsr = regs[-1];
 
         { %s; }   // Handler block, with one free semicolon
         0;        // Unused return value for r0
@@ -139,73 +140,113 @@ def overlay_hook(d, hook_address, handler,
     ovl_asm = code.disassemble_string(ovl_data[hook_address - ovl_address:], address=hook_address)
     ovl_asm_lines = code.disassembly_lines(ovl_asm)
 
-    print ovl_asm_lines
-    return
-
-    # We have a small assembly-language 'trampoline' to bridge the differences
-    # in calling convention between the unary C++ function above and... a weird
-    # block of mapped SRAM we jammed into a compiled function's program flow.
+    # The next instruction is where we return from the hook.
+    # Fill the entire instruction we're replacing (2 or 4 bytes)
+    # with an arbitrary SVC we'll use to enter our ISR.
     #
-    # For starters, it puts all the registers on the stack and passes a pointer
-    # to this block as the arg to C++, via r0. This same block is restored on
-    # exit, so it's easy to inspect and modify any register including the
-    # return address.
+    # Right now we use SVC 69 (decimal) as the only SVC code
+    # and never check this in the handler. This could be used
+    # to identify one of several hooks in the future.
+
+    svc_instruction_number = 69
+    svc = chr(svc_instruction_number) + chr(0xdf)
+    return_address = ovl_asm_lines[1].address
+    patched_ovl_data = (
+        ovl_data[:hook_address - ovl_address] +
+        (return_address - hook_address) / len(svc) * svc +
+        ovl_data[return_address - ovl_address:]
+    )
+
+    # Our overlay is complete, store it to RAM while it's mapped to our temp VA
+
+    dump.poke_words(d, va, dump.words_from_string(patched_ovl_data))
+
+    # Now back to the instruction we're replacing... it will need to be
+    # relocated, and that process may generate an extra 'thunk' block
+    # that we need to store nearby.
+
+    reloc = ovl_asm_lines[0]
+    thunk = code.relocate_instruction(d, reloc)
+    reloc_text = '\t%s\t%s' % (reloc.op, reloc.args)
+
+    # The ISR lives just after the handler, in RAM, including:
     #
-    # The other big job we have is to hold a relocated copy of those 8 bytes
-    # we patched over. This might require relocating constants from the
-    # original code to appear near enough (in the trampoline constant pool)
+    #   - Register save/restore
+    #   - Invoking the C++ hook function
+    #   - A relocated copy of the instruction we replaced with the SVC
+    #   - Returning to the right address after the hook
 
-    trampoline_address = (handler_address + handler_len + 0xf) & ~0xf
-    trampoline_len = code.assemble(d, trampoline_address, """
+    isr_address = (handler_address + handler_len + 0x1f) & ~0x1f
+    isr_len = code.assemble(d, isr_address, """
 
-        @ Patched version of the original instructions we replaced to get here
+        bx lr
 
-        %(replaced_code)s
+        stmfd   sp!, {r0-r15}           @ This becomes regs[0] through regs[15]
+        mov     r0, sp                  @ Keep 'regs' in r0, visible to C++
+        mrs     r1, spsr                @ Save cpsr
+        stmfd   sp!, {r0-r1}            @ Store cpsr to regs[-1], and 8-byte align
 
-    ldr pc, =hook_address+8
+
+        ldmfd   sp!, {r0-r1}            @ Load cpsr from regs[16]
+        msr     SPSR_cxsf, r1           @ Restore cpsr
+        ldmfd   sp!, {r0-r13}           @ Restore regs[0] through regs[13] (lr)
+        add     sp, #4                  @ Don't restore regs[14] (sp)
+        ldmfd   sp!, {pc}^              @ Return from SVC
 
 
 
-        @ Trampoline to run the hook and return to the original code
 
-        push    {r0}                   @ Allocate stack placeholder for pc
-        push    {lr}                   @ Saved lr
 
-        mov     lr, sp                 @ Calculate the original sp, and save it
-        add     lr, #8
-        push    {lr}
+@        sub     sp, #12                 @ Placeholder for regs[15], spsr, one alignment word
+@        stmfd   sp!, {r0-r12, lr}       @ Save regs[0] through regs[14]
+@        mov     r0, sp                  @ Keep the pointer in r0, for C++
 
-        push    {r0-r12}               @ Save all GPRs
 
-        mov     r0, sp                 @ Leave sp in C++ arg (r0)
 
-        ldr     r1, =hook_address+8    @ Return address from hook
-        str     r1, [r0, 15*4]         @ Store where "pop {pc}" will find it
 
-        ldr     r1, =handler_address   @ Call C++ code
-        blx     r1
+        %(reloc_text)s
+        bx lr
+        %(thunk)s
 
-        pop     {r0-r12}               @ Restore GPRs
-        pop     {lr}                   @ Discard restored stack pointer
-        pop     {lr}                   @ Restore lr and pc separately (ARM limit)
-        pop     {pc}
+@        ldr     r1, =handler_address   @ Call C++ code
+@       bx      r1
 
-        @ Relocation pool for the replaced code
 
-        %(reloc)s                      
+@        push    {r0}                   @ Allocate stack placeholder for pc
+@        push    {lr}                   @ Saved lr
+@
+@        mov     lr, sp                 @ Calculate the original sp, and save it
+@        add     lr, #8
+@        push    {lr}
+@
+@        push    {r0-r12}               @ Save all GPRs
+@
+@        mov     r0, sp                 @ Leave sp in C++ arg (r0)
+@
+@        ldr     r1, =hook_address+8    @ Return address from hook
+@        str     r1, [r0, 15*4]         @ Store where "pop {pc}" will find it
+@
+@        ldr     r1, =handler_address   @ Call C++ code
+@        blx     r1
+@
+@        pop     {r0-r12}               @ Restore GPRs
+@        pop     {lr}                   @ Discard restored stack pointer
+@        pop     {lr}                   @ Restore lr and pc separately (ARM limit)
+@        pop     {pc}
 
-        """ % locals(), defines=locals())
+
+        """ % locals(), defines=locals(), thumb=False)
+
+    # Install the ISR, then finally the code overlay. Now our hook is active!
+
+    svc_vector = 0x8
+    ivt_set(d, svc_vector, isr_address)
+    overlay_set(d, ovl_address, ovl_size)
  
-    # Assemble a long jump onto our overlay, then move it into place.
-    # Now the new patch is active!
-
-    overlay_set(d, va, 2)
-    code.assemble(d, va, "ldr pc, =trampoline_address", defines=locals())
-    overlay_set(d, hook_address, 2)
-
     if verbose:
-        print "* Handler compiled to %x bytes, loaded at %x" % (handler_len, handler_address)
-        print "* Trampoline assembled to %x bytes, loaded at %x" % (trampoline_len, trampoline_address)
-        print code.disassemble(d, trampoline_address, trampoline_len)
-        print "* Hook inserted at %x" % hook_address
+        print "* Handler compiled to 0x%x bytes, loaded at 0x%x" % (handler_len, handler_address)
+        print "* ISR assembled to 0x%x bytes, loaded at 0x%x" % (isr_len, isr_address)
+        print code.disassemble(d, isr_address, isr_len, thumb=False)
+        print "* RAM overlay, 0x%x bytes, loaded at 0x%x" % (ovl_size, ovl_address)
+        print "* Hook inserted at 0x%x, returning to 0x%x" % (hook_address, return_address)
         print code.disassemble(d, hook_address, 8)

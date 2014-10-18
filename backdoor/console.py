@@ -11,9 +11,7 @@ __all__ = [
     'console_address', 'ConsoleOverflowError'
 ]
 
-import sys
-from code import *
-from dump import *
+import sys, time, code, dump
 
 
 # Our ring buffer is 64 KiB. The default location comes from
@@ -21,6 +19,12 @@ from dump import *
 # pad, still in an area of DRAM that seems very lightly used.
 
 console_address = 0x1e50000
+
+# If console.h appears in shell_builtins.h, we should be sure
+# the console_address is always available even in code compiled
+# without the whole shell namespace.
+
+code.defines['console_address'] = console_address
 
 
 class ConsoleOverflowError(Exception):
@@ -44,19 +48,19 @@ def console_read(d, buffer = console_address):
 
     if byte_count > 0xffff:
         d.poke(buffer + 0x10004, next_write)
-        raise ConsoleOverflowError(next_write, next_read)
+        e = ConsoleOverflowError(next_write, next_read)
 
     wr16 = next_write & 0xffff
     rd16 = next_read & 0xffff
 
     if wr16 > rd16:
         # More data available, and the buffer didn't wrap
-        data = read_block(d, buffer + rd16, wr16 - rd16)
+        data = dump.read_block(d, buffer + rd16, wr16 - rd16)
 
     elif wr16 < rd16:
         # Buffer wrapped; get it in two pieces
-        data = read_block(d, buffer + rd16, 0x10000 - rd16)
-        data += read_block(d, buffer, wr16)
+        data = dump.read_block(d, buffer + rd16, 0x10000 - rd16)
+        data += dump.read_block(d, buffer, wr16)
 
     else:
         # No change; return without updating next_read
@@ -69,25 +73,60 @@ def console_read(d, buffer = console_address):
     return data
 
 
-def console_mainloop(d, buffer = console_address, stdout = sys.stdout, log_filename = None):
-    """Main loop to forward data from the console buffer to stdout """
+def console_mainloop(d,
+    buffer = console_address,
+    stdout = sys.stdout,
+    log_filename = None,
+    spinner_interval = 1.0 / 8
+    ):
+    """Main loop to forward data from the console buffer to stdout.
+    Supports appending to a text log file.
+    Also draws a small ASCII spinner to let you know the poll loop is running.
+    If it stops, something's crashed.
+    """
 
     log_file = log_filename and open(log_filename, 'a')
+    output_timestamp = time.time()
+    spinner_chars = '-\\|/'
+    spinner_count = 0
+    spinner_visible = False
+
     try:
         while True:
             try:
                 data = console_read(d, buffer)
+                now = time.time()
 
                 if data:
+                    if spinner_visible:
+                        stdout.write('\b')
+                        spinner_visible = False
                     stdout.write(data)
                     stdout.flush()
+                    output_timestamp = now
 
-                if log_file and data:
-                    log_file.write(data)
-                    log_file.flush()
+                    if log_file:
+                        log_file.write(data)
+                        log_file.flush()
+
+                elif spinner_interval and now > output_timestamp + spinner_interval:
+
+                    if spinner_visible:
+                        stdout.write('\b')
+
+                    spinner_visible = True
+                    spinner_count = (spinner_count + 1) % len(spinner_chars)
+                    stdout.write(spinner_chars[spinner_count])
+                    stdout.flush()
+                    output_timestamp = now
+
+            except IOError:
+                # The device layer will already complain for us
+                continue
 
             except ConsoleOverflowError, e:
-                print '\n\n======== %s ========' % e
+                # Warn loudly that we missed some data
+                sys.stderr.write('\n\n======== %s ========' % e)
 
     except KeyboardInterrupt:
         return

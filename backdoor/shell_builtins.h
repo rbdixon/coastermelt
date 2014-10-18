@@ -7,6 +7,7 @@
 #pragma once
 #include "console.h"
 #include "ts01_defs.h"
+#include "../lib/mt1939_regs.h"
 
 // Aliases for the pad
 static uint32_t *wordp = (uint32_t *) pad;
@@ -54,7 +55,17 @@ char *strcpy(char *dst, const char *src)
 
 
 // Default handler for %hook, logs to the console
-void default_hook(uint32_t* regs)
+void default_hook(uint32_t* regs, const char *message)
 {
-	console("Hello World\n");
+	console("\n[", message, "]  ticks= ");
+	println(ticks);
+#if 0
+	for (unsigned r = 0; r < 16; r++) {
+		console(' ');
+		console(regs[r]);
+		if (0 == (r+1 & 7)) {
+			println();
+		}
+	}
+#endif
 }

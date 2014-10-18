@@ -8,8 +8,9 @@ __all__ = [ 'ShellMagics' ]
 from IPython.core import magic
 from IPython.core.magic_arguments import magic_arguments, argument, parse_argstring
 from IPython.core.display import display
+from IPython.core.error import UsageError
 
-import struct, sys
+import struct, sys, json
 from hilbert import hilbert
 
 from shell_functions import *
@@ -246,7 +247,7 @@ class ShellMagics(magic.Magics):
         try:
             assemble(d, args.address, code, defines=all_defines())
         except CodeError, e:
-            usage_error_from_code(e)
+            raise UsageError(str(e))
 
     @magic.line_cell_magic
     @magic_arguments()
@@ -274,7 +275,7 @@ class ShellMagics(magic.Magics):
         try:
             return evalc(d, line + cell, defines=all_defines(), address=address)
         except CodeError, e:
-            usage_error_from_code(e)
+            raise UsageError(str(e))
 
     @magic.line_magic
     def ea(self, line, address=pad+0x100, thumb=False):
@@ -300,7 +301,7 @@ class ShellMagics(magic.Magics):
         try:
             r0, r1 = evalasm(d, line, r0, defines=all_defines(), address=address, thumb=thumb)
         except CodeError, e:
-            usage_error_from_code(e)
+            raise UsageError(str(e))
 
         self.shell.user_ns['r0'] = r0
         self.shell.user_ns['r1'] = r1
@@ -332,18 +333,21 @@ class ShellMagics(magic.Magics):
         """
         args = parse_argstring(self.hook, line)
         d = self.shell.user_ns['d']
+        if not cell:
+            # Default hook, including our command line as a trace message
+            message = '%hook ' + line
+            cell = 'default_hook(regs, %s)' % json.dumps(message)
         try:
-            overlay_hook(d, args.hook_address,
-                cell or "default_hook(regs)",
+            overlay_hook(d, args.hook_address, cell,
                 defines = all_defines(),
                 handler_address = args.handler_address,
                 verbose = not args.quiet)
         except CodeError, e:
-            usage_error_from_code(e)
+            raise UsageError(str(e))
 
     @magic.line_magic
     @magic_arguments()
-    @argument('buffer_address', type=hexint_aligned, nargs='?', default=console_address)
+    @argument('buffer_address', type=hexint_aligned, nargs='?', default=console_address, help='Specify a different address for the console_buffer_t data structure')
     @argument('-f', type=str, default=None, metavar='FILE', help='Append output to a text file')
     def console(self, line):
         """Read console output until KeyboardInterrupt.

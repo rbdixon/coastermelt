@@ -10,14 +10,10 @@ OBJDUMP = 'arm-none-eabi-objdump'
 __all__ = [
     'CodeError',
     'pad', 'defines', 'includes',
-    'disassemble_string', 'disassemble',
-
+    'disassemble_string', 'disassemble', 'disassembly_lines',
     'assemble_string', 'assemble',
     'compile_string', 'compile',
     'evalc', 'evalasm',
-
-    'disassemble_for_relocation',
-    'disassembly_lines',
 ]
 
 import os, random, re, struct, collections, subprocess
@@ -65,6 +61,10 @@ class CodeError(Exception):
             name = m.group(1)
             number = int(m.group(2))
             self.flagged_lines[(name, number)] = True
+
+    def __str__(self):
+        return "Code compilation errors\n\n%s\n%s" % (
+            self.dump_files(), self.text )
 
     def dump_files(self, heading_width = 79, margin = 10):
         output = []
@@ -324,7 +324,9 @@ def compile(d, address, expression, includes = includes, defines = defines, thum
 
 def evalc(d, expression, arg = 0, includes = includes, defines = defines, address = pad):
     """Compile and remotely execute a C++ expression.
+
        Void expressions (like statements) return None.
+       Expressions that can be cast to (uint32_t) return an int.
        """
     try:
         # First try, see if it's something we can cast to integer.
@@ -338,6 +340,7 @@ def evalc(d, expression, arg = 0, includes = includes, defines = defines, addres
 
 def evalasm(d, text, r0 = 0, defines = defines, address = pad, thumb = False):
     """Compile and remotely execute an assembly snippet.
+
        32-bit ARM instruction set by default.
        Saves and restores r2-r12 and lr.
        Returns (r0, r1).
@@ -373,6 +376,7 @@ text:
 
 def disassembly_lines(text):
     """Convert disassembly text to a sequence of objects
+
     Each object has attributes:
         - address
         - op
@@ -384,39 +388,65 @@ def disassembly_lines(text):
             return 'disassembly_line(address=%08x, op=%r, args=%r, comment=%r)' % (
                 self.address, self.op, self.args, self.comment)
 
+    lines = []
     line_re = re.compile(r'^([^\t]+)\t([^\t]+)([^;]*)(.*)')
     for line in text.split('\n'):
+
         obj = disassembly_line()
         m = line_re.match(line)
         if not m:
             raise ValueError('Bad disassembly,\n%s' % line)
+
         obj.address = int(m.group(1), 16)
         obj.op = m.group(2)
         obj.args = m.group(3).strip()
         obj.comment = m.group(4)[1:].strip()
-        yield obj
+        lines.append(obj)
+    return lines
 
 
-def disassemble_for_relocation(d, address, size, thumb = True):
-    """Disassemble instructions from ARM memory and prepare them for assembly elsewhere.
+def ldrpc_source_address(line):
+    """Calculate the absolute source address of a PC-relative load.
 
-    PC-relative references are detected and fixed, usually requiring
-    additional data to be placed near those fixed instructions.
+    'line' is a line returned by disassembly_lines().
+    If it doesn't look like the right kind of instruction, returns None.
+    """    
+    # Example:  ldr r2, [pc, #900]  ; (0x000034b4)
+    if line.op == 'ldr' and line.args.find('[pc') > 0:
+        return int(line.comment.strip(';( )'), 0)
 
-    Returns a tuple of (disassembled_code, relocation_data).
-    Both strings are assembly source.
+
+def ldrpc_source_word(d, line):
+    """Load the source data from a PC-relative load instruction.
+
+    'line' is a line returned by disassembly_lines().
+    If it doesn't look like the right kind of instruction, returns None.
+    """    
+    address = ldrpc_source_address(line)
+    if address is not None:
+        return d.peek(address)
+
+
+def relocate_instruction(d, line):
+    """Prepare an instruction to be assembled at a different location.
+
+    'line' is a line returned by disassembly_lines().
+
+    Modifies the line as necessary, and returns a string with extra 'thunk'
+    text that might need to be assembled in the pool nearby. If the
+    instruction can't be relocated, raises an exception.
     """
 
-    print "TODO: Relocation not implemented yet"
+    word = ldrpc_source_word(d, line)
+    if word is not None:
+        # Relocate to the assembler's automatic constant pool
+        line.args = line.args.split(',')[0] + ', =0x%08x' % word
+        return ''
 
-    lines = []
-    reloc = []
-    for line in disassemble(d, address, size, thumb).split('\n'):
-        address_str, asm = line.split('\t', 1)
-        asm, comment = (asm + ';').split(';', 1)
+    if line.op.startswith('b'):
+        raise NotImplementedError("Can't relocate branches yet, %r" % line)
+    if line.args.find('pc') > 0:
+        raise NotImplementedError("Can't relocate instructions that read or write pc, " % line)
 
-        lines.append( asm )
-
-    return ( '\n'.join(lines), '\n'.join(reloc) )
-
-
+    # No relocation
+    return ''

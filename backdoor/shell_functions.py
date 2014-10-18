@@ -9,8 +9,9 @@ __all__ = [
     'hexstr', 'hexint', 'hexint_tuple', 'hexint_aligned',
     'get_signature',
     'scsi_out', 'scsi_in',
-    'peek', 'poke', 'peek_byte', 'poke_byte', 'blx',
-    'usage_error_from_code', 'all_defines',
+    'peek', 'poke', 'peek_byte', 'poke_byte',
+    'blx',
+    'all_defines',
 ]
 
 from IPython.core.error import UsageError
@@ -88,12 +89,3 @@ def all_defines():
     d = dict(shell_namespace.__dict__)
     d.update(code.defines)
     return d
-
-def usage_error_from_code(code_error):
-    """Wrap a coastermelt CodeError in an IPython UsageError
-    This is appropriate for cases where we're accepting code on the shell
-    and reporting code compilation errors as an error in command usage.
-    """
-    raise UsageError("Code compilation errors\n\n%s\n%s" % (
-        code_error.dump_files(),
-        code_error.text))

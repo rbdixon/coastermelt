@@ -41,33 +41,45 @@ void console(const char* str)
 	}
 }
 
-void console(int number)
+// (uint32_t) -> %08x
+void console(uint32_t number)
 {
 	for (int digit = 0; digit < 8; digit++) {
-		console("0123456789abcdef"[(unsigned)number >> 28]);
+		console("0123456789abcdef"[number >> 28]);
 		number <<= 4;
 	}
 }
 
-// Up to four numbers, space separated
-void console(int a, int b) { console(a); console(' '); console(b); }
-void console(int a, int b, int c) { console(a, b); console(' '); console(c); }
-void console(int a, int b, int c, int d) { console(a, b); console(' '); console(c, d); }
+// (int) -> (uint32_t), to avoid ambiguity
+void console(int a) { console((uint32_t) a); }
 
-// With string prefixes and space separators
-void console(const char* s, int a) { console(s); console(' '); console(a); }
-void console(const char* s, int a, int b) { console(s); console(' '); console(a, b); }
-void console(const char* s, int a, int b, int c) { console(s); console(' '); console(a, b, c); }
-void console(const char* s, int a, int b, int c, int d) { console(s); console(' '); console(a, b, c, d); }
+// Up to four strings, no separator
+void console(const char* a, const char* b) { console(a); console(b); }
+void console(const char* a, const char* b, const char* c) { console(a, b); console(c); }
+void console(const char* a, const char* b, const char* c, const char* d) { console(a, b); console(c, d); }
+
+// Up to four numbers, space separated
+void console(uint32_t a, uint32_t b) { console(a); console(' '); console(b); }
+void console(uint32_t a, uint32_t b, uint32_t c) { console(a, b); console(' '); console(c); }
+void console(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { console(a, b); console(' '); console(c, d); }
+
+// Numbers with string prefixes and space separators
+void console(const char* s, uint32_t a) { console(s); console(' '); console(a); }
+void console(const char* s, uint32_t a, uint32_t b) { console(s); console(' '); console(a, b); }
+void console(const char* s, uint32_t a, uint32_t b, uint32_t c) { console(s); console(' '); console(a, b, c); }
+void console(const char* s, uint32_t a, uint32_t b, uint32_t c, uint32_t d) { console(s); console(' '); console(a, b, c, d); }
 
 // With newline
 void println() { console('\n'); }
-void println(const char* s) { console(s); println(); }
-void println(int a) { console(a); println(); }
-void println(int a, int b) { console(a, b); println(); }
-void println(int a, int b, int c) { console(a, b, c); println(); }
-void println(int a, int b, int c, int d) { console(a, b, c, d); println(); }
-void println(const char* s, int a) { console(s, a); println(); }
-void println(const char* s, int a, int b) { console(s, a, b); println(); }
-void println(const char* s, int a, int b, int c) { console(s, a, b, c); println(); }
-void println(const char* s, int a, int b, int c, int d) { console(s, a, b, c, d); println(); }
+void println(const char* a) { console(a); println(); }
+void println(const char* a, const char* b) { console(a, b); println(); }
+void println(const char* a, const char* b, const char* c) { console(a, b, c); println(); }
+void println(const char* a, const char* b, const char* c, const char* d) { console(a, b, c, d); println(); }
+void println(uint32_t a) { console(a); println(); }
+void println(uint32_t a, uint32_t b) { console(a, b); println(); }
+void println(uint32_t a, uint32_t b, uint32_t c) { console(a, b, c); println(); }
+void println(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { console(a, b, c, d); println(); }
+void println(const char* s, uint32_t a) { console(s, a); println(); }
+void println(const char* s, uint32_t a, uint32_t b) { console(s, a, b); println(); }
+void println(const char* s, uint32_t a, uint32_t b, uint32_t c) { console(s, a, b, c); println(); }
+void println(const char* s, uint32_t a, uint32_t b, uint32_t c, uint32_t d) { console(s, a, b, c, d); println(); }
