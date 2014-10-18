@@ -49,7 +49,7 @@ class ShellMagics(magic.Magics):
 
     @magic.line_magic
     @magic_arguments()
-    @argument('address', type=hexint, help='Address to read from. Hexadecimal. Not necessarily aligned')
+    @argument('address', type=hexint, help='Address to read from')
     @argument('size', type=hexint, nargs='?', default=0x100, help='Number of bytes to read')
     def rd(self, line):
         """Read ARM memory block"""
@@ -69,7 +69,7 @@ class ShellMagics(magic.Magics):
 
     @magic.line_cell_magic
     @magic_arguments()
-    @argument('address', type=hexint, help='Hex address')
+    @argument('address', type=hexint_aligned, help='Hex address')
     @argument('word', type=hexint, nargs='*', help='Hex words')
     def wrf(self, line, cell='', va=0x500000):
         """Write hex words into the RAM overlay region, then instantly move the overlay into place.
@@ -108,7 +108,7 @@ class ShellMagics(magic.Magics):
 
     @magic.line_cell_magic
     @magic_arguments()
-    @argument('address', type=hexint, help='Hex address')
+    @argument('address', type=hexint_aligned, help='Hex address')
     @argument('word', type=hexint, nargs='*', help='Hex words')
     def wr(self, line, cell=''):
         """Write hex words into ARM memory"""
@@ -119,7 +119,7 @@ class ShellMagics(magic.Magics):
 
     @magic.line_cell_magic
     @magic_arguments()
-    @argument('address', type=hexint, help='Hex address')
+    @argument('address', type=hexint_aligned, help='Hex address')
     @argument('word', type=hexint, nargs='*', help='Hex words')
     def orr(self, line, cell=''):
         """Read/modify/write hex words into ARM memory, [mem] |= arg"""
@@ -131,7 +131,7 @@ class ShellMagics(magic.Magics):
 
     @magic.line_cell_magic
     @magic_arguments()
-    @argument('address', type=hexint, help='Hex address')
+    @argument('address', type=hexint_aligned, help='Hex address')
     @argument('word', type=hexint, nargs='*', help='Hex words')
     def bic(self, line, cell=''):
         """Read/modify/write hex words into ARM memory, [mem] &= ~arg"""
@@ -143,7 +143,7 @@ class ShellMagics(magic.Magics):
 
     @magic.line_magic
     @magic_arguments()
-    @argument('address', type=hexint, help='Hex address, word aligned')
+    @argument('address', type=hexint_aligned, help='Hex address, word aligned')
     @argument('word', type=hexint, help='Hex word')
     @argument('count', type=hexint, help='Hex wordcount')
     def fill(self, line):
@@ -193,7 +193,7 @@ class ShellMagics(magic.Magics):
 
     @magic.line_magic
     @magic_arguments()
-    @argument('address', type=hexint, nargs='?')
+    @argument('address', type=hexint_aligned, nargs='?')
     @argument('wordcount', type=hexint, nargs='?', default=1, help='Number of words to remap')
     def ovl(self, line):
         """Position a movable RAM overlay at the indicated virtual address range.
@@ -212,7 +212,7 @@ class ShellMagics(magic.Magics):
 
     @magic.line_magic
     @magic_arguments()
-    @argument('address', type=hexint, help='Hex address')
+    @argument('address', type=hexint_aligned, help='Hex address')
     @argument('size', type=hexint, nargs='?', default=0x40, help='Hex byte count')
     @argument('-a', '--arm', action='store_true', help='Use 32-bit ARM mode instead of the default Thumb')
     def dis(self, line):
@@ -235,24 +235,10 @@ class ShellMagics(magic.Magics):
 
     @magic.line_cell_magic
     @magic_arguments()
-    @argument('address', type=hexint)
+    @argument('address', type=hexint_aligned)
     @argument('code', nargs='*')
     def asm(self, line, cell=''):
-        """Assemble one or more ARM instructions
-
-        NOTE that the assembled instructions will be padded to the
-        nearest 32-bit word. Uses thumb mode by default, but you can
-        switch to ARM with the '.arm' directive.
-
-        Use with line or cell mode:
-
-            %asm address op; op; op
-
-            %%asm address
-            op
-            op
-            op
-        """
+        """Assemble one or more ARM instructions"""
         args = parse_argstring(self.asm, line)
         d = self.shell.user_ns['d']
         code = ' '.join(args.code) + '\n' + cell
@@ -263,7 +249,7 @@ class ShellMagics(magic.Magics):
 
     @magic.line_cell_magic
     @magic_arguments()
-    @argument('address', type=hexint)
+    @argument('address', type=hexint_aligned)
     @argument('code', nargs='*')
     def asmf(self, line, cell='', va=0x500000):
         """Assemble ARM instructions into a patch we instantly overlay onto Flash.
@@ -328,8 +314,8 @@ class ShellMagics(magic.Magics):
 
     @magic.line_cell_magic
     @magic_arguments()
-    @argument('hook_address', type=hexint)
-    @argument('handler_address', nargs='?', type=hexint, default=pad+0x100)
+    @argument('hook_address', type=hexint_aligned)
+    @argument('handler_address', nargs='?', type=hexint_aligned, default=pad+0x100)
     @argument('-q', '--quiet', action='store_true')
     def hook(self, line, cell=None):
         """Use the overlay mapping to install an 8-byte hook that invokes a block of
