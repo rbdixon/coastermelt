@@ -5,4 +5,7 @@
 #pragma once
 #include <stdint.h>
 
-void (*eject)(void) = (void(*)()) 0xd3df0;
+auto eject = (void(*)()) 0xd3df1;
+
+auto memcpy = (void(*)(void *dst, const void *src, unsigned byte_count)) 0x16558c;
+auto bzero = (void(*)(void *dst, unsigned byte_count)) 0x1655f8;
