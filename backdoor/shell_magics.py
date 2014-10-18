@@ -290,7 +290,7 @@ class ShellMagics(magic.Magics):
             usage_error_from_code(e)
 
     @magic.line_magic
-    def ea(self, line, address=pad+0x100):
+    def ea(self, line, address=pad+0x100, thumb=False):
         """Evaluate an assembly one-liner
 
         This is an even more reduced and simplified counterpart to %asm,
@@ -298,6 +298,7 @@ class ShellMagics(magic.Magics):
 
         - We default to ARM instead of Thumb, since code density is
           not important and we want access to all instructions.
+          For thumb, see the %tea variant.
 
         - Automatically adds a function preamble that saves all registers
           except r0 and r1, which are available for returns.
@@ -310,13 +311,20 @@ class ShellMagics(magic.Magics):
         r0 = int(self.shell.user_ns.get('r0') or 0)
 
         try:
-            r0, r1 = evalasm(d, line, r0, defines=all_defines(), address=address)
+            r0, r1 = evalasm(d, line, r0, defines=all_defines(), address=address, thumb=thumb)
         except CodeError, e:
             usage_error_from_code(e)
 
         self.shell.user_ns['r0'] = r0
         self.shell.user_ns['r1'] = r1
         print "  r0 = 0x%08x, r1 = 0x%08x" % (r0, r1)
+
+    @magic.line_magic
+    def tea(self, line, address=pad+0x100):
+        """Evaluate an assembly one-liner in Thumb mode
+        This is a Thumb-mode variant of %ea
+        """
+        return self.ea(line, address, thumb=True)
 
     @magic.line_cell_magic
     @magic_arguments()
@@ -333,17 +341,14 @@ class ShellMagics(magic.Magics):
         only enter the block at the very beginning. The edges of this block
         can't cut any instructions in half.
 
-        Example, counts disc ejects and stores some registers for future
-        examination:
+        Simple example, counts disc ejects and saves a register, writing its
+        status to words at the beginning of the pad:
 
             fill _ 0 1_
-            fc uint32_t* result = (uint32_t*) (pad + 0xf00)
-            ec result[0]
-
+            
             %%hook 8564c
-                result[0]++;
-                for (int i = 0; i <= 12; i++)
-                    result[1 + i] = regs[i];
+            wordp[0]++;
+            wordp[1] = r0;
 
         Without any arguments, this uses the hook body "default_hook(regs)"
         which traces register state in the pad, in a format that's easy to

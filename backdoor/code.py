@@ -181,15 +181,16 @@ def disassemble(d, address, size, thumb = True):
     return disassemble_string(read_block(d, address, size), address, thumb=thumb)
 
 
-def assemble_string(address, text, defines = defines):
+def assemble_string(address, text, defines = defines, thumb = True):
     """Assemble some instructions for the ARM and return them in a string.
 
-    Address must be word aligned. By default assembles thumb instructions,
-    but you can use the '.arm' assembly directive to change this.
+    Address must be word aligned.
     Multiple instructions can be separated by semicolons.
     """
     if address & 3:
         raise ValueError("Address needs to be word aligned")
+
+    set_instruction_mode = ('.arm', '.thumb')[thumb]
 
     define_string = prepare_defines(defines,
         '\t.equ %s, 0x%08x',
@@ -208,7 +209,7 @@ SECTIONS { .text : { *(.text) } > PATCH }
 .text
 .syntax unified
 .global _start 
-.thumb
+%(set_instruction_mode)s
 %(define_string)s
 _start:
 %(text)s
@@ -231,16 +232,13 @@ _start:
             return f.read()
 
 
-def assemble(d, address, text, defines = defines):
+def assemble(d, address, text, defines = defines, thumb = True):
     """Assemble some instructions for the ARM and place them in memory.
-       Address must be word aligned. By default assembles thumb instructions,
-       but you can use the '.arm' assembly directive to change this.
-       Multiple instructions can be separated by semicolons.
 
-       Returns the length of the assembled code, in bytes.
+       Address must be word aligned. Multiple instructions can be separated by
+       semicolons. Returns the length of the assembled code, in bytes.
        """
-
-    data = assemble_string(address, text, defines=defines)
+    data = assemble_string(address, text, defines=defines, thumb=thumb)
     poke_words_from_string(d, address, data)
     return len(data)
 
@@ -336,21 +334,42 @@ def evalc(d, expression, arg = 0, includes = includes, defines = defines, addres
         return d.blx(address + 1, arg)[0]
     except CodeError:
         compile(d, address, '{ %s; 0; }' % expression)
-        d.blx(address + 1, arg)
+        d.blx(address | 1, arg)
 
 
-def evalasm(d, text, r0 = 0, defines = defines, address = pad):
+def evalasm(d, text, r0 = 0, defines = defines, address = pad, thumb = False):
     """Compile and remotely execute an assembly snippet.
-       32-bit ARM instruction set.
-       Saves and restores r1-r12 and lr. Returns (r0, r1).
+       32-bit ARM instruction set by default.
+       Saves and restores r2-r12 and lr.
+       Returns (r0, r1).
        """
-    assemble(d, address, '''\
-        .arm
-        push    {r2-r12, lr}
+
+    if thumb:
+        # In Thumb mode, we still use ARM code to save/restore registers.
+        assemble(d, address, '''\
+            push    { r2-r12, lr }
+            adr     lr, link
+            adr     r8, text+1
+            bx      r8
+link:
+            pop     { r2-r12, pc }
+            .pool
+            .thumb
+            .align  5
+text:
 %(text)s
-        pop     {r2-r12, pc}
-    ''' % locals(), defines=defines)
-    return d.blx(address, r0)
+            bx      lr
+        ''' % locals(), defines=defines, thumb=False)
+        return d.blx(address, r0)
+
+    else:
+        # ARM mode (default)
+        assemble(d, address, '''\
+            push    { r2-r12, lr }
+%(text)s
+            pop     { r2-r12, pc }
+        ''' % locals(), defines=defines, thumb=False)
+        return d.blx(address, r0)
 
 
 def disassemble_for_relocation(d, address, size, thumb = True):

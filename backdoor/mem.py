@@ -111,6 +111,10 @@ def overlay_hook(d, hook_address, handler,
 
         %(replaced_code)s
 
+    ldr pc, =hook_address+8
+
+
+
         @ Trampoline to run the hook and return to the original code
 
         push    {r0}                   @ Allocate stack placeholder for pc
