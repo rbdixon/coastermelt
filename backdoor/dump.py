@@ -5,7 +5,7 @@ import sys, struct, time
 # Or import as a library for higher level dumping functions.
 
 __all__ = [
-    'words_from_string',
+    'words_from_string', 'poke_words', 'poke_words_from_string',
     'read_block',
     'hexdump', 'hexdump_words',
     'dump', 'dump_words',
@@ -18,6 +18,13 @@ def words_from_string(s):
        Assumes the string is a multiple of 4 bytes in length.
        """
     return struct.unpack('<%dI' % (len(s)/4), s)
+
+def poke_words(d, address, words):
+    for i, w in enumerate(words):
+        d.poke(address + 4*i, w)
+
+def poke_words_from_string(d, address, s):
+    poke_words(d, address, words_from_string(s))
 
 
 def read_word_aligned_block(d, address, size, verbose = True, reporting_interval = 0.2):
