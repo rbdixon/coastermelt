@@ -13,7 +13,7 @@ Internal _ are ignored so you can use them as separators.
     rd 1ff_ 100
     wr _ 1febb
     ALSO: rdw, orr, bic, fill, watch, find
-          ovl, wrf, peek, poke, read_block
+          peek, poke, read_block
 
 Disassemble, assemble, and invoke ARM assembly:
 
@@ -21,14 +21,19 @@ Disassemble, assemble, and invoke ARM assembly:
     asm _4 mov r3, #0x14
     dis _4 10
     ea mrs r0, cpsr; ldr r1, =0xaa000000; orr r0, r1
-    ALSO: asmf, tea, blx
-          assemble, disassemble, evalasm
+    ALSO: tea, blx assemble, disassemble, evalasm
 
-Or compile and invoke C++ code:
+Or compile and invoke C++ code with console output:
 
     ec 0x42
     ec ((uint16_t*)pad)[40]++
-    ALSO: console, ecc, hook, compile, evalc
+    ecc println("Hello World!")
+    ALSO: console, compile, evalc
+
+Live code patching and tracing:
+
+    hook -cm "Eject Handler" d3df6
+    ALSO: ovl, wrf, asmf
 
 You can use integer globals in C++ and ASM snippets,
 or define/replace a named C++ function:

@@ -29,12 +29,15 @@ code.defines['console_address'] = console_address
 
 class ConsoleOverflowError(Exception):
     """Raised by console_read() in case of FIFO buffer overflow"""
-
     def __init__(self, next_write, next_read):
         self.next_write = next_write
         self.next_read = next_read
         self.byte_count = (next_write - next_read) & 0xffffffff
-        Exception.__init__(self, "Buffer overflow, %d bytes lost" % self.byte_count)
+        self.unsynchronized = self.byte_count > 0x1000000
+        if self.unsynchronized:
+            Exception.__init__(self, "Console wasn't synchronized. Previous data lost")
+        else:
+            Exception.__init__(self, "Buffer overflow, %d bytes lost" % self.byte_count)
 
 
 def console_read(d, buffer = console_address):
@@ -126,7 +129,7 @@ def console_mainloop(d,
 
             except ConsoleOverflowError, e:
                 # Warn loudly that we missed some data
-                sys.stderr.write('\n\n======== %s ========' % e)
+                sys.stderr.write('\n\n======== %s ========\n\n' % e)
 
     except KeyboardInterrupt:
         return
