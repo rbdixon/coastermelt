@@ -10,10 +10,9 @@ OBJDUMP = 'arm-none-eabi-objdump'
 __all__ = [
     'CodeError',
     'pad', 'defines', 'includes',
-    'disassemble_string', 'disassemble', 'disassembly_lines',
-    'assemble_string', 'assemble',
-    'compile_string', 'compile',
-    'evalc', 'evalasm',
+    'disassemble_string', 'disassemble', 'disassembly_lines', 'side_by_side_disassembly',
+    'assemble_string', 'assemble', 'evalasm',
+    'compile_string', 'compile', 'evalc',
 ]
 
 import os, random, re, struct, collections, subprocess
@@ -427,6 +426,64 @@ def disassembly_lines(text):
         obj.comment = m.group(4)[1:].strip()
         lines.append(obj)
     return lines
+
+
+def side_by_side_disassembly(lines1, lines2, column_width = 40, middle = '>>'):
+    """Given two sets of disassembly lines, format them for display side-by-side.
+    Returns a string with one line per input line.
+    Addresses are synchronized, in case each side includes different instruction sizes.
+    """
+    output = []
+    index1 = 0
+    index2 = 0
+    while True:
+
+        line1 = index1 < len(lines1) and lines1[index1]
+        line2 = index2 < len(lines2) and lines2[index2]
+
+        if line1 and line2:
+            # We still have lines on both sides, align their addresses
+
+            if line1.address < line2.address:
+                # Left side first
+                left, right = True, False
+                address = line1.address
+
+            elif line2.address < line1.address:
+                # Right side first
+                left, right = False, True
+                address = line2.address
+
+            else:
+                # Synchronized
+                left, right = True, True
+                address = line1.address
+
+        elif line1:
+            # Only the left side
+            left, right = True, False
+            address = line1.address
+
+        elif line2:
+            # Only the right side
+            left, right = False, True
+            address = line2.address
+
+        else:
+            # Done
+            break
+
+        index1 += left
+        index2 += right
+
+        output.append("%08x %-*s%s%-*s" % (
+            address,
+            column_width, left and str(line1).expandtabs() or '',
+            middle,
+            column_width, right and str(line2).expandtabs() or ''
+        ))
+
+    return '\n'.join(output)
 
 
 def ldrpc_source_address(line):
