@@ -87,10 +87,11 @@ def overlay_hook(d, hook_address, handler,
     # to identify one of several hooks in the future.
 
     return_address = ovl_asm_lines[1].address
+    hook_instruction_size = return_address - hook_address
 
     patched_ovl_data = (
         ovl_data[:hook_address - ovl_address] +
-        '\xbe' * (return_address - hook_address) +
+        '\xbe' * hook_instruction_size +
         ovl_data[return_address - ovl_address:]
     )
 
@@ -157,6 +158,17 @@ def overlay_hook(d, hook_address, handler,
         @
         @ At this point r0-r12 are fine (assuming we don't care about r8-r12
         @ in FIQ mode) and CPSR is fine, but all of r13-r15 need work.
+        @
+        @ For r15, there's some vestigial ARM weirdness happening.
+        @ The hardware always sets lr = faulting_instruction + 4,
+        @ which would make sense as a return address in 32-bit ARM
+        @ mode. But with Thumb, now we need to care about the width
+        @ of the instruction just to calculate a return address.
+        @
+        @ But actually, we don't want the return address just yet.
+        @ The hook should see PC pointing to the breakpoint, then
+        @ we should advance past that instruction when we execute
+        @ the relocated code.
 
         sub     r0, lr, #4         @ After data abort, lr is faulting_instruction+4
         str     r0, [sp, #8+4*15]  @ Store to regs[15]
@@ -187,25 +199,18 @@ def overlay_hook(d, hook_address, handler,
         bx      r1
     from_handler:
 
-        @ The C++ handler may have modified any of regs[-1] through regs[14].
-        @
-        @ We don't allow modifying pc, since due to the instruction relocation
-        @ we are giving the hook a slightly unreal view of the actual return
-        @ process.
+        @ The C++ handler may have modified any of regs[-1] through regs[15].
         @
         @ We need to run the relocated instruction before leaving too.
         @ Our approach will be to load as much of this state back into the CPU
         @ as we care to, run the relocated instruction, then move the state back
         @ where it needs to go so we can return from the ISR.
-        @
-        @ We can take yet more shortcuts in this process because we're
-        @ relocating 16-bit Thumb instructions only, and we can pretty safely
-        @ use high registers to keep values across this entry and exit of the
-        @ relocated code.
 
         ldr     r11, [sp, #4]           @ Refresh r11 from regs[-1]
-        ldr     r0, =return_address+1   @ Correct Thumb return address goes in ISR frame
-        str     r0, [sp, #72+4*13]
+
+        ldr     r0, [sp, #8+4*15]       @ Load hook pc from regs[15]
+        add     r0, #hook_instruction_size+1
+        str     r0, [sp, #72+4*13]      @ Correct Thumb return address goes in ISR frame
 
         ldr     r12, =0xf000000f        @ Transfer condition code and mode bits
         bic     r8, r10, r12            @ Insert into handler cpsr (keep interrupt state)
