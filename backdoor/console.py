@@ -48,7 +48,7 @@ def console_read(d, buffer = console_address):
 
     if byte_count > 0xffff:
         d.poke(buffer + 0x10004, next_write)
-        e = ConsoleOverflowError(next_write, next_read)
+        raise ConsoleOverflowError(next_write, next_read)
 
     wr16 = next_write & 0xffff
     rd16 = next_read & 0xffff
