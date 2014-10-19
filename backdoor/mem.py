@@ -227,13 +227,8 @@ def overlay_hook(d, hook_address, handler,
         @ At this point r0-r12 are fine (assuming we don't care about r8-r12
         @ in FIQ mode) and CPSR is fine, but all of r13-r15 need work.
 
-        @ For r15, we know the return pointer but pc should actually point to
-        @ the previous instruction, the one we hooked. Bake that at compile
-        @ time for now. If we implement support for multiple hooks, this
-        @ should tell the handler which one was hit.
-
-        ldr     r0, =hook_address
-        str     r0, [sp, #8+4*15]
+        sub     r0, lr, #4         @ After data abort, lr is faulting_instruction+4
+        str     r0, [sp, #8+4*15]  @ Store to regs[15]
 
         @ For r13-r14, we need to take a quick trip into the saved processor
         @ mode to retrieve them. If we came from user mode, we'll need to use
@@ -278,6 +273,8 @@ def overlay_hook(d, hook_address, handler,
         @ relocated code.
 
         ldr     r11, [sp, #4]           @ Refresh r11 from regs[-1]
+        ldr     r0, =return_address+1   @ Correct Thumb return address goes in ISR frame
+        str     r0, [sp, #72+4*13]
 
         ldr     r12, =0xf000000f        @ Transfer condition code and mode bits
         bic     r8, r10, r12            @ Insert into handler cpsr (keep interrupt state)
