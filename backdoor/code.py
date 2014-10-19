@@ -18,7 +18,8 @@ __all__ = [
 
     # Disassembler
     'disassemble_string', 'disassemble',
-    'disassembly_lines', 'side_by_side_disassembly',
+    'disassembly_lines', 'disassemble_context',
+    'side_by_side_disassembly',
 
     # Instruction set
     'ldrpc_source_word',
@@ -433,11 +434,36 @@ def disassembly_lines(text):
         obj.op = m.group(2) or '<unknown>'
         obj.args = m.group(3).strip()
         obj.comment = m.group(4)[1:].strip()
+
+        if obj.op.find('out of bounds') > 0:
+            continue
         lines.append(obj)
     return lines
 
 
-def side_by_side_disassembly(lines1, lines2, column_width = 40, middle = '>>'):
+def disassemble_context(d, address, size = 16, thumb = True):
+    """Disassemble a region 'size' bytes before and after 'address'.
+    """
+    address &= ~1           # Round down to halfword (strip T bit)
+    size = (size + 3) & ~3  # Round up to word
+    block = read_block(d, address - size, size * 2)
+
+    asm = disassemble_string(block, address - size, thumb=thumb)
+    for line in disassembly_lines(asm):
+        if line.address == address:
+            return asm
+
+    if thumb:
+        # Didn't resync on its own... offset by a half-word
+        asm = disassemble_string(block[2:-2], address - size + 2, thumb=thumb)
+        for line in disassembly_lines(asm):
+            if line.address == address:
+                return asm
+
+    raise ValueError("Can't find a proper context disassembly for address %08x,\n%s" % (address, asm))
+
+
+def side_by_side_disassembly(lines1, lines2):
     """Given two sets of disassembly lines, format them for display side-by-side.
     Returns a string with one line per input line.
     Addresses are synchronized, in case each side includes different instruction sizes.
@@ -445,6 +471,8 @@ def side_by_side_disassembly(lines1, lines2, column_width = 40, middle = '>>'):
     output = []
     index1 = 0
     index2 = 0
+    fmt = lambda l: str(l).expandtabs(8)
+    column_width = reduce(max, map(len, map(fmt, lines1)))
     while True:
 
         line1 = index1 < len(lines1) and lines1[index1]
@@ -482,15 +510,14 @@ def side_by_side_disassembly(lines1, lines2, column_width = 40, middle = '>>'):
             # Done
             break
 
+        output.append("%08x %-*s %s" % (
+            address, column_width,
+            left and fmt(line1) or '',
+            right and fmt(line2) or ''
+        ))
+
         index1 += left
         index2 += right
-
-        output.append("%08x %-*s%s%-*s" % (
-            address,
-            column_width, left and str(line1).expandtabs(4) or '',
-            middle,
-            column_width, right and str(line2).expandtabs(4) or ''
-        ))
 
     return '\n'.join(output)
 

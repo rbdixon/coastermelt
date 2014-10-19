@@ -266,10 +266,10 @@ def overlay_hook(d, hook_address, handler,
 
     # Look at our handiwork in the disassembler
 
-    verify_asm = disassemble(d, ovl_address, ovl_size)
+    verify_asm = disassemble_context(d, hook_address)
     asm_diff = side_by_side_disassembly(
-        disassembly_lines(ovl_asm),       # Original unpatched disassembly on the left
-        disassembly_lines(verify_asm)     # Fresh disassembly on the right
+        disassembly_lines(ovl_asm),       # Original unpatched hook on the left
+        disassembly_lines(verify_asm),    # Fresh context disassembly on the right
     )
 
     if verbose:
@@ -281,5 +281,5 @@ def overlay_hook(d, hook_address, handler,
 
     # Most common failure mode I'm seeing now is that the overlay gets stolen or
     # the truncation bug just breaks things and the patch doesn't install.
-    assert verify_asm.find('bkpt') > 0
+    assert verify_asm.find('bkpt') >= 0
 
