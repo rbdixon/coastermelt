@@ -34,8 +34,8 @@ application entry.
 
 10000: reset
 10004: ARM undefined instruction
-10008: ARM software interrupt (reflect to boot sector +3C)
-1000c: ARM prefetch abort exception
+10008: ARM software interrupt         (svc)
+1000c: ARM prefetch abort exception   (bkpt)
 10010: ARM data abort exception 
 10014: hardware interrupt? (reflect to boot sector +158)
 1001c: fiq fast hardware interrupt
