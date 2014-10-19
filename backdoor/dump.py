@@ -40,10 +40,10 @@ class progress_reporter:
                 # Enough time has passed
                 self.mandatory_update(current, total)
 
-    def complete(self, total):
+    def complete(self, current, total):
         # Write a final status if we had any output
         if self.output_timestamp:
-            self.mandatory_update(total, total)
+            self.mandatory_update(current, total)
             sys.stdout.write('\n')
             sys.stdout.flush()
 
@@ -66,13 +66,15 @@ def poke_words(d, address, words, verbose = True, reporting_interval = 0.1):
     """Send a block of words (slowly)"""
     progress = progress_reporter('words sent',
         enabled=verbose, reporting_interval=reporting_interval)
+    l = len(words)
     for i, w in enumerate(words):
         d.poke(address + 4*i, w)
-        progress.update(i+1, len(words))
-    progress.complete(len(words))
+        progress.update(i+1, l)
+    progress.complete(l, l)
 
 
-def read_word_aligned_block(d, address, size, verbose = True, reporting_interval = 0.2):
+def read_word_aligned_block(d, address, size,
+    verbose = True, reporting_interval = 0.2, max_round_trips = None):
     # Implementation detail for read_block
 
     assert (address & 3) == 0
@@ -87,17 +89,24 @@ def read_word_aligned_block(d, address, size, verbose = True, reporting_interval
         wordcount = min((size - i) / 4, 0x1c)
         parts.append(d.read_block(address + i, wordcount))
         i += 4 * wordcount
+        if max_round_trips and len(parts) >= max_round_trips:
+            break
+
         progress.update(i, size)
 
-    progress.complete(size)
+    progress.complete(i, size)
     return ''.join(parts)
 
 
-def read_block(d, address, size):
+def read_block(d, address, size, max_round_trips = None):
     """Read a block of ARM memory, return it as a string.
 
     Reads using LDR (word-aligned) reads only. The requested block
     does not need to be aligned.
+
+    If max_round_trips is set, we stop after that many round-trip
+    commands to the device. This can be used for real-time applications
+    where it may be better to have some data soon than all the data later.
     """
 
     # Convert to half-open interval [address, end)
@@ -112,7 +121,9 @@ def read_block(d, address, size):
     sub_begin = address - word_address
     sub_end = sub_begin + size
 
-    return read_word_aligned_block(d, word_address, word_size)[sub_begin:sub_end]
+    return read_word_aligned_block(d, word_address, word_size,
+        max_round_trips=max_round_trips
+        )[sub_begin:sub_end]
 
 
 def search_block(d, address, size, substring, context_length = 16):

@@ -7,11 +7,13 @@
 # It can run stand-alone, or via the %console shell command.
 
 __all__ = [
-    'console_mainloop', 'console_read',
+    'console_mainloop', 'ConsoleBuffer',
     'console_address', 'ConsoleOverflowError'
 ]
 
-import sys, time, code, dump
+import sys, time
+from code import *
+from dump import *
 
 
 # Our ring buffer is 64 KiB. The default location comes from
@@ -24,11 +26,11 @@ console_address = 0x1e50000
 # the console_address is always available even in code compiled
 # without the whole shell namespace.
 
-code.defines['console_address'] = console_address
+defines['console_address'] = console_address
 
 
 class ConsoleOverflowError(Exception):
-    """Raised by console_read() in case of FIFO buffer overflow"""
+    """Raised by ConsoleBuffer.read() in case of FIFO buffer overflow"""
     def __init__(self, next_write, next_read):
         self.next_write = next_write
         self.next_read = next_read
@@ -40,40 +42,61 @@ class ConsoleOverflowError(Exception):
             Exception.__init__(self, "Buffer overflow, %d bytes lost" % self.byte_count)
 
 
-def console_read(d, buffer = console_address):
-    """Read all the data we can get from the console immediately.
-    If a buffer overflow occurred, raises a ConsoleOverflowError.
+class ConsoleBuffer:
+    """Reader object for the debugger's console buffer.
+    This object caches state to improve performance.
     """
+    def __init__(self, d, buffer_address = console_address):
+        self.d = d
+        self.buffer = buffer_address
+        self.next_write = None
+        self.next_read = None
 
-    next_write = d.peek(buffer + 0x10000)
-    next_read = d.peek(buffer + 0x10004)
-    byte_count = (next_write - next_read) & 0xffffffff
+    def read(self, max_round_trips = 10):
+        """Read all the data we can get from the console quickly.
+        If a buffer overflow occurred, raises a ConsoleOverflowError.
+        """
+        try:
+            # Update cached FIFO pointers if needed
+            if self.next_write is None or self.next_read is None:
+                self.next_write, self.next_read = words_from_string(
+                    self.d.read_block(self.buffer + 0x10000, 2))
 
-    if byte_count > 0xffff:
-        d.poke(buffer + 0x10004, next_write)
-        raise ConsoleOverflowError(next_write, next_read)
+            byte_count = (self.next_write - self.next_read) & 0xffffffff
+            if byte_count > 0xffff:
+                # Overflow! Catch up, and leave
+                e = ConsoleOverflowError(self.next_write, self.next_read)
+                self.next_read = self.next_write
+                self.d.poke(self.buffer + 0x10004, self.next_read)
+                raise e
 
-    wr16 = next_write & 0xffff
-    rd16 = next_read & 0xffff
+            wr16 = self.next_write & 0xffff
+            rd16 = self.next_read & 0xffff
+            if wr16 > rd16:
+                # More data available, and the buffer didn't wrap
+                max_read_len = wr16 - rd16
+            elif wr16 < rd16:
+                # Buffer wrapped; just get the contiguous piece for now
+                max_read_len = 0x10000 - rd16
+            else:
+                # No change; return without updating next_read. Make sure to reload the cache next time.
+                assert byte_count == 0
+                self.next_read = None
+                return ''
 
-    if wr16 > rd16:
-        # More data available, and the buffer didn't wrap
-        data = dump.read_block(d, buffer + rd16, wr16 - rd16)
+            data = read_block(self.d, self.buffer + rd16, max_read_len,
+                    max_round_trips=max_round_trips)
 
-    elif wr16 < rd16:
-        # Buffer wrapped; get it in two pieces
-        data = dump.read_block(d, buffer + rd16, 0x10000 - rd16)
-        data += dump.read_block(d, buffer, wr16)
+            # Acknowledge the amount we actually read
+            self.next_read = (self.next_read + len(data)) & 0xffffffff;
+            self.d.poke(self.buffer + 0x10004, self.next_read)
+            return data
 
-    else:
-        # No change; return without updating next_read
-        assert byte_count == 0
-        return ''
-
-    # Follow the full 32-bit virtual ring position
-    assert len(data) == byte_count
-    d.poke(buffer + 0x10004, next_write)
-    return data
+        except:
+            # If anything went wrong, invalidate the FIFO pointer cache
+            self.next_write = None
+            self.next_read = None
+            raise
 
 
 def console_mainloop(d,
@@ -93,11 +116,12 @@ def console_mainloop(d,
     spinner_chars = '-\\|/'
     spinner_count = 0
     spinner_visible = False
+    console_buffer = ConsoleBuffer(d, buffer)
 
     try:
         while True:
             try:
-                data = console_read(d, buffer)
+                data = console_buffer.read()
                 now = time.time()
 
                 if data:
