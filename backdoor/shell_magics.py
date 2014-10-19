@@ -333,7 +333,7 @@ class ShellMagics(magic.Magics):
     @argument('hook_address', type=hexint)
     @argument('handler_address', nargs='?', type=hexint_aligned, default=pad+0x100)
     @argument('-q', '--quiet', action='store_true', help="Just install the hook, don't talk about it")
-    @argument('-r', '--reset', action='store_true', help="Do a %%reset before starting")
+    @argument('-r', '--reset', action='store_true', help="Reset the ARM before starting")
     @argument('-c', '--console', action='store_true', help='Immediately launch into a %%console after installing')
     @argument('-f', '--console_file', type=str, default=None, metavar='FILE', help='Append console output to a text file')
     @argument('-b', '--console_buffer', type=hexint_aligned, metavar='HEX', default=console_address, help='Specify a different address for the console_buffer_t data structure')
@@ -372,7 +372,7 @@ class ShellMagics(magic.Magics):
                 raise UsageError('--delay only applies when using the default hook')
 
         if args.reset:
-            d.reset()
+            reset_arm(d)
         try:
             overlay_hook(d, args.hook_address, cell,
                 defines = all_defines(),

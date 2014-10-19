@@ -101,7 +101,7 @@ Or compile and invoke C++ code with console output:
 
 Live code patching and tracing:
 
-    hook -cm "Eject button" d4028
+    hook -rcm "Eject button" d4028
     ALSO: ovl, wrf, asmf
 
 You can use integer globals in C++ and ASM snippets,
