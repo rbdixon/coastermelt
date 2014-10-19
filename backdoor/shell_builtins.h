@@ -19,14 +19,18 @@ static uint16_t *halfp = (uint16_t *) pad;
 static uint8_t  *bytep = (uint8_t *) pad;
 
 
-// Default handler for %hook
+// Default handler for %hook, log plenty of system state to the console
 void default_hook(uint32_t regs[16], const char *message)
 {
-	console("\nt=", SysTime::now()); println(" s :: ", message);
-	console("r0= "); console_array(regs, 8); println(" =r7");
-	console("r8= "); console_array(regs+8, 8); println(" =r15");
-	console("   cpsr= ", regs[-1]); println(" stack=[");
+	println("\n :::: ", message);
+
+	console("cpsr=", regs[-1]); println(" systime=", SysTime::now());
+	console("  r0= "); console_array(regs, 8);   println(" =r7");
+	console("  r8= "); console_array(regs+8, 8); println(" =r15");
+
 	uint32_t *stack = (uint32_t*)regs[13];
-	println_array(stack, 8);
-	println_array(stack+8, 8);
+	console("sp >> "); console_array(stack, 8);    console(" ("); console((uint32_t) stack); println(")");
+	console("      "); console_array(stack+=8, 8); console(" ("); console((uint32_t) stack); println(")");
+	console("      "); console_array(stack+=8, 8); console(" ("); console((uint32_t) stack); println(")");
+	console("      "); console_array(stack+=8, 8); console(" ("); console((uint32_t) stack); println(")");
 }
