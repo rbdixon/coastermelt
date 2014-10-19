@@ -80,9 +80,8 @@ short for 0000, leading _ adds 'pad' scratchpad RAM offset.
 Internal _ are ignored so you can use them as separators.
 
     rd 1ff_ 100
-    wr _ fe00
+    wr _ 1febb
     ALSO: rdw, orr, bic, fill, watch, find
-          ovl, wrf
           peek, poke, read_block
 
 Disassemble, assemble, and invoke ARM assembly:
@@ -91,22 +90,27 @@ Disassemble, assemble, and invoke ARM assembly:
     asm _4 mov r3, #0x14
     dis _4 10
     ea mrs r0, cpsr; ldr r1, =0xaa000000; orr r0, r1
-    ALSO: asmf, assemble, disassemble, blx, evalasm
+    ALSO: tea, blx assemble, disassemble, evalasm
 
-Or compile and invoke C++ code:
+Or compile and invoke C++ code with console output:
 
     ec 0x42
     ec ((uint16_t*)pad)[40]++
-    ALSO: compile, evalc, hook
+    ecc println("Hello World!")
+    ALSO: console, compile, evalc
 
-You can use integer globals in C++ and ASM snippets, or
-define/replace a named C++ function:
+Live code patching and tracing:
+
+    hook -cm "Eject button" d4028
+    ALSO: ovl, wrf, asmf
+
+You can use integer globals in C++ and ASM snippets,
+or define/replace a named C++ function:
 
     fc uint32_t* words = (uint32_t*) buffer
     buffer = pad + 0x100
     ec words[0] += 0x50
     asm _ ldr r0, =buffer; bx lr
-    ALSO: includes, %%fc
 
 You can script the device's SCSI interface too:
 
@@ -114,7 +118,8 @@ You can script the device's SCSI interface too:
     sc 8 ff 00 ff        # Undocumented firmware version
     ALSO: reset, eject, sc_sense, sc_read, scsi_in, scsi_out
 
-Happy hacking!         -- Type 'thing?' for info on 'thing'
-~MeS`14                   or '?' to learn about IPython
+Happy hacking!    -- Type 'thing?' for help on 'thing' or
+~MeS`14              '?' for IPython, '%h' for this again.
 
+In [1]: 
 ```
