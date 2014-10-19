@@ -24,13 +24,19 @@ void default_hook(uint32_t regs[16], const char *message)
 {
 	println("\n :::: ", message);
 
+	// Registers and timestamp
 	console("cpsr=", regs[-1]); println(" systime=", SysTime::now());
 	console("  r0= "); console_array(regs, 8);   println(" =r7");
 	console("  r8= "); console_array(regs+8, 8); println(" =r15");
 
+	// Tiny stack dump
 	uint32_t *stack = (uint32_t*)regs[13];
-	console("sp >> "); console_array(stack, 8);    console(" ("); console((uint32_t) stack); println(")");
-	console("      "); console_array(stack+=8, 8); console(" ("); console((uint32_t) stack); println(")");
-	console("      "); console_array(stack+=8, 8); console(" ("); console((uint32_t) stack); println(")");
-	console("      "); console_array(stack+=8, 8); console(" ("); console((uint32_t) stack); println(")");
+	const char *heading1 = "sp >> ";
+	const char *heading2 = "      ";
+	for (unsigned lines = 8; lines; lines--) {
+		console(heading1); console_array(stack, 8);
+		console(" (", (uint32_t) stack); println(")");
+		heading1 = heading2;
+		stack += 8;
+	}
 }
