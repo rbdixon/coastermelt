@@ -143,21 +143,23 @@ def overlay_hook(d, hook_address, handler,
 
     # The next instruction is where we return from the hook.
     # Fill the entire instruction we're replacing (2 or 4 bytes)
-    # with an arbitrary SVC we'll use to enter our ISR.
+    # with an arbitrary breakpoint we'll use to enter our ISR.
     #
-    # Right now we use an arbitrary number as the only SVC code
+    # We use a bkpt instead of svc for a subtle but critical
+    # reason- most of the code here seems to be in svc mode
+    # already, and this architecture requires software support
+    # for nesting svc's. Our hook would need to be much bigger
+    # to include push/pop instructions, yuck.
+    #
+    # Right now we use an arbitrary number as the only bkpt code
     # and never check this in the handler. This could be used
     # to identify one of several hooks in the future.
 
-    svc_instruction_number = 99  # Make it seem very arbitrary
-
-    svc = chr(svc_instruction_number) + chr(0xdf)
     return_address = ovl_asm_lines[1].address
-    svc_field = (return_address - hook_address) / len(svc) * svc
 
     patched_ovl_data = (
         ovl_data[:hook_address - ovl_address] +
-        svc_field +
+        '\xbe' * (return_address - hook_address) +
         ovl_data[return_address - ovl_address:]
     )
 
@@ -187,37 +189,73 @@ def overlay_hook(d, hook_address, handler,
     #
     #   - Register save/restore
     #   - Invoking the C++ hook function with a nice flat regs[] array
-    #   - A relocated copy of the instruction we replaced with the SVC
+    #   - A relocated copy of the instruction we replaced with the bkpt
     #   - Returning to the right address after the hook
 
     isr_address = (handler_address + handler_len + 0x1f) & ~0x1f
     isr_len = code.assemble(d, isr_address, """
 
-        push    {r0-r12, lr}            @ Save everything except {sp, pc}
-        push    {r0-r2}                 @ Placeholders for regs[13] through regs[15]
-        push    {r0-r12}                @ Initial value for regs[0] through regs[12]
-        mrs     r1, spsr                @ Save cpsr
-        push    {r0-r1}                 @ Store cpsr to regs[-1], and 8-byte align
-                                        @ Stack is now { _, cpsr, regs[], r0-r12, lr }
-        
-        ldr     r0, =hook_address       @ regs[15] pc = hook_address
-        str     r0, [sp, #8+4*15]       @ (lr is after the hook, but we haven't really run it yet)
+        @ Save state and lay out the stack:
+        @
+        @   [sp, #72+4*13]    pc
+        @   [sp, #72+4*12]    r12
+        @   ...               ...
+        @   [sp, #72+4*1]     r1
+        @   [sp, #72+4*0]     r0
+        @   [sp, #8+4*15]     regs[15] / r15 (pc)
+        @   [sp, #8+4*14]     regs[14] / r14 (lr)
+        @   [sp, #8+4*13]     regs[13] / r13 (sp)
+        @   [sp, #8+4*12]     regs[12] / r12
+        @   ...               ...
+        @   [sp, #8+4*2]      regs[ 2] / r2
+        @   [sp, #8+4*1]      regs[ 1] / r1
+        @   [sp, #8+4*0]      regs[ 0] / r0
+        @   [sp, #4]          regs[-1] / cpsr
+        @   [sp, #0]          (padding)
+        @
+        @ This is a little wasteful of stack RAM, but it makes the layout as
+        @ convenient as possible for the C++ code by keeping its registers in
+        @ order.
 
-        tst     r1, #0xF                @ Saved processor mode, low nybble
-        beq     usermode_regs           @   0 == user mode
-                                        @   Otherwise, assume supervisor mode.
+        push    {r0-r12, lr}      @ Save everything except {sp, pc}
+        push    {r0-r2}           @ Placeholders for regs[13] through regs[15]
+        push    {r0-r12}          @ Initial value for regs[0] through regs[12]
+        mrs     r11, spsr         @ Saved psr, becomes regs[-1]
+        mrs     r10, cpsr         @ Also save handler's cpsr to regs[-2]
+        push    {r10-r11}         @ (we needed 8-byte alignment anyway)
 
-    supervisor_regs:
-        
-        str     lr, [sp, #8+4*14]       @ Fuck.
+        @ Patch correct values into regs[].
+        @
+        @ At this point r0-r12 are fine (assuming we don't care about r8-r12
+        @ in FIQ mode) and CPSR is fine, but all of r13-r15 need work.
 
-        nop
-        nop
-        nop
-        nop
+        @ For r15, we know the return pointer but pc should actually point to
+        @ the previous instruction, the one we hooked. Bake that at compile
+        @ time for now. If we implement support for multiple hooks, this
+        @ should tell the handler which one was hit.
 
-    usermode_regs:
+        ldr     r0, =hook_address
+        str     r0, [sp, #8+4*15]
 
+        @ For r13-r14, we need to take a quick trip into the saved processor
+        @ mode to retrieve them. If we came from user mode, we'll need to use
+        @ system mode to read the registers so we don't get ourselves stuck.
+
+        bic     r8, r10, #0xf     @ CPSR, without the low 4 mode bits
+        ands    r9, r11, #0xf     @ Look at the saved processor mode, low 4 bits, set Z
+        orreq   r9, r9, #0xf      @ if (r9==0) r9 = 0xf; (user mode -> system mode)
+        orr     r8, r9            @ Same cpsr, new mode
+
+        msr     cpsr_c, r8        @ Quick trip...
+        mov     r4, r13
+        mov     r5, r14
+        msr     cpsr_c, r10       @ Back to the handler's original mode
+
+        str     r4, [sp, #8+4*13]
+        str     r5, [sp, #8+4*14]
+
+        @ Now our regs[] should be consistent with the state the system was in
+        @ before hitting our breakpoint. Call the C++ handler.
 
         add     r0, sp, #8              @ r0 = regs[]
         adr     lr, from_handler        @ Long call to C++ handler
@@ -225,13 +263,17 @@ def overlay_hook(d, hook_address, handler,
         bx      r1
     from_handler:
 
+
+
+
+
         add     r0, sp, #8+16*4
         ldm     r0, {r0-r12}            @ Restore GPRs so we can run the relocated instruction
         %(reloc)s                       @ Relocated instruction from the hook location
         stm     r0, {r0-r12}            @ Save GPRs again
 
-        pop     {r0-r1}                 @ Take cpsr off the stack
-        msr     SPSR_cxsf, r1           @ Put saved cpsr in spsr, ready to restore
+        pop     {r10-r11}               @ Take cpsr off the stack
+        msr     spsr_cxsf, r11          @ Put saved cpsr in spsr, ready to restore
         add     sp, #4*16               @ Skip regs[]
         ldmfd   sp!, {r0-r12, pc}^      @ Return from SVC, and restore cpsr
 
@@ -239,8 +281,8 @@ def overlay_hook(d, hook_address, handler,
 
     # Install the ISR, then finally the code overlay. Now our hook is active!
 
-    svc_vector = 0x8
-    ivt_set(d, svc_vector, isr_address)
+    bkpt_prefetch_abort_vector = 0xc
+    ivt_set(d, bkpt_prefetch_abort_vector, isr_address)
     overlay_set(d, ovl_address, ovl_size/4)
  
     if verbose:

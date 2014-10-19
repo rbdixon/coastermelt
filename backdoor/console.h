@@ -102,7 +102,7 @@ void console_dec(int number)
 	}
 }
 
-// (SysTime) -> %d.%3d, seconds
+// (SysTime) -> %4d.%3d, seconds
 void console(MT1939::SysTime st)
 {
 	console_dec(st.seconds());
