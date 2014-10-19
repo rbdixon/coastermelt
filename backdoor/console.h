@@ -110,6 +110,18 @@ void console(MT1939::SysTime st)
 	console_dec(st.milliseconds() % 1000, 3, '0');
 }
 
+// Integer arrays
+void console_array(const uint32_t *a, unsigned count)
+{
+	if (count--) {
+		console(*(a++));
+	}
+	while (count--) {
+		console(' ');
+		console(*(a++));
+	}
+}
+
 // (int) -> (uint32_t), to avoid ambiguity
 void console(int a) { console((uint32_t) a); }
 
@@ -122,9 +134,6 @@ void console(const char* a, const char* b, const char* c, const char* d) { conso
 void console(uint32_t a, uint32_t b) { console(a); console(' '); console(b); }
 void console(uint32_t a, uint32_t b, uint32_t c) { console(a, b); console(' '); console(c); }
 void console(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { console(a, b); console(' '); console(c, d); }
-
-// Common sizes of uint32_t array
-void console(uint32_t a[4]) { console(a[0], a[1], a[2], a[3]); }
 
 // With string prefix
 void console(const char* s, MT1939::SysTime a) { console(s); console(' '); console(a); }
@@ -153,3 +162,7 @@ void println(const char* a, MT1939::SysTime b) { console(a, b); println(); }
 // Decimal numbers with newline
 void println_dec(int n) { console_dec(n); println(); }
 void println_dec(unsigned int n) { console_dec(n); println(); }
+
+// Arrays with newline
+void println_array(const uint32_t *a, unsigned b) { console_array(a, b); println(); }
+

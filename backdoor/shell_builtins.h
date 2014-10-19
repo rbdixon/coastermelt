@@ -23,7 +23,10 @@ static uint8_t  *bytep = (uint8_t *) pad;
 void default_hook(uint32_t regs[16], const char *message)
 {
 	// Current time, and a message from "%hook -m"
-	console("t=", SysTime::now());
-	println(" :: ", message);
-	println(regs);
+	console("\nt=", SysTime::now());
+	println(" s :: ", message);
+
+	// All registers, split across two lines
+	println_array(regs, 8);
+	println_array(regs+8, 8);
 }
