@@ -15,8 +15,17 @@ struct SysTime
 	uint32_t ticks;
 	static const unsigned hz = 512 * 1024;
 
-	int32_t difference(SysTime b) {
+	int32_t difference(SysTime b) const {
 		return (int32_t) (ticks - b.ticks);
+	}
+
+	unsigned seconds() const {
+		return ticks / hz;
+	}
+
+	unsigned milliseconds() const {
+		// Support fractional number of ticks per millisecond
+		return (uint64_t)ticks * 1000 / hz;
 	}
 
 	static SysTime now() {
