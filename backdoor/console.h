@@ -105,7 +105,7 @@ void console_dec(int number)
 // (SysTime) -> %4d.%3d, seconds
 void console(MT1939::SysTime st)
 {
-	console_dec(st.seconds());
+	console_dec(st.seconds(), 4, ' ');
 	console('.');
 	console_dec(st.milliseconds() % 1000, 3, '0');
 }

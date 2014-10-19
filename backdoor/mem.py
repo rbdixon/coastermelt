@@ -182,8 +182,6 @@ def overlay_hook(d, hook_address, handler,
         raise NotImplementedError("Can't hook branches yet: %s" % reloc)
     if reloc.args.find('pc') > 0:
         raise NotImplementedError("Can't hook instructions that read or write pc: %s" % reloc)
-    if reloc.args.find('sp') == 0 or reloc.op in ('push', 'pop'):
-        raise NotImplementedError("Can't hook instructions that modify sp: %s" % reloc)
 
     # The ISR lives just after the handler, in RAM. It includes:
     #
@@ -211,7 +209,7 @@ def overlay_hook(d, hook_address, handler,
         @   [sp, #8+4*1]      regs[ 1] / r1
         @   [sp, #8+4*0]      regs[ 0] / r0
         @   [sp, #4]          regs[-1] / cpsr
-        @   [sp, #0]          (padding)
+        @   [sp, #0]          regs[-2] / breakpoint_psr
         @
         @ This is a little wasteful of stack RAM, but it makes the layout as
         @ convenient as possible for the C++ code by keeping its registers in
@@ -240,22 +238,22 @@ def overlay_hook(d, hook_address, handler,
         @ For r13-r14, we need to take a quick trip into the saved processor
         @ mode to retrieve them. If we came from user mode, we'll need to use
         @ system mode to read the registers so we don't get ourselves stuck.
+        
+        bic     r8, r10, #0xf      @ Transfer low 4 mode bits
+        ands    r9, r11, #0xf
+        orreq   r9, r9, #0x1f      @ If user mode, switch to system mode
+        orr     r8, r9
 
-        bic     r8, r10, #0xf     @ CPSR, without the low 4 mode bits
-        ands    r9, r11, #0xf     @ Look at the saved processor mode, low 4 bits, set Z
-        orreq   r9, r9, #0xf      @ if (r9==0) r9 = 0xf; (user mode -> system mode)
-        orr     r8, r9            @ Same cpsr, new mode
-
-        msr     cpsr_c, r8        @ Quick trip...
+        msr     cpsr_c, r8         @ Quick trip...
         mov     r4, r13
         mov     r5, r14
-        msr     cpsr_c, r10       @ Back to the handler's original mode
+        msr     cpsr_c, r10        @ Back to the handler's original mode
 
         str     r4, [sp, #8+4*13]
         str     r5, [sp, #8+4*14]
 
         @ Now our regs[] should be consistent with the state the system was in
-        @ before hitting our breakpoint. Call the C++ handler.
+        @ before hitting our breakpoint. Call the C++ handler! (Preserves r8-r13)
 
         add     r0, sp, #8              @ r0 = regs[]
         adr     lr, from_handler        @ Long call to C++ handler
@@ -263,18 +261,59 @@ def overlay_hook(d, hook_address, handler,
         bx      r1
     from_handler:
 
+        @ The C++ handler may have modified any of regs[-1] through regs[14].
+        @
+        @ We don't allow modifying pc, since due to the instruction relocation
+        @ we are giving the hook a slightly unreal view of the actual return
+        @ process.
+        @
+        @ We need to run the relocated instruction before leaving too.
+        @ Our approach will be to load as much of this state back into the CPU
+        @ as we care to, run the relocated instruction, then move the state back
+        @ where it needs to go so we can return from the ISR.
+        @
+        @ We can take yet more shortcuts in this process because we're
+        @ relocating 16-bit Thumb instructions only, and we can pretty safely
+        @ use high registers to keep values across this entry and exit of the
+        @ relocated code.
 
+        ldr     r11, [sp, #4]           @ Refresh r11 from regs[-1]
 
+        ldr     r12, =0xf000000f        @ Transfer condition code and mode bits
+        bic     r8, r10, r12            @ Insert into handler cpsr (keep interrupt state)
+        and     r9, r11, r12
+        tst     r9, #0xf                @ If low nybble is zero, user mode
+        orreq   r9, r9, #0x1f           @ If user mode, switch to system mode
+        orr     r8, r9
 
+        ldr     r4, [sp, #8+4*13]       @ Prepare r13
+        ldr     r5, [sp, #8+4*14]       @ Prepare r14
+        add     r12, sp, #8             @ Use r12 to hold regs[] while we're on the user stack
 
-        add     r0, sp, #8+16*4
-        ldm     r0, {r0-r12}            @ Restore GPRs so we can run the relocated instruction
-        %(reloc)s                       @ Relocated instruction from the hook location
-        stm     r0, {r0-r12}            @ Save GPRs again
+        msr     cpsr_c, r8              @ Back to the saved mode & condition codes
+        mov     r13, r4                 @ Replace saved r13-14 with those from our stack
+        mov     r14, r5
+        ldm     r12, {r0-r11}           @ Restore r0-r11 temporarily
 
-        pop     {r10-r11}               @ Take cpsr off the stack
-        msr     spsr_cxsf, r11          @ Put saved cpsr in spsr, ready to restore
-        add     sp, #4*16               @ Skip regs[]
+        %(reloc)s                       @ Relocated and reassembled code from the hook location
+                                        @ We only rely on it preserving pc and r12.
+
+        add     r12, #4*16              @ When we save, switch from the regs[] copy to the return frame
+        stm     r12, {r0-r11}           @ Save r0-r11, capturing modifications
+        mrs     r11, cpsr               @ Save cpsr from relocated code
+
+        sub     r12, #8+4*16            @ Calculate our abort-mode sp from r12
+        ldr     r10, [r12]              @ Reload breakpoint_psr from abort-mode stack
+        msr     cpsr_c, r10             @ Back to abort-mode, and to our familiar stack
+
+        ldr     r1, [sp, #4]            @ Load saved cpsr from regs[-1] again
+        ldr     r0, =0xf0000000         @ Mask for condition codes
+        bic     r1, r0
+        and     r0, r11                 @ Condition codes from after relocated instruction
+        orr     r0, r1                  @ Combine new condition codes with regs[-1]
+        msr     spsr_cxsf, r0           @ Into spsr, ready to restore in ldm below
+
+        add     sp, #8+4*16             @ Skip back to return frame
         ldmfd   sp!, {r0-r12, pc}^      @ Return from SVC, and restore cpsr
 
         """ % locals(), defines=locals(), thumb=False)
