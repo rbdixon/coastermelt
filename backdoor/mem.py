@@ -194,11 +194,31 @@ def overlay_hook(d, hook_address, handler,
     isr_len = code.assemble(d, isr_address, """
 
         push    {r0-r12, lr}            @ Save everything except {sp, pc}
-        push    {r0-r15}                @ Now make a flat regs[16] array on the stack below that
+        push    {r0-r2}                 @ Placeholders for regs[13] through regs[15]
+        push    {r0-r12}                @ Initial value for regs[0] through regs[12]
         mrs     r1, spsr                @ Save cpsr
         push    {r0-r1}                 @ Store cpsr to regs[-1], and 8-byte align
                                         @ Stack is now { _, cpsr, regs[], r0-r12, lr }
         
+        ldr     r0, =hook_address       @ regs[15] pc = hook_address
+        str     r0, [sp, #8+4*15]       @ (lr is after the hook, but we haven't really run it yet)
+
+        tst     r1, #0xF                @ Saved processor mode, low nybble
+        beq     usermode_regs           @   0 == user mode
+                                        @   Otherwise, assume supervisor mode.
+
+    supervisor_regs:
+        
+        str     lr, [sp, #8+4*14]       @ Fuck.
+
+        nop
+        nop
+        nop
+        nop
+
+    usermode_regs:
+
+
         add     r0, sp, #8              @ r0 = regs[]
         adr     lr, from_handler        @ Long call to C++ handler
         ldr     r1, =handler_address+1
