@@ -8,11 +8,20 @@ OBJCOPY = 'arm-none-eabi-objcopy'
 OBJDUMP = 'arm-none-eabi-objdump'
 
 __all__ = [
-    'CodeError',
+    # Code globals
     'pad', 'defines', 'includes',
-    'disassemble_string', 'disassemble', 'disassembly_lines', 'side_by_side_disassembly',
+
+    # Compiler
     'assemble_string', 'assemble', 'evalasm',
     'compile_string', 'compile', 'evalc',
+    'CodeError',
+
+    # Disassembler
+    'disassemble_string', 'disassemble',
+    'disassembly_lines', 'side_by_side_disassembly',
+
+    # Instruction set
+    'ldrpc_source_word',
 ]
 
 import os, random, re, struct, collections, subprocess

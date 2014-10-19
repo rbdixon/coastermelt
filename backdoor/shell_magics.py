@@ -19,6 +19,7 @@ from dump import *
 from mem import *
 from watch import *
 from console import *
+from hook import *
 
 
 @magic.magics_class
@@ -470,10 +471,15 @@ class ShellMagics(magic.Magics):
         sys.stdout.write(hexdump(data))
 
     @magic.line_magic
+    @magic_arguments()
+    @argument('-a', '--arm', action='store_true', help='Try to reset the ARM CPU as well')
     def reset(self, line=''):
-        """Reset and reopen the device."""
+        """Reset and reopen the USB interface."""
+        args = parse_argstring(self.reset, line)
         d = self.shell.user_ns['d']
         d.reset()
+        if args.arm:
+            reset_arm(d)
 
     @magic.line_magic
     def eject(self, line=''):

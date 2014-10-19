@@ -19,6 +19,7 @@ from mem import *
 
 from watch import *
 from console import *
+from hook import *
 from hilbert import hilbert
 
 import IPython
