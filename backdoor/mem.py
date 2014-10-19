@@ -135,7 +135,8 @@ def overlay_hook(d, hook_address, handler,
     # Position the overlay away from flash, so we get a clean copy.
     # Then read and disassemble it, starting the disassembly at the hook address.
 
-    overlay_set(d, va)
+    overlay_set(d, va, ovl_size)
+
     ovl_data = dump.read_block(d, ovl_address, ovl_size)
     ovl_asm = code.disassemble_string(ovl_data[hook_address - ovl_address:], address=hook_address)
     ovl_asm_lines = code.disassembly_lines(ovl_asm)
@@ -144,16 +145,19 @@ def overlay_hook(d, hook_address, handler,
     # Fill the entire instruction we're replacing (2 or 4 bytes)
     # with an arbitrary SVC we'll use to enter our ISR.
     #
-    # Right now we use SVC 69 (decimal) as the only SVC code
+    # Right now we use an arbitrary number as the only SVC code
     # and never check this in the handler. This could be used
     # to identify one of several hooks in the future.
 
-    svc_instruction_number = 69
+    svc_instruction_number = 99  # Make it seem very arbitrary
+
     svc = chr(svc_instruction_number) + chr(0xdf)
     return_address = ovl_asm_lines[1].address
+    svc_field = (return_address - hook_address) / len(svc) * svc
+
     patched_ovl_data = (
         ovl_data[:hook_address - ovl_address] +
-        (return_address - hook_address) / len(svc) * svc +
+        svc_field +
         ovl_data[return_address - ovl_address:]
     )
 
@@ -194,20 +198,17 @@ def overlay_hook(d, hook_address, handler,
         mrs     r1, spsr                @ Save cpsr
         push    {r0-r1}                 @ Store cpsr to regs[-1], and 8-byte align
                                         @ Stack is now { _, cpsr, regs[], r0-r12, lr }
-
-
-        add     sp, #8                  @ Temporarily load regs[] into {r0-r12}
-        ldm     r0, {r0-r12}            @ Restore GPRs so we can run the relocated instruction
-        %(reloc)s                       @ Relocated instruction from the hook location
-        stm     r0, {r0-r12}            @ Save GPRs again
-
- 
+        
         add     r0, sp, #8              @ r0 = regs[]
         adr     lr, from_handler        @ Long call to C++ handler
         ldr     r1, =handler_address+1
         bx      r1
     from_handler:
 
+        add     r0, sp, #8+16*4
+        ldm     r0, {r0-r12}            @ Restore GPRs so we can run the relocated instruction
+        %(reloc)s                       @ Relocated instruction from the hook location
+        stm     r0, {r0-r12}            @ Save GPRs again
 
         pop     {r0-r1}                 @ Take cpsr off the stack
         msr     SPSR_cxsf, r1           @ Put saved cpsr in spsr, ready to restore
@@ -220,10 +221,17 @@ def overlay_hook(d, hook_address, handler,
 
     svc_vector = 0x8
     ivt_set(d, svc_vector, isr_address)
-    overlay_set(d, ovl_address, ovl_size)
+    overlay_set(d, ovl_address, ovl_size/4)
  
     if verbose:
         print "* Handler compiled to 0x%x bytes, loaded at 0x%x" % (handler_len, handler_address)
         print "* ISR assembled to 0x%x bytes, loaded at 0x%x" % (isr_len, isr_address)
+        print "* Hook at 0x%x, returning to 0x%x" % (hook_address, return_address)
         print "* RAM overlay, 0x%x bytes, loaded at 0x%x" % (ovl_size, ovl_address)
-        print "* Hook inserted at 0x%x, returning to 0x%x" % (hook_address, return_address)
+
+        # Show a before-and-after view of the patched region
+        print code.side_by_side_disassembly(
+            code.disassembly_lines(ovl_asm),   # Original unpatched disassembly on the left
+            code.disassembly_lines(            # Fresh disassembly on the right
+                code.disassemble(d, ovl_address, ovl_size)))
+
