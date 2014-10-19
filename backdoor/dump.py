@@ -13,6 +13,41 @@ __all__ = [
 ]
 
 
+class progress_reporter:
+    """A simple console progress reporter for memory operations.
+
+    Totally invisible unless the operation is taking longer than the
+    reporting interval. At that point, we'll update the status at
+    most that often. Always writes a final status at completion if
+    we had any status output at all before that point.
+    """
+    def __init__(self, message, reporting_interval = 0.2, enabled = True):
+        self.message = message
+        self.reporting_interval = reporting_interval
+        self.enabled = enabled
+        self.first_timestamp = time.time()
+        self.output_timestamp = None
+
+    def mandatory_update(self, current, total):
+        sys.stdout.write("\r %d / %d %s " % (current, total, self.message))
+        sys.stdout.flush()
+        self.output_timestamp = time.time()
+
+    def update(self, current, total):
+        if self.enabled:
+            latest = self.output_timestamp or self.first_timestamp
+            if time.time() > latest + self.reporting_interval:
+                # Enough time has passed
+                self.mandatory_update(current, total)
+
+    def complete(self, total):
+        # Write a final status if we had any output
+        if self.output_timestamp:
+            self.mandatory_update(total, total)
+            sys.stdout.write('\n')
+            sys.stdout.flush()
+
+
 def words_from_string(s, padding_byte = chr(255)):
     """A common conversion to give a list of integers from a little endian string.
     Uses the indicated padding byte if the string isn't a word multiple.
@@ -22,12 +57,19 @@ def words_from_string(s, padding_byte = chr(255)):
         s += padding_byte * (4 - residual)
     return struct.unpack('<%dI' % (len(s)/4), s)
 
-def poke_words(d, address, words):
-    for i, w in enumerate(words):
-        d.poke(address + 4*i, w)
 
 def poke_words_from_string(d, address, s):
     poke_words(d, address, words_from_string(s))
+
+
+def poke_words(d, address, words, verbose = True, reporting_interval = 0.2):
+    """Send a block of words (slowly)"""
+    progress = progress_reporter('words sent',
+        enabled=verbose, reporting_interval=reporting_interval)
+    for i, w in enumerate(words):
+        d.poke(address + 4*i, w)
+        progress.update(i+1, len(words))
+    progress.complete(len(words))
 
 
 def read_word_aligned_block(d, address, size, verbose = True, reporting_interval = 0.2):
@@ -37,24 +79,17 @@ def read_word_aligned_block(d, address, size, verbose = True, reporting_interval
     assert (size & 3) == 0
     i = 0
     parts = []
-    timestamp = time.time()
-    first_timestamp = timestamp
-    num_reports = 0
+
+    progress = progress_reporter('bytes read',
+        enabled=verbose, reporting_interval=reporting_interval)
 
     while i < size:
         wordcount = min((size - i) / 4, 0x1c)
         parts.append(d.read_block(address + i, wordcount))
         i += 4 * wordcount
+        progress.update(i, size)
 
-        now = time.time()
-        if ( verbose
-             and now > first_timestamp + reporting_interval
-             and ( i >= size or now > timestamp + reporting_interval )
-             ):
-                print "%d / %d bytes read" % (i, size)
-                timestamp = now
-                num_reports += 1
-
+    progress.complete(size)
     return ''.join(parts)
 
 
