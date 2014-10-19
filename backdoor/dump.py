@@ -62,7 +62,7 @@ def poke_words_from_string(d, address, s):
     poke_words(d, address, words_from_string(s))
 
 
-def poke_words(d, address, words, verbose = True, reporting_interval = 0.2):
+def poke_words(d, address, words, verbose = True, reporting_interval = 0.1):
     """Send a block of words (slowly)"""
     progress = progress_reporter('words sent',
         enabled=verbose, reporting_interval=reporting_interval)
