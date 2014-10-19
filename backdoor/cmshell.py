@@ -32,7 +32,7 @@ Or compile and invoke C++ code with console output:
 
 Live code patching and tracing:
 
-    hook -rcm "Eject button" d4028
+    hook -Rrcm "Eject button" 18eb4
     ALSO: ovl, wrf, asmf
 
 You can use integer globals in C++ and ASM snippets,

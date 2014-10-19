@@ -95,13 +95,13 @@ Disassemble, assemble, and invoke ARM assembly:
 Or compile and invoke C++ code with console output:
 
     ec 0x42
-    ec halfp[40]++
+    ec ((uint16_t*)pad)[40]++
     ecc println("Hello World!")
     ALSO: console, compile, evalc
 
 Live code patching and tracing:
 
-    hook -rcm "Eject button" d4028
+    hook -Rrcm "Eject button" 18eb4
     ALSO: ovl, wrf, asmf
 
 You can use integer globals in C++ and ASM snippets,

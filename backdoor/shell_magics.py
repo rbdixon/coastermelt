@@ -333,12 +333,13 @@ class ShellMagics(magic.Magics):
     @argument('hook_address', type=hexint)
     @argument('handler_address', nargs='?', type=hexint_aligned, default=pad+0x100)
     @argument('-q', '--quiet', action='store_true', help="Just install the hook, don't talk about it")
-    @argument('-r', '--reset', action='store_true', help="Reset the ARM before starting")
+    @argument('-R', '--reset', action='store_true', help="Reset the ARM before starting")
     @argument('-c', '--console', action='store_true', help='Immediately launch into a %%console after installing')
     @argument('-f', '--console_file', type=str, default=None, metavar='FILE', help='Append console output to a text file')
     @argument('-b', '--console_buffer', type=hexint_aligned, metavar='HEX', default=console_address, help='Specify a different address for the console_buffer_t data structure')
     @argument('-d', '--delay', type=float, default=None, metavar='SEC', help='Add a delay loop to the default hook')
     @argument('-m', '--message', type=str, default=None, help='Message to log in the default hook')
+    @argument('-r', '--replace', action='store_true', help='Replace the hooked instruction instead of relocating it')
     def hook(self, line, cell=None):
         """Inject a C++ hook into Thumb code executing from Flash memory.
  
@@ -377,6 +378,7 @@ class ShellMagics(magic.Magics):
             overlay_hook(d, args.hook_address, cell,
                 defines = all_defines(),
                 handler_address = args.handler_address,
+                replace_one_instruction = args.replace,
                 verbose = not args.quiet)
         except CodeError, e:
             raise UsageError(str(e))

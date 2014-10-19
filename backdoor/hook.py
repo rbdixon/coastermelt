@@ -10,6 +10,7 @@ from mem import *
 def overlay_hook(d, hook_address, handler,
     includes = includes, defines = defines,
     handler_address = pad, va = 0x500000, verbose = False,
+    replace_one_instruction = False
     ):
     """Inject a C++ hook into Thumb code executing from Flash memory.
     All registers are bridged bi-directionally to C++ variables in the hook.
@@ -104,6 +105,12 @@ def overlay_hook(d, hook_address, handler,
     # are too much trouble to relocate, though, and we'll throw up a NotImplementedError.
 
     reloc = ovl_asm_lines[0]
+
+    if replace_one_instruction:
+        # We want to replace one instruction with the C++ function, which it turns
+        # out is exactly what we do if we replace the relocation with a nop.
+        reloc.op = 'nop'
+        reloc.args = ''
 
     word = ldrpc_source_word(d, reloc)
     if word is not None:
