@@ -412,7 +412,7 @@ def disassembly_lines(text):
                 self.address, self.op, self.args, self.comment)
 
     lines = []
-    line_re = re.compile(r'^([^\t]+)\t([^\t]+)([^;]*)(.*)')
+    line_re = re.compile(r'^([^\t]+)\t([^\t]+)?([^;]*)(.*)')
     for line in text.split('\n'):
 
         obj = disassembly_line()
@@ -421,7 +421,7 @@ def disassembly_lines(text):
             raise ValueError('Bad disassembly,\n%s' % line)
 
         obj.address = int(m.group(1), 16)
-        obj.op = m.group(2)
+        obj.op = m.group(2) or '<unknown>'
         obj.args = m.group(3).strip()
         obj.comment = m.group(4)[1:].strip()
         lines.append(obj)
