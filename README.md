@@ -67,7 +67,7 @@ Backdoor signature:
 But hooray! Now if you have IPython, you can start the interactive shell:
 
 ```
-cylindroid:backdoor micah$ ./shell.py 
+cylindroid:backdoor micah$ ./cmshell.py 
 
                         __                             __ __   
 .----.-----.---.-.-----|  |_.-----.----.--------.-----|  |  |_ 
