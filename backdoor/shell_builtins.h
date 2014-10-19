@@ -7,15 +7,19 @@
 #pragma once
 #include "console.h"
 #include "ts01_defs.h"
+
 #include "../lib/mt1939_regs.h"
+using namespace MT1939;
+
+
+// ------------------------------------------------------------------------
+// Memory
+
 
 // Aliases for the pad
 static uint32_t *wordp = (uint32_t *) pad;
 static uint16_t *halfp = (uint16_t *) pad;
 static uint8_t  *bytep = (uint8_t *) pad;
-
-
-// ------------------------------------------------------------------------
 
 
 // Slow and steady; there are faster ones in ts01_defs.h
@@ -52,14 +56,15 @@ char *strcpy(char *dst, const char *src)
 
 
 // ------------------------------------------------------------------------
+// Code Hooking
 
 
 // Default handler for %hook, logs to the console
 void default_hook(uint32_t* regs, const char *message)
 {
-	console("\n[", message, "]  ticks= ");
-	println(ticks);
-#if 0
+	console("\n[", message, "]  t=");
+	println(SysTime::now());
+
 	for (unsigned r = 0; r < 16; r++) {
 		console(' ');
 		console(regs[r]);
@@ -67,5 +72,4 @@ void default_hook(uint32_t* regs, const char *message)
 			println();
 		}
 	}
-#endif
 }

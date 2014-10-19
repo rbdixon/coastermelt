@@ -257,7 +257,7 @@ def compile_string(address, expression, includes = includes, defines = defines, 
     if address & 3:
         raise ValueError("Address needs to be word aligned")
 
-    define_string = prepare_defines(defines, 'static const uint32_t %s = 0x%08x;')
+    define_string = prepare_defines(defines, 'const uint32_t %s = 0x%08x;')
     include_string = '\n'.join(includes.values())
 
     with temp_file_names('cpp o bin ld') as temp:

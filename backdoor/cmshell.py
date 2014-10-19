@@ -13,8 +13,7 @@ Internal _ are ignored so you can use them as separators.
     rd 1ff_ 100
     wr _ 1febb
     ALSO: rdw, orr, bic, fill, watch, find
-          ovl, wrf
-          peek, poke, read_block
+          ovl, wrf, peek, poke, read_block
 
 Disassemble, assemble, and invoke ARM assembly:
 
@@ -29,16 +28,15 @@ Or compile and invoke C++ code:
 
     ec 0x42
     ec ((uint16_t*)pad)[40]++
-    ALSO: compile, evalc, hook, console
+    ALSO: console, ecc, hook, compile, evalc
 
-You can use integer globals in C++ and ASM snippets, or
-define/replace a named C++ function:
+You can use integer globals in C++ and ASM snippets,
+or define/replace a named C++ function:
 
     fc uint32_t* words = (uint32_t*) buffer
     buffer = pad + 0x100
     ec words[0] += 0x50
     asm _ ldr r0, =buffer; bx lr
-    ALSO: includes, %%fc
 
 You can script the device's SCSI interface too:
 
@@ -46,8 +44,8 @@ You can script the device's SCSI interface too:
     sc 8 ff 00 ff        # Undocumented firmware version
     ALSO: reset, eject, sc_sense, sc_read, scsi_in, scsi_out
 
-Happy hacking!         -- Type 'thing?' for info on 'thing'
-~MeS`14                   or '?' to learn about IPython
+Happy hacking!    -- Type 'thing?' for help on 'thing' or
+~MeS`14              '?' for IPython, '%h' for this again.
 """
 
 from IPython.terminal.embed import InteractiveShellEmbed
@@ -60,9 +58,9 @@ shell_namespace.d = Device()
 
 # Make a shell that feels like a debugger
 ipy = InteractiveShellEmbed(user_ns = shell_namespace.__dict__)
+shell_namespace.ipy = ipy
 ipy.register_magics(ShellMagics)
-
-# Some aliases we like
+ipy.register_magic_function(lambda _: ipy.write(__doc__), magic_name='h')
 ipy.alias_manager.define_alias('git', 'git')
 ipy.alias_manager.define_alias('make', 'make')
 

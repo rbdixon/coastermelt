@@ -277,6 +277,19 @@ class ShellMagics(magic.Magics):
         except CodeError, e:
             raise UsageError(str(e))
 
+    @magic.line_cell_magic
+    def ecc(self, line, cell='', address=pad+0x100):
+        """Evaluate a 32-bit C++ expression on the target, and immediately start a console"""
+        d = self.shell.user_ns['d']
+        try:
+            return_value = evalc(d, line + cell, defines=all_defines(), address=address)
+        except CodeError, e:
+            raise UsageError(str(e))
+
+        if return_value is not None:
+            display(return_value)
+        console_mainloop(d)
+
     @magic.line_magic
     def ea(self, line, address=pad+0x100, thumb=False):
         """Evaluate an assembly one-liner
@@ -318,25 +331,37 @@ class ShellMagics(magic.Magics):
     @magic_arguments()
     @argument('hook_address', type=hexint)
     @argument('handler_address', nargs='?', type=hexint_aligned, default=pad+0x100)
-    @argument('-q', '--quiet', action='store_true')
+    @argument('-q', '--quiet', action='store_true', help="Just install the hook, don't talk about it")
+    @argument('-c', '--console', action='store_true', help='Immediately launch into a %%console after installing')
+    @argument('-f', '--console_file', type=str, default=None, metavar='FILE', help='Append console output to a text file')
+    @argument('-b', '--console_buffer', type=hexint_aligned, metavar='HEX', default=console_address, help='Specify a different address for the console_buffer_t data structure')
+    @argument('-m', '--message', type=str, default=None, help='Message to log in the default hook')
     def hook(self, line, cell=None):
         """Inject a C++ hook into Thumb code executing from Flash memory.
  
-        By default, the C++ code itself lives at _100, leaving some room to
-        keep using the beginning of the pad interactively. Handlers have
-        read/write access to the saved state of all ARM registers by name,
-        as well as through a regs[] array.
+        In line mode, this uses the "default hook" which logs to the console.
 
-        In line mode, this uses the "default hook" which traces register state
-        in the pad, in a format that's easy to interact with using %rd, %rdw,
-        and %trace commands.
+        In cell mode, you can write C++ statements that interact with the
+        machine state at just prior to executing the hooked instruction. All
+        ARM registers are available to read and write, both as named C++
+        variables and as a regs[] array.
+
+        The hook and a corresponding interrupt handler are installed at
+        handler_address, defaulting to _100.  This command uses the %overlay
+        to position an "svc" instruction at the hook location, and the
+        generated svc interrupt handler includes a relocated copy of the
+        hooked instruction and the necessary glue to get in and out of C++ code.
         """
         args = parse_argstring(self.hook, line)
         d = self.shell.user_ns['d']
+
         if not cell:
             # Default hook, including our command line as a trace message
-            message = '%hook ' + line
+            message = args.message or ('%hook %x' % args.hook_address)
             cell = 'default_hook(regs, %s)' % json.dumps(message)
+        elif args.message:
+            raise UsageError('--message only applies when using the default hook')
+
         try:
             overlay_hook(d, args.hook_address, cell,
                 defines = all_defines(),
@@ -344,6 +369,9 @@ class ShellMagics(magic.Magics):
                 verbose = not args.quiet)
         except CodeError, e:
             raise UsageError(str(e))
+
+        if args.console:
+            console_mainloop(d, buffer=args.console_buffer, log_filename=args.console_file)
 
     @magic.line_magic
     @magic_arguments()

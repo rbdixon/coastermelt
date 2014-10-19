@@ -169,22 +169,49 @@ def overlay_hook(d, hook_address, handler,
     thunk = code.relocate_instruction(d, reloc)
     reloc_text = '\t%s\t%s' % (reloc.op, reloc.args)
 
-    # The ISR lives just after the handler, in RAM, including:
+    # The ISR lives just after the handler, in RAM. It includes:
     #
     #   - Register save/restore
-    #   - Invoking the C++ hook function
+    #   - Invoking the C++ hook function with a nice flat regs[] array
     #   - A relocated copy of the instruction we replaced with the SVC
     #   - Returning to the right address after the hook
 
     isr_address = (handler_address + handler_len + 0x1f) & ~0x1f
     isr_len = code.assemble(d, isr_address, """
 
-        bx lr
+        stmfd   sp!, {r0-r12, lr}
+
+        ldmfd   sp!, {r0-r12, pc}^      @ Return from SVC, and restore cpsr
+
+@@@@@@@@@@@
 
         stmfd   sp!, {r0-r15}           @ This becomes regs[0] through regs[15]
         mov     r0, sp                  @ Keep 'regs' in r0, visible to C++
         mrs     r1, spsr                @ Save cpsr
         stmfd   sp!, {r0-r1}            @ Store cpsr to regs[-1], and 8-byte align
+                                        @ Stack is now {padding, cpsr, r0-r12, sp, lr, pc}
+
+        @ stack gymnastics
+
+        add     sp, #8                  @ Ignore cpsr for now
+        ldmfd   sp!, {r0-r12}           @ Rearrange the stack to remove r13-r14 (sp, lr)
+        add     sp, #8
+        stmfd   sp!, {r0-r12}           @ Now stack frame is {r0-r12, pc}
+
+        ldmfd   sp!, {r0-r12, pc}^      @ Return from SVC, and restore cpsr
+
+
+@@@@@@@@@
+
+
+
+        msr     SPSR_cxsf, r1           @ Restore cpsr via spsr
+        ldmfd   sp!, {r0-r12, pc}^      @ Return from SVC, and restore cpsr
+
+
+
+
+
 
 
         ldmfd   sp!, {r0-r1}            @ Load cpsr from regs[16]
@@ -208,8 +235,6 @@ def overlay_hook(d, hook_address, handler,
         bx lr
         %(thunk)s
 
-@        ldr     r1, =handler_address   @ Call C++ code
-@       bx      r1
 
 
 @        push    {r0}                   @ Allocate stack placeholder for pc

@@ -16,6 +16,8 @@
 
 #pragma once
 #include <stdint.h>
+#include "../lib/mt1939_regs.h"		// For printing chipset datatypes
+
 
 struct console_buffer_t {
 	uint8_t bytes[0x10000];
@@ -50,6 +52,13 @@ void console(uint32_t number)
 	}
 }
 
+// (SysTime) -> %4d.%3d, in seconds
+void console(MT1939::SysTime st)
+{
+
+}
+
+
 // (int) -> (uint32_t), to avoid ambiguity
 void console(int a) { console((uint32_t) a); }
 
@@ -63,7 +72,8 @@ void console(uint32_t a, uint32_t b) { console(a); console(' '); console(b); }
 void console(uint32_t a, uint32_t b, uint32_t c) { console(a, b); console(' '); console(c); }
 void console(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { console(a, b); console(' '); console(c, d); }
 
-// Numbers with string prefixes and space separators
+// With string prefix
+void console(const char* s, MT1939::SysTime a) { console(s); console(' '); console(a); }
 void console(const char* s, uint32_t a) { console(s); console(' '); console(a); }
 void console(const char* s, uint32_t a, uint32_t b) { console(s); console(' '); console(a, b); }
 void console(const char* s, uint32_t a, uint32_t b, uint32_t c) { console(s); console(' '); console(a, b, c); }
@@ -83,3 +93,5 @@ void println(const char* s, uint32_t a) { console(s, a); println(); }
 void println(const char* s, uint32_t a, uint32_t b) { console(s, a, b); println(); }
 void println(const char* s, uint32_t a, uint32_t b, uint32_t c) { console(s, a, b, c); println(); }
 void println(const char* s, uint32_t a, uint32_t b, uint32_t c, uint32_t d) { console(s, a, b, c, d); println(); }
+void println(MT1939::SysTime a) { console(a); println(); }
+void println(const char* a, MT1939::SysTime b) { console(a, b); println(); }
