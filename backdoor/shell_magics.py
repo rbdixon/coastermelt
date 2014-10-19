@@ -332,9 +332,11 @@ class ShellMagics(magic.Magics):
     @argument('hook_address', type=hexint)
     @argument('handler_address', nargs='?', type=hexint_aligned, default=pad+0x100)
     @argument('-q', '--quiet', action='store_true', help="Just install the hook, don't talk about it")
+    @argument('-r', '--reset', action='store_true', help="Do a %%reset before starting")
     @argument('-c', '--console', action='store_true', help='Immediately launch into a %%console after installing')
     @argument('-f', '--console_file', type=str, default=None, metavar='FILE', help='Append console output to a text file')
     @argument('-b', '--console_buffer', type=hexint_aligned, metavar='HEX', default=console_address, help='Specify a different address for the console_buffer_t data structure')
+    @argument('-d', '--delay', type=float, default=None, metavar='SEC', help='Add a delay loop to the default hook')
     @argument('-m', '--message', type=str, default=None, help='Message to log in the default hook')
     def hook(self, line, cell=None):
         """Inject a C++ hook into Thumb code executing from Flash memory.
@@ -359,9 +361,17 @@ class ShellMagics(magic.Magics):
             # Default hook, including our command line as a trace message
             message = args.message or ('%%hook %x' % args.hook_address)
             cell = 'default_hook(regs, %s)' % json.dumps(message)
-        elif args.message:
-            raise UsageError('--message only applies when using the default hook')
+            if args.delay:
+                cell = '%s; SysTime::wait_ms(%d)' % (cell, args.delay * 1000)
 
+        else:
+            if args.message:
+                raise UsageError('--message only applies when using the default hook')
+            if args.delay:
+                raise UsageError('--delay only applies when using the default hook')
+
+        if args.reset:
+            d.reset()
         try:
             overlay_hook(d, args.hook_address, cell,
                 defines = all_defines(),
@@ -460,18 +470,18 @@ class ShellMagics(magic.Magics):
         sys.stdout.write(hexdump(data))
 
     @magic.line_magic
-    def reset(self, line):
+    def reset(self, line=''):
         """Reset and reopen the device."""
         d = self.shell.user_ns['d']
         d.reset()
 
     @magic.line_magic
-    def eject(self, line):
+    def eject(self, line=''):
         """Ask the drive to eject its disc."""
         self.sc('0 1b 0 0 0 2')
 
     @magic.line_magic
-    def sc_sense(self, line):
+    def sc_sense(self, line=''):
         """Send a Request Sense command."""
         self.sc('20 3 0 0 0 20')
 

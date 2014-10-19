@@ -15,7 +15,7 @@
 #include "console.h"
 #include "../lib/mt1939_regs.h"
 
-void default_hook(uint32_t regs[16], const char *message)
+void default_hook(uint32_t regs[16], const char *message = "default_hook()")
 {
 	if (hook_show_message) {
 		// Message, customizable with %hook -m

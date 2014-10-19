@@ -320,16 +320,23 @@ def overlay_hook(d, hook_address, handler,
     bkpt_prefetch_abort_vector = 0xc
     ivt_set(d, bkpt_prefetch_abort_vector, isr_address)
     overlay_set(d, ovl_address, ovl_size/4)
- 
+
+    # Look at our handiwork in the disassembler
+
+    verify_asm = code.disassemble(d, ovl_address, ovl_size)
+    asm_diff = code.side_by_side_disassembly(
+        code.disassembly_lines(ovl_asm),       # Original unpatched disassembly on the left
+        code.disassembly_lines(verify_asm)     # Fresh disassembly on the right
+    )
+
     if verbose:
         print "* Handler compiled to 0x%x bytes, loaded at 0x%x" % (handler_len, handler_address)
         print "* ISR assembled to 0x%x bytes, loaded at 0x%x" % (isr_len, isr_address)
         print "* Hook at 0x%x, returning to 0x%x" % (hook_address, return_address)
         print "* RAM overlay, 0x%x bytes, loaded at 0x%x" % (ovl_size, ovl_address)
+        print asm_diff
 
-        # Show a before-and-after view of the patched region
-        print code.side_by_side_disassembly(
-            code.disassembly_lines(ovl_asm),   # Original unpatched disassembly on the left
-            code.disassembly_lines(            # Fresh disassembly on the right
-                code.disassemble(d, ovl_address, ovl_size)))
+    # Most common failure mode I'm seeing now is that the overlay gets stolen or
+    # the truncation bug just breaks things and the patch doesn't install.
+    assert verify_asm.find('bkpt') > 0
 
