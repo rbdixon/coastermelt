@@ -35,7 +35,7 @@ void default_hook(uint32_t regs[16], const char *message)
 	const char *heading2 = "      ";
 	for (unsigned lines = 8; lines; lines--) {
 		console(heading1); console_array(stack, 8);
-		console(" (", (uint32_t) stack); println(")");
+		console(" ("); console((uint32_t) stack); println(")");
 		heading1 = heading2;
 		stack += 8;
 	}

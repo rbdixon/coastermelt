@@ -478,9 +478,9 @@ def side_by_side_disassembly(lines1, lines2, column_width = 40, middle = '>>'):
 
         output.append("%08x %-*s%s%-*s" % (
             address,
-            column_width, left and str(line1).expandtabs() or '',
+            column_width, left and str(line1).expandtabs(4) or '',
             middle,
-            column_width, right and str(line2).expandtabs() or ''
+            column_width, right and str(line2).expandtabs(4) or ''
         ))
 
     return '\n'.join(output)
