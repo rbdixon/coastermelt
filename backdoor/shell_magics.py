@@ -357,7 +357,7 @@ class ShellMagics(magic.Magics):
 
         if not cell:
             # Default hook, including our command line as a trace message
-            message = args.message or ('%hook %x' % args.hook_address)
+            message = args.message or ('%%hook %x' % args.hook_address)
             cell = 'default_hook(regs, %s)' % json.dumps(message)
         elif args.message:
             raise UsageError('--message only applies when using the default hook')

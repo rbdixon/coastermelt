@@ -19,14 +19,14 @@ static uint16_t *halfp = (uint16_t *) pad;
 static uint8_t  *bytep = (uint8_t *) pad;
 
 
-// Default handler for %hook, logs to the console
+// Default handler for %hook
 void default_hook(uint32_t regs[16], const char *message)
 {
-	// Current time, and a message from "%hook -m"
-	console("\nt=", SysTime::now());
-	println(" s :: ", message);
-
-	// All registers, split across two lines
-	println_array(regs, 8);
-	println_array(regs+8, 8);
+	console("\nt=", SysTime::now()); println(" s :: ", message);
+	console("r0= "); console_array(regs, 8); println(" =r7");
+	console("r8= "); console_array(regs+8, 8); println(" =r15");
+	console("   cpsr= ", regs[-1]); println(" stack=[");
+	uint32_t *stack = (uint32_t*)regs[13];
+	println_array(stack, 8);
+	println_array(stack+8, 8);
 }

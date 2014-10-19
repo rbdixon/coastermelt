@@ -406,6 +406,8 @@ def disassembly_lines(text):
         - comment
     """
     class disassembly_line:
+        def __str__(self):
+            return '\t%s\t%s' % (self.op, self.args)
         def __repr__(self):
             return 'disassembly_line(address=%08x, op=%r, args=%r, comment=%r)' % (
                 self.address, self.op, self.args, self.comment)
@@ -448,27 +450,3 @@ def ldrpc_source_word(d, line):
     if address is not None:
         return d.peek(address)
 
-
-def relocate_instruction(d, line):
-    """Prepare an instruction to be assembled at a different location.
-
-    'line' is a line returned by disassembly_lines().
-
-    Modifies the line as necessary, and returns a string with extra 'thunk'
-    text that might need to be assembled in the pool nearby. If the
-    instruction can't be relocated, raises an exception.
-    """
-
-    word = ldrpc_source_word(d, line)
-    if word is not None:
-        # Relocate to the assembler's automatic constant pool
-        line.args = line.args.split(',')[0] + ', =0x%08x' % word
-        return ''
-
-    if line.op.startswith('b'):
-        raise NotImplementedError("Can't relocate branches yet, %r" % line)
-    if line.args.find('pc') > 0:
-        raise NotImplementedError("Can't relocate instructions that read or write pc, " % line)
-
-    # No relocation
-    return ''

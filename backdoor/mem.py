@@ -161,13 +161,23 @@ def overlay_hook(d, hook_address, handler,
 
     dump.poke_words(d, va, dump.words_from_string(patched_ovl_data))
 
-    # Now back to the instruction we're replacing... it will need to be
-    # relocated, and that process may generate an extra 'thunk' block
-    # that we need to store nearby.
+    # Now back to the instruction we're replacing...
+    # PC-relative loads are common enough that we try to fix them up. A lot of things
+    # are too much trouble to relocate, though, and we'll throw up a NotImplementedError.
 
     reloc = ovl_asm_lines[0]
-    thunk = code.relocate_instruction(d, reloc)
-    reloc_text = '\t%s\t%s' % (reloc.op, reloc.args)
+
+    word = code.ldrpc_source_word(d, reloc)
+    if word is not None:
+        # Relocate to the assembler's automatic constant pool
+        reloc.args = reloc.args.split(',')[0] + ', =0x%08x' % word
+
+    if reloc.op != 'bl' and reloc.op.startswith('b'):
+        raise NotImplementedError("Can't hook branches yet: %s" % reloc)
+    if reloc.args.find('pc') > 0:
+        raise NotImplementedError("Can't hook instructions that read or write pc: %s" % reloc)
+    if reloc.args.find('sp') == 0 or reloc.op in ('push', 'pop'):
+        raise NotImplementedError("Can't hook instructions that modify sp: %s" % reloc)
 
     # The ISR lives just after the handler, in RAM. It includes:
     #
@@ -179,86 +189,30 @@ def overlay_hook(d, hook_address, handler,
     isr_address = (handler_address + handler_len + 0x1f) & ~0x1f
     isr_len = code.assemble(d, isr_address, """
 
-        stmfd   sp!, {r0-r12, lr}
-
-        ldmfd   sp!, {r0-r12, pc}^      @ Return from SVC, and restore cpsr
-
-@@@@@@@@@@@
-
-        stmfd   sp!, {r0-r15}           @ This becomes regs[0] through regs[15]
-        mov     r0, sp                  @ Keep 'regs' in r0, visible to C++
+        push    {r0-r12, lr}            @ Save everything except {sp, pc}
+        push    {r0-r15}                @ Now make a flat regs[16] array on the stack below that
         mrs     r1, spsr                @ Save cpsr
-        stmfd   sp!, {r0-r1}            @ Store cpsr to regs[-1], and 8-byte align
-                                        @ Stack is now {padding, cpsr, r0-r12, sp, lr, pc}
+        push    {r0-r1}                 @ Store cpsr to regs[-1], and 8-byte align
+                                        @ Stack is now { _, cpsr, regs[], r0-r12, lr }
 
-        @ stack gymnastics
 
-        add     sp, #8                  @ Ignore cpsr for now
-        ldmfd   sp!, {r0-r12}           @ Rearrange the stack to remove r13-r14 (sp, lr)
-        add     sp, #8
-        stmfd   sp!, {r0-r12}           @ Now stack frame is {r0-r12, pc}
+        add     sp, #8                  @ Temporarily load regs[] into {r0-r12}
+        ldm     r0, {r0-r12}            @ Restore GPRs so we can run the relocated instruction
+        %(reloc)s                       @ Relocated instruction from the hook location
+        stm     r0, {r0-r12}            @ Save GPRs again
 
+ 
+        add     r0, sp, #8              @ r0 = regs[]
+        adr     lr, from_handler        @ Long call to C++ handler
+        ldr     r1, =handler_address+1
+        bx      r1
+    from_handler:
+
+
+        pop     {r0-r1}                 @ Take cpsr off the stack
+        msr     SPSR_cxsf, r1           @ Put saved cpsr in spsr, ready to restore
+        add     sp, #4*16               @ Skip regs[]
         ldmfd   sp!, {r0-r12, pc}^      @ Return from SVC, and restore cpsr
-
-
-@@@@@@@@@
-
-
-
-        msr     SPSR_cxsf, r1           @ Restore cpsr via spsr
-        ldmfd   sp!, {r0-r12, pc}^      @ Return from SVC, and restore cpsr
-
-
-
-
-
-
-
-        ldmfd   sp!, {r0-r1}            @ Load cpsr from regs[16]
-        msr     SPSR_cxsf, r1           @ Restore cpsr
-        ldmfd   sp!, {r0-r13}           @ Restore regs[0] through regs[13] (lr)
-        add     sp, #4                  @ Don't restore regs[14] (sp)
-        ldmfd   sp!, {pc}^              @ Return from SVC
-
-
-
-
-
-@        sub     sp, #12                 @ Placeholder for regs[15], spsr, one alignment word
-@        stmfd   sp!, {r0-r12, lr}       @ Save regs[0] through regs[14]
-@        mov     r0, sp                  @ Keep the pointer in r0, for C++
-
-
-
-
-        %(reloc_text)s
-        bx lr
-        %(thunk)s
-
-
-
-@        push    {r0}                   @ Allocate stack placeholder for pc
-@        push    {lr}                   @ Saved lr
-@
-@        mov     lr, sp                 @ Calculate the original sp, and save it
-@        add     lr, #8
-@        push    {lr}
-@
-@        push    {r0-r12}               @ Save all GPRs
-@
-@        mov     r0, sp                 @ Leave sp in C++ arg (r0)
-@
-@        ldr     r1, =hook_address+8    @ Return address from hook
-@        str     r1, [r0, 15*4]         @ Store where "pop {pc}" will find it
-@
-@        ldr     r1, =handler_address   @ Call C++ code
-@        blx     r1
-@
-@        pop     {r0-r12}               @ Restore GPRs
-@        pop     {lr}                   @ Discard restored stack pointer
-@        pop     {lr}                   @ Restore lr and pc separately (ARM limit)
-@        pop     {pc}
-
 
         """ % locals(), defines=locals(), thumb=False)
 
@@ -271,7 +225,5 @@ def overlay_hook(d, hook_address, handler,
     if verbose:
         print "* Handler compiled to 0x%x bytes, loaded at 0x%x" % (handler_len, handler_address)
         print "* ISR assembled to 0x%x bytes, loaded at 0x%x" % (isr_len, isr_address)
-        print code.disassemble(d, isr_address, isr_len, thumb=False)
         print "* RAM overlay, 0x%x bytes, loaded at 0x%x" % (ovl_size, ovl_address)
         print "* Hook inserted at 0x%x, returning to 0x%x" % (hook_address, return_address)
-        print code.disassemble(d, hook_address, 8)

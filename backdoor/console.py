@@ -124,7 +124,9 @@ def console_mainloop(d,
                     output_timestamp = now
 
             except IOError:
-                # The device layer will already complain for us
+                # The device layer will already complain for us.
+                # Wait a tiny bit to let the device cool off...
+                time.sleep(0.1)
                 continue
 
             except ConsoleOverflowError, e:
