@@ -90,12 +90,12 @@ Disassemble, assemble, and invoke ARM assembly:
     asm _4 mov r3, #0x14
     dis _4 10
     ea mrs r0, cpsr; ldr r1, =0xaa000000; orr r0, r1
-    ALSO: tea, blx assemble, disassemble, evalasm
+    ALSO: tea, blx, assemble, disassemble, evalasm
 
 Or compile and invoke C++ code with console output:
 
     ec 0x42
-    ec ((uint16_t*)pad)[40]++
+    ec halfp[40]++
     ecc println("Hello World!")
     ALSO: console, compile, evalc
 
