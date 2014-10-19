@@ -273,7 +273,7 @@ class ShellMagics(magic.Magics):
         """Evaluate a 32-bit C++ expression on the target"""
         d = self.shell.user_ns['d']
         try:
-            return evalc(d, line + cell, defines=all_defines(), address=address)
+            return evalc(d, line + cell, defines=all_defines(), address=address, verbose=True)
         except CodeError, e:
             raise UsageError(str(e))
 
@@ -282,7 +282,7 @@ class ShellMagics(magic.Magics):
         """Evaluate a 32-bit C++ expression on the target, and immediately start a console"""
         d = self.shell.user_ns['d']
         try:
-            return_value = evalc(d, line + cell, defines=all_defines(), address=address)
+            return_value = evalc(d, line + cell, defines=all_defines(), address=address, verbose=True)
         except CodeError, e:
             raise UsageError(str(e))
 

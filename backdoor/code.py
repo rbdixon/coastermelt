@@ -287,6 +287,7 @@ start(unsigned arg)
             '-fpermissive', '-Wno-multichar',         # Relax, this is a debugger.            
             '-fno-exceptions',                        # Lol, no
             '-std=gnu++11',                           # But compile-time abstraction is awesome
+            '-lgcc',                                  # Runtime support for multiply, divide, switch...
             ('-mthumb', '-mno-thumb')[not thumb]      # Thumb or not?
             ],
             stderr = subprocess.STDOUT,
@@ -295,6 +296,8 @@ start(unsigned arg)
         output = compiler.communicate()[0]
         if compiler.returncode != 0:
             raise CodeError(output, temp.collect_text())
+
+        os.system('cp ' + temp.o + ' foo.o')
 
         subprocess.check_call([
             OBJCOPY, temp.o, '-O', 'binary', temp.bin
@@ -322,20 +325,39 @@ def compile(d, address, expression, includes = includes, defines = defines, thum
     return len(data)
 
 
-def evalc(d, expression, arg = 0, includes = includes, defines = defines, address = pad):
-    """Compile and remotely execute a C++ expression.
+def compile_with_automatic_return_type(d, address, expression, includes = includes, defines = defines, thumb = True):
+    """Figure out whether the expression is integer or void, and compile it.
 
-       Void expressions (like statements) return None.
-       Expressions that can be cast to (uint32_t) return an int.
-       """
+    Returns (code_size, retval_func).
+    Call retval_func() on the return value of blx() to convert the return value.
+    """
     try:
-        # First try, see if it's something we can cast to integer.
-        # If that fails, try again using a block-expression to wrap a void expression.
-        compile(d, address, '(uint32_t)(%s)' % expression, includes=includes, defines=defines)
-        return d.blx(address + 1, arg)[0]
+        # Try integer first
+        return (
+            compile(d, address, '(uint32_t)(%s)' % expression,
+                        includes=includes, defines=defines, thumb=thumb),
+            lambda (r0, r1): r0
+        )
     except CodeError:
-        compile(d, address, '{ %s; 0; }' % expression, includes=includes, defines=defines)
-        d.blx(address | 1, arg)
+        # Now assume void, wrap it in a block expression
+        return (
+            compile(d, address, '{ %s; 0; }' % expression,
+                        includes=includes, defines=defines, thumb=thumb),
+            lambda (r0, r1): None
+        )
+
+
+def evalc(d, expression, arg = 0, includes = includes, defines = defines, address = pad, verbose = False):
+    """Compile and remotely execute a C++ expression.
+    Void expressions (like statements) return None.
+    Expressions that can be cast to (uint32_t) return an int.
+    """
+    code_size, retval_func = compile_with_automatic_return_type(
+        d, address, expression,
+        includes=includes, defines=defines)
+    if verbose:
+        print "* compiled to 0x%x bytes, loaded at 0x%x" % (code_size, address)
+    return retval_func(d.blx(address | 1, arg))
 
 
 def evalasm(d, text, r0 = 0, defines = defines, address = pad, thumb = False):
