@@ -35,7 +35,7 @@ def overlay_hook(d, hook_address, handler,
     #     turn on the overlay mapping. That should make it relatively save
     #     to use this on live code, which we will be.
 
-    handler_len = compile(d, handler_address, """{
+    handler_data = compile_string(handler_address, """{
         uint32_t* regs = (uint32_t*) arg;
 
         %s                     // Alias array to r0-15
@@ -59,6 +59,9 @@ def overlay_hook(d, hook_address, handler,
     # Reset only after we know the compile is good
     if reset:
         reset_arm(d)
+
+    handler_len = len(handler_data)
+    poke_words_from_string(d, handler_address, handler_data)
 
     # The hook location doesn't have to be word aligned, but the overlay
     # does. So, keep track of where the ovl starts. For simplicity, we
