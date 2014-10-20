@@ -12,6 +12,14 @@ auto aligned_fill = (void(*)(void *dst, unsigned byte_count, unsigned word_patte
 // One of the higher-level eject functions. Can be called from the shell.
 auto eject = (void(*)()) 0xd3df1;
 
+// Low byte is an atomic flag indicating a release was detected and is pending handling.
+// Other bytes appear to be part of debounce state. This is read by the main loop on the ARM,
+// which calls a handler at 18eb4 if the flag is set. Not yet sure where this flag is set.
+// It's in memory that may be accessible to other processors, and I don't see any code in the
+// ARM firmware to set it. The ARM wouldn't need another processor to proxy this state, the
+// button status also appears in 4002004. Unless it was another CPU that put it there...
+auto& button_release_debounce_state = *(volatile uint32_t*) 0x1ffb288;
+
 // This is called ALL over the place with distinctive coded constants in r0.
 // Either a debug logging or inter-processor comms mechnism; either way very interesting
 auto ipc_logging_message = (void(*)(uint32_t code)) 0xf6025;
