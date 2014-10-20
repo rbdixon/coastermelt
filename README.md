@@ -64,7 +64,7 @@ Backdoor signature:
        0: 7e 4d 65 53 60 31 34 20 76 2e 30 33              ~MeS`14 v.03
 ```
 
-But hooray! Now if you have IPython, you can start the interactive shell:
+But hooray! Now if you have IPython, you can start the interactive shell. For more about what you can do with it, take a look at the [shell recipe book](https://github.com/scanlime/coastermelt/blob/master/doc/cmshell-recipes.txt).
 
 ```
 cylindroid:backdoor micah$ ./cmshell.py 

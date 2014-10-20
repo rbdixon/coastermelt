@@ -2,10 +2,10 @@
  * Default handler for %hook.
  *
  * This logs plenty of system state to the console,
- * and you can customize its output with shell variables
+ * and you can customize its output with shell variables:
  *
- * hook_stack_lines, hook_show_stack, hook_show_registers,
- * hook_show_timestamp, hook_show_message
+ *   hook_stack_lines, hook_show_stack, hook_show_registers,
+ *   hook_show_timestamp, hook_show_message
  *
  * The options can give you more stack trace, or they can
  * make the hook smaller and faster.
