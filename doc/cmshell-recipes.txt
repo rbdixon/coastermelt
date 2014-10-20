@@ -166,4 +166,41 @@ if (r0 != 3) default_hook(regs)
     looking strings in the firmare image, nothing.
 
 
+---------------------
+SCSI Command Handling
+---------------------
+
+
+sc c ac
+
+	This sends the special command we've backdoored, SCSI 0xAC 'Get Performance Data'.
+	The returned value will be a performance.
+
+
+rdw 2000c00
+
+	This is an area of RAM that seems related to the communication between
+	8051 and ARM during the handling of SCSI commands. I'm not sure what the
+	most useful base address is for the region, since different code uses it a
+	little differently, as if it's several nested structures.
+
+
+rd 02000eec 10
+
+	This is the SCSI CDB. Reading this will show you the CDB of the backdoor's
+	"block read" command we use to retrieve it. From the comments in patch.s:
+
+	ac 6c 6f 63 [address/LE32] [wordcount/LE32] --> [data/LE32] * wordcount
+
+
+rd 100
+sc 400   ac 6c 6f 63   0 1 0 0   0 1 0 0
+
+	This will first use the usual %rd command to look at some memory from
+	0x100, then we use the low level "block read" command to examine the same
+	area. We'll ask for 0x100 words (0x400 bytes), but the command currently
+	doesn't work for such long replies. This lets us see how it breaks, to
+	debug it. In the long SCSI reply you can see the packet starts out
+	correct, then it's blank for a while, then starts showing totally
+	different data!
 
