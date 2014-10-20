@@ -13,6 +13,8 @@ struct SysTime
 	SysTime(uint32_t t) : ticks(t) {}
 	operator uint32_t() { return ticks; }
 	uint32_t ticks;
+
+	// Rollover once per 8192 seconds
 	static const unsigned hz = 512 * 1024;
 
 	int difference(SysTime b) const {
@@ -26,6 +28,11 @@ struct SysTime
 	unsigned milliseconds() const {
 		// Support fractional number of ticks per millisecond
 		return (uint64_t)ticks * 1000 / hz;
+	}
+
+	unsigned microseconds() const {
+		// Support fractional number of ticks per microsecond
+		return (uint64_t)ticks * 1000000 / hz;
 	}
 
 	static SysTime now() {

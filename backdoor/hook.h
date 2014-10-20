@@ -24,11 +24,11 @@ void default_hook(uint32_t regs[16], const char *message = "default_hook()")
 
 	if (hook_show_timestamp) {
 		// Timestamp using the monotonic system clock
-		console("tic=", MT1939::SysTime::now());
+		console("time", MT1939::SysTime::now());
 
 		// Saved xPSR registers, first from the hook location itself,
 		// then from inside the breakpoint handler
-		console(" s  cpsr=", regs[-1]);
+		console("        cpsr=", regs[-1]);
 		println(" bkptpsr=", regs[-2]);
 	}
 

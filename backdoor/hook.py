@@ -10,7 +10,8 @@ from mem import *
 def overlay_hook(d, hook_address, handler,
     includes = includes, defines = defines,
     handler_address = pad, va = 0x500000, verbose = False,
-    replace_one_instruction = False, reset = False
+    replace_one_instruction = False, reset = False,
+    target_already_mapped = False
     ):
     """Inject a C++ hook into Thumb code executing from Flash memory.
     All registers are bridged bi-directionally to C++ variables in the hook.
@@ -74,7 +75,8 @@ def overlay_hook(d, hook_address, handler,
     # Position the overlay away from flash, so we get a clean copy.
     # Then read and disassemble it, starting the disassembly at the hook address.
 
-    overlay_set(d, va, ovl_size)
+    if not target_already_mapped:
+        overlay_set(d, va, ovl_size)
 
     ovl_data = read_block(d, ovl_address, ovl_size)
     ovl_asm = disassemble_string(ovl_data[hook_address - ovl_address:], address=hook_address)
@@ -105,7 +107,8 @@ def overlay_hook(d, hook_address, handler,
 
     # Our overlay is complete, store it to RAM while it's mapped to our temp VA
 
-    poke_words(d, va, words_from_string(patched_ovl_data))
+    if not target_already_mapped:
+        poke_words(d, va, words_from_string(patched_ovl_data))
 
     # Now back to the instruction we're replacing...
     # PC-relative loads are common enough that we try to fix them up. A lot of things
@@ -269,7 +272,14 @@ def overlay_hook(d, hook_address, handler,
 
     bkpt_prefetch_abort_vector = 0xc
     ivt_set(d, bkpt_prefetch_abort_vector, isr_address)
-    overlay_set(d, ovl_address, ovl_size/4)
+
+    if target_already_mapped:
+        # We're dealing with a hook target that already has an SRAM mapping,
+        # instead of completing it by moving the overlay, we complete by
+        # writing data to the existing mapping.
+        poke_words(d, ovl_address, words_from_string(patched_ovl_data))
+    else:
+        overlay_set(d, ovl_address, ovl_size/4)
 
     # Look at our handiwork in the disassembler
 

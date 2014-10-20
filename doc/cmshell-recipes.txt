@@ -2,6 +2,8 @@
 Recipes for tasty things you can cook with your Coastermelt Shell (tm)
 ======================================================================
 
+
+----
 Time
 ----
 
@@ -10,6 +12,17 @@ ecc println(SysTime::now())
 
 	This is a somewhat roundabout but convenient way to print the time.
 	Same formatting used by the default %hook
+
+
+%%hook -Rc 18ccc
+println(SysTime::now())
+
+	This installs a hook at the top of the ARM firmware's supervisor-mode main
+	loop. As fast as it can without blocking the rest of the firmware, that
+	hook will read the SoC's monotonic timer and write it to the console. The
+	-R switch has it reset the system first, a good idea to start the
+	experiment with a clean slate. And the -c command starts %console to watch
+	for the output until you stop it with ctrl-C.
 
 
 %%hook -Rc 18ccc
@@ -23,8 +36,53 @@ last = now;
 	cost of the division in println_dec() makes a huge difference.
 
 
-Hook Locations
---------------
+-----------
+Concurrency
+-----------
+
+
+hook -Rscm "IRQ Vector" 40
+
+	You can hook interrupt handlers too, but many of them live in SRAM. If the
+	handler is in SRAM, normal hooking will fail and you'll need to use the
+	-s (--sram) option. This sadly doesn't work for DRAM or any of the regions
+	of memory above 8MB.
+
+
+test_addr = 0x1ffb288
+test_delay = 100
+%%hook -Rc 18ccc
+auto& test_word = *(vu32*) test_addr;
+u32 sample_1 = test_word;
+SysTime::wait_ms(test_delay);
+u32 sample_2 = test_word;
+if (sample_1 != sample_2) println(sample_1, sample_2);
+
+    An experiment to test whether other code (interrupt, another CPU) is
+    modifying a value while we're stuck in a busy-loop. The experiment begins
+    a new sample pair once per main loop iteration. The address and delay can
+    be set by changing shell variables.
+
+
+test_addr = 0x1ffb288
+test_delay = 100
+%%hook -Rc 18ccc
+auto& test_word = *(vu32*) test_addr;
+u32 psr = begin_critical_section();
+u32 sample_1 = test_word;
+SysTime::wait_ms(test_delay);
+u32 sample_2 = test_word;
+if (sample_1 != sample_2) println(sample_1, sample_2);
+end_critical_section(psr);
+
+	Like above, but now we call the firmware's functions for disabling and
+	enabling interrupts. If we still see changes here, we know the values are
+	being modified by hardware and not an interrupt handler.
+
+
+------------
+Eject Button
+------------
 
 
 hook -Rrcm "Eject button" 18eb4
@@ -36,8 +94,13 @@ hook -Rrcm "Eject button" 18eb4
 	context.
 
 
+---------
+Main Loop
+---------
+
 hook -Rcm "Top of main loop" 18ccc
 
-    The same big main loop, but at the top of every iteration. Put anything
+    The ARM application main loop, at the top of every iteration. Put anything
     you want to poll here and it will run in a very tight loop but without
     stalling communications.
+

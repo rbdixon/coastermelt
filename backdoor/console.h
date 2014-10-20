@@ -102,12 +102,14 @@ void console_dec(int number)
 	}
 }
 
-// (SysTime) -> %4d.%3d, seconds
+// (SysTime) -> "   0.000,000", fixed length 12-digit format with microseconds
 void console(MT1939::SysTime st)
 {
 	console_dec(st.seconds(), 4, ' ');
 	console('.');
 	console_dec(st.milliseconds() % 1000, 3, '0');
+	console(',');
+	console_dec(st.microseconds() % 1000, 3, '0');
 }
 
 // Integer arrays

@@ -340,6 +340,7 @@ class ShellMagics(magic.Magics):
     @argument('-d', '--delay', type=float, default=None, metavar='SEC', help='Add a delay loop to the default hook')
     @argument('-m', '--message', type=str, default=None, help='Message to log in the default hook')
     @argument('-r', '--replace', action='store_true', help='Replace the hooked instruction instead of relocating it')
+    @argument('-s', '--sram', action='store_true', help='The target already has an SRAM mapping, use that instead of moving the overlay')
     def hook(self, line, cell=None):
         """Inject a C++ hook into Thumb code executing from Flash memory.
  
@@ -378,7 +379,8 @@ class ShellMagics(magic.Magics):
                 handler_address = args.handler_address,
                 replace_one_instruction = args.replace,
                 reset = args.reset,
-                verbose = not args.quiet)
+                verbose = not args.quiet,
+                target_already_mapped = args.sram)
         except CodeError, e:
             raise UsageError(str(e))
 
