@@ -1,0 +1,27 @@
+======================================================================
+Recipes for tasty things you can cook with your Coastermelt Shell (tm)
+======================================================================
+
+Time
+----
+
+ecc println(SysTime::now())
+
+
+Hook Locations
+--------------
+
+hook -Rrcm "Eject button" 18eb4
+
+	This is a call site for the eject button handler in the ARM main loop,
+	called as a result of checking button_release_debounce_state (1ffb288).
+	With -r (replace) mode, this inhibits the usual button press behaviors and
+	lets you hook your own code up to the button, running a friendly main loop
+	context.
+
+hook -Rcm "Top of main loop" 18ccc
+
+    The same big main loop, but at the top of every iteration. Put anything
+    you want to poll here and it will run frequently; about every 20ms if the
+    timestamps are right.
+
