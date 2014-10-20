@@ -15,7 +15,7 @@ struct SysTime
 	uint32_t ticks;
 	static const unsigned hz = 512 * 1024;
 
-	int32_t difference(SysTime b) const {
+	int difference(SysTime b) const {
 		return (int32_t) (ticks - b.ticks);
 	}
 
