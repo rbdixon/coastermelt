@@ -177,7 +177,7 @@ class ShellMagics(magic.Magics):
         changes = watch_scanner(d, args.address)
         try:
             for line in watch_tabulator(changes):
-                print line
+                self.shell.write(line + '\n')
         except KeyboardInterrupt:
             pass
 
@@ -192,7 +192,8 @@ class ShellMagics(magic.Magics):
         d = self.shell.user_ns['d']
         substr = ''.join(map(chr, args.byte))
         for address, before, after in search_block(d, args.address, args.size, substr):
-            print "%08x %52s [ %s ] %s" % (address, hexstr(before), hexstr(substr), hexstr(after))
+            self.shell.write("%08x %52s [ %s ] %s\n" %
+                (address, hexstr(before), hexstr(substr), hexstr(after)))
 
     @magic.line_magic
     @magic_arguments()
@@ -209,7 +210,7 @@ class ShellMagics(magic.Magics):
         args = parse_argstring(self.ovl, line)
         d = self.shell.user_ns['d']
         if args.address is None:
-            print "overlay: base = %x, wordcount = %x" % overlay_get(d)
+            self.shell.write("base = %x, wordcount = %x\n" % overlay_get(d))
         else:
             overlay_set(d, args.address, args.wordcount)
 
@@ -222,7 +223,7 @@ class ShellMagics(magic.Magics):
         """Disassemble ARM instructions"""
         args = parse_argstring(self.dis, line)
         d = self.shell.user_ns['d']
-        print disassemble(d, args.address, args.size, thumb = not args.arm)
+        self.shell.write(disassemble(d, args.address, args.size, thumb = not args.arm) + '\n')
 
     @magic.line_cell_magic
     @magic_arguments()
@@ -343,7 +344,7 @@ class ShellMagics(magic.Magics):
 
         self.shell.user_ns['r0'] = r0
         self.shell.user_ns['r1'] = r1
-        print "  r0 = 0x%08x, r1 = 0x%08x" % (r0, r1)
+        self.shell.write("r0 = 0x%08x, r1 = 0x%08x\n" % (r0, r1))
 
     @magic.line_magic
     def tea(self, line, address=pad+0x100):
@@ -473,14 +474,12 @@ class ShellMagics(magic.Magics):
 
         elif not line.strip():
             for key, value in includes.items():
-                print ' '.join([
+                self.shell.write('%s %s %s\n%s\n\n' % (
                     '=' * 10,
                     key,
-                    '=' * max(0, 70 - len(key))
-                ])
-                print value
-                print
-
+                    '=' * max(0, 70 - len(key)),
+                    value
+                ))
         else:
             dict_key = ' '.join(line.split()).split('{')[0].split('=')[0]
             includes[dict_key] = line + ';'
