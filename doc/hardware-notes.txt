@@ -33,19 +33,18 @@ Components
 - Sled stepper motor
 - Front panel LED (blue)
 - Eject latch solenoid
-- Sled homing sensor
+- Sled homing sensor? (don't see this, might use current feedback)
 - Lens focus/tracking voice coils
-- Spindle brushless motor
+- Spindle brushless (also coreless?) motor
 
 - System on a Chip
-    - Direct connection to USB port)
-    - Includes 4MB+ DRAM, 2MB Flash
+    - Direct connection to USB port
+    - Includes 4MB DRAM, 2MB Flash, several small SRAMs
     - Includes "DSP" and servo control
     - Encode/decode hardware
     - "RF"
     - "MICOM"
-    - Runs quite hot! Not yet sure which ARM core this uses, but
-      it supports the full 32-bit instruction set.
+    - Runs quite hot!
 
     MEDIATEK
     MT1956UWDN
