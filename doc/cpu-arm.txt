@@ -13,20 +13,20 @@ Vector Table
 ------------
 
 The area from 10000 - 102ff is set aside by the bootloader protocol for
-interrupt vectors. It's likely the hardware IVT relocates to 10000 prior to
-application entry.
+interrupt vectors.
 
-10000: reset
-10004: ARM undefined instruction
-10008: ARM software interrupt         (svc)
-1000c: ARM prefetch abort exception   (bkpt)
-10010: ARM data abort exception 
-10014: hardware interrupt? (reflect to boot sector +158)
-1001c: fiq fast hardware interrupt
-10040: Very complex (IPC?) message handler?
-10046: SCSI command handler?
-10158: Crash handler?
-1019c: Syscall handler? Takes action if R0=1. MMIO~ 4031000-4042000
+The hardware IVT is at address 0, covered by a 0x400 byte SRAM mapping by the
+standard firmawre.
+
+00: reset
+04: ARM undefined instruction
+08: ARM software interrupt         (svc)
+0c: ARM prefetch abort exception   (bkpt)
+10: ARM data abort exception 
+14: hardware interrupt? (reflect to boot sector +158)
+1c: fiq fast hardware interrupt
+40: Very complex (IPC?) message handler?
+46: SCSI command handler?
 
 
 Cryptography

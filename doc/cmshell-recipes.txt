@@ -84,6 +84,20 @@ Eject Button
 ------------
 
 
+watch 4002004 1
+
+    The eject button and tray-closed sensor are both available in this GPIO
+    word on the ARM CPU. Since an actual eject/closure will put the firmare
+    through some paces that interrupt SCSI transfers, it's best to try this
+    with the tray open (so the button has no other effect unless you hold it
+    down for a while).
+
+    10 is the eject button itself
+     4 is one of the two tray sensors. This changes before the drive is
+          fully closed, so you can also use this for feedback in hooks without
+          the real firmware noticing.
+
+
 hook -Rrcm "Eject button" 18eb4
 
 	This is a call site for the eject button handler in the ARM main loop,
@@ -96,6 +110,7 @@ hook -Rrcm "Eject button" 18eb4
 ---------
 Main Loop
 ---------
+
 
 hook -Rcm "Top of main loop" 18ccc
 

@@ -269,6 +269,30 @@ class ShellMagics(magic.Magics):
         poke_words(d, va, words)
         overlay_set(d, args.address, len(words))
 
+    @magic.line_magic
+    @magic_arguments()
+    @argument('vector', type=hexint, nargs='?', help='Vector address to read or set')
+    @argument('new_address', type=hexint, nargs='?', help='New address for the indicated vector')
+    @argument('--limit', type=hexint, default=0x80, help='Highest address to search for vectors when displaying the full table')
+    def ivt(self, line):
+        """Read or modify the Interrupt Vector Table"""
+        args = parse_argstring(self.ivt, line)
+        d = self.shell.user_ns['d']
+
+        if args.vector is None:
+            # Show vector table. This only shows vectors with jumps, not
+            # vectors that go directly to code.
+            for addr in range(0, args.limit, 4):
+                value = ivt_get(d, addr)
+                if value is not None:
+                    self.shell.write("vector %08x = %08x\n" % (addr, value))
+
+        elif args.new_address is None:
+            return ivt_get(d, args.vector)
+
+        else:
+            ivt_set(d, args.vector, args.new_address)
+
     @magic.line_cell_magic
     def ec(self, line, cell='', address=pad+0x100):
         """Evaluate a 32-bit C++ expression on the target"""

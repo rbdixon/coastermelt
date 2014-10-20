@@ -21,14 +21,20 @@ def poke_bic(d, address, word):
 
 
 def ivt_find_target(d, address):
-    """Disassemble an instruction in the IVT to locate the jump target"""
+    """Disassemble an instruction in the IVT to locate the jump target.
+    Returns None if there's no corresponding IVT target
+    """
     text = code.disassemble(d, address, 4, thumb=False)
     return code.ldrpc_source_address(code.disassembly_lines(text)[0])
 
 
 def ivt_get(d, address):
-    """Read the target address of a long jump in the interrupt vector table"""
-    return d.peek(ivt_find_target(d, address))
+    """Read the target address of a long jump in the interrupt vector table
+    Returns None if there's no corresponding IVT target
+    """
+    addr = ivt_find_target(d, address)
+    if addr:
+        return d.peek(addr)
 
 
 def ivt_set(d, address, handler):
