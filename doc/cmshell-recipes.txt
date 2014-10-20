@@ -173,8 +173,25 @@ SCSI Command Handling
 
 sc c ac
 
-	This sends the special command we've backdoored, SCSI 0xAC 'Get Performance Data'.
-	The returned value will be a performance.
+	This sends the special command we've backdoored, SCSI 0xAC 'Get
+	Performance Data'. The returned value will be a performance.
+
+
+dis c9600
+
+	This is the backdoor routine we patched into flash memory. It handles the
+	0xAC command above. It's a tempting patch target, since it's code in flash
+	that we wrote- but it needs to keep working for the debugger to function!
+
+
+rd c9780 c
+ovl c9780 3
+ec strcpy(0xc9780, "Hello World")
+sc c ac
+
+	You can have fun patching over the signature if you like :) This is
+	similar to using %wrf, but lets us easily enter the string as a string
+	instead of hex bytes.
 
 
 rdw 2000c00
