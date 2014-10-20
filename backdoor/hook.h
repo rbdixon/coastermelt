@@ -28,7 +28,7 @@ void default_hook(uint32_t regs[16], const char *message = "default_hook()")
 
 		// Saved xPSR registers, first from the hook location itself,
 		// then from inside the breakpoint handler
-		console("        cpsr=", regs[-1]);
+		console("         cpsr=", regs[-1]);
 		println(" bkptpsr=", regs[-2]);
 	}
 
