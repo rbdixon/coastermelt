@@ -372,13 +372,12 @@ class ShellMagics(magic.Magics):
             if args.delay:
                 raise UsageError('--delay only applies when using the default hook')
 
-        if args.reset:
-            reset_arm(d)
         try:
             overlay_hook(d, args.hook_address, cell,
                 defines = all_defines(),
                 handler_address = args.handler_address,
                 replace_one_instruction = args.replace,
+                reset = args.reset,
                 verbose = not args.quiet)
         except CodeError, e:
             raise UsageError(str(e))

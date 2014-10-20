@@ -10,7 +10,7 @@ from mem import *
 def overlay_hook(d, hook_address, handler,
     includes = includes, defines = defines,
     handler_address = pad, va = 0x500000, verbose = False,
-    replace_one_instruction = False
+    replace_one_instruction = False, reset = False
     ):
     """Inject a C++ hook into Thumb code executing from Flash memory.
     All registers are bridged bi-directionally to C++ variables in the hook.
@@ -55,6 +55,10 @@ def overlay_hook(d, hook_address, handler,
 
         # This compile inherits variables and blocks from the shell
         includes = includes, defines = defines)
+
+    # Reset only after we know the compile is good
+    if reset:
+        reset_arm(d)
 
     # The hook location doesn't have to be word aligned, but the overlay
     # does. So, keep track of where the ovl starts. For simplicity, we
