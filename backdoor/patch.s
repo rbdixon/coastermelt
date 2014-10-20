@@ -54,6 +54,12 @@ _start:
     @ Start a FIFO transfer (without DMA), claim that the length is 8
     @ bytes. I think this length is a minimum? Not sure how it is validated
     @ if at all.  Writes to bits 15:8 in [40400e0]
+    @
+    @
+    @ TODO: This is probably totally wrong. I think we are actually not
+    @       setting the length at all, and this parameter is more like a state
+    @       number or IPC command parameter. After ejecting and closing the
+    @       tray, the max length somehow gets reset to 16 bytes.
 
     mov     r0, #8
 
