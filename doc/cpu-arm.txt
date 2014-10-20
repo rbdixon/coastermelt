@@ -23,7 +23,7 @@ standard firmawre.
 08: ARM software interrupt         (svc)
 0c: ARM prefetch abort exception   (bkpt)
 10: ARM data abort exception 
-14: hardware interrupt? (reflect to boot sector +158)
+18: hardware interrupt?
 1c: fiq fast hardware interrupt
 40: Very complex (IPC?) message handler?
 46: SCSI command handler?
