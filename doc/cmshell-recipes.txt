@@ -104,3 +104,52 @@ hook -Rcm "Top of main loop" 18ccc
     you want to poll here and it will run in a very tight loop but without
     stalling communications.
 
+
+---------------------------
+Unknown Hardware Device #xx
+---------------------------
+- ISR vector 0x14
+- Continuously active while polling the backdoor
+
+
+hook -Rc 213f6
+
+	First decision byte in ISR loaded into r0. From this trace, it looks like
+	r0 is always 3, but I'd like to be sure:
+
+
+%%hook -Rc 213f6
+if (r0 != 3) default_hook(regs)
+
+	This conditionally invokes the default hook handler (the one used for the
+	one-line version of hook) only if we see something surprising. This is a
+	really useful pattern for filtering streams of noisy information, and it
+	runs at the speed of the hook mechanism in native code, not limited by the
+	slow debug backdoor.
+
+	This is silent at first, suggesting that the output is indeed always 3.
+	You need two things to help you trust a negative experamental result like
+	this one:
+
+    - It must not have crashed. This is why the console has the little "-\|/"
+      spinner animation when it's idle. It's actually polling the console
+      buffer as fast as possible, and the spinner is a condensed version of
+      that activity.
+
+    - It helps to have something trivially similar that gave us a positive
+      result. In this case, that was the same hook at the same address without
+      the conditional.
+
+    Eject generated nothing new, but on putting the tray back in there was a
+    flood of juicy r0=0 messages with data streaming by on the stack.
+
+    I suspect there's some kind of big heavy re-initialization that happens
+    when the tray is opened or (especially) when it's closed. This always seems to
+    cause recoverable errors in talking to the backdoor.
+
+    The binary blobs flowing by reminded me of the large possibly-DSP firmware
+    blobs I've seen in the firmware image... tried searching a few middle-
+    looking strings in the firmare image, nothing.
+
+
+
