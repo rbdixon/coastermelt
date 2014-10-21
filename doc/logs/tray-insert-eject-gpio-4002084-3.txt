@@ -1,0 +1,2855 @@
+In [2]: watch 4002084 4002088
+* scanning 8 bytes at 1537.224 Hz
+* scanning 8 bytes at 1545.228 Hz
+* scanning 8 bytes at 1546.221 Hz
+* scanning 8 bytes at 1546.877 Hz
+            ________
+            04002084
+            --------
+            3e001d08>
+     4.026 >3a001d08
+* scanning 8 bytes at 1547.618 Hz
+            3a001d08>
+     5.635 >3e001d08
+* scanning 8 bytes at 1547.366 Hz
+            3e001d08>
+     6.555 >3a001d08
+            3a001d08>
+     6.919 >3e001d08
+* scanning 8 bytes at 1547.421 Hz
+            3e001d08>
+     7.391 >3a001d08
+            3a001d08>
+     7.473 >3e001d08
+            3e001d08>
+     7.753 >3a001d08
+            3a001d08>
+     7.860 >3e001d08
+* scanning 8 bytes at 1547.716 Hz
+            3e001d08>
+     8.080 >3a001d08
+            3a001d08>
+     8.156 >3e001d08
+            3e001d08>
+     8.376 >3a001d08
+            3a001d08>
+     8.435 >3e001d08
+            3e001d08>
+     8.877 >3a001d08
+* scanning 8 bytes at 1547.841 Hz
+            3a001d08>
+     9.031 >3e001d08
+            3e001d08>
+     9.586 >3a001d08
+            3a001d08>
+     9.945 >3e001d08
+* scanning 8 bytes at 1548.242 Hz
+            3e001d08>
+    10.488 >3a001d08
+            3a001d08>
+    10.864 >3e001d08
+* scanning 8 bytes at 1548.400 Hz
+* scanning 8 bytes at 1548.442 Hz
+            3e001d08>
+    12.573 >3a001d08
+* scanning 8 bytes at 1548.304 Hz
+            3a001d08>
+    13.224 >3e001d08
+* scanning 8 bytes at 1548.513 Hz
+            3e001d08>
+    14.136 >3a001d08
+            3a001d08>
+    14.656 >3e001d08
+* scanning 8 bytes at 1548.527 Hz
+            3e001d08>
+    15.443 >3a001d08
+            3a001d08>
+    15.911 >3e001d08
+* scanning 8 bytes at 1547.974 Hz
+* scanning 8 bytes at 1547.952 Hz
+* scanning 8 bytes at 1547.991 Hz
+* scanning 8 bytes at 1547.991 Hz
+* scanning 8 bytes at 1548.025 Hz
+* scanning 8 bytes at 1547.927 Hz
+* scanning 8 bytes at 1547.926 Hz
+* scanning 8 bytes at 1547.976 Hz
+* scanning 8 bytes at 1548.008 Hz
+* scanning 8 bytes at 1548.062 Hz
+* scanning 8 bytes at 1547.967 Hz
+* scanning 8 bytes at 1548.036 Hz
+* scanning 8 bytes at 1547.974 Hz
+* scanning 8 bytes at 1547.951 Hz
+* scanning 8 bytes at 1548.032 Hz
+* scanning 8 bytes at 1547.940 Hz
+* scanning 8 bytes at 1547.480 Hz
+* scanning 8 bytes at 1547.295 Hz
+            3e001d08>
+    33.554 >3a001d08
+* scanning 8 bytes at 1547.200 Hz
+            3a001d08>
+    34.655 >3a001c08
+* scanning 8 bytes at 1547.061 Hz
+            3a001c08>
+    35.267 >3a001808
+            3a001808>
+    35.276 >3a001c08
+            3a001c08>
+    35.292 >3a001808
+            3a001808>
+    35.297 >1a00180f
+                     03010101>
+    35.302          >03030303
+            1a00180f>
+    35.308 >1a001c0f
+                     03030303>
+    35.424          >01030303
+            1a001c0f>
+    35.428 >1a001c07
+                     01030303>
+    35.513          >03030303
+            1a001c07>
+    35.518 >1a00180f
+            1a00180f>
+    35.524 >1a001c07
+                     03030303>
+    35.529          >01030303
+                     01030303>
+    35.584          >03030303
+            1a001c07>
+    35.589 >1a001c0f
+            ________ ________
+            04002084 04002088
+            --------+--------
+            1a001c0f>
+    35.745 >1a001c07
+                     03030303>
+    35.749          >01030303
+            1a001c07>
+    35.790 >1a001807
+            1a001807>
+    35.795 >1a001c07
+            1a001c07>
+    35.905 >1a001c0f
+                     01030303>
+    35.910          >03030303
+* scanning 8 bytes at 1517.325 Hz
+            1a001c0f>
+    36.066 >1a001c07
+                     03030303>
+    36.070          >01030303
+            1a001c07>
+    36.226 >1a001c0f
+                     01030303>
+    36.231          >03030303
+            1a001c0f>
+    36.387 >1a001c07
+                     03030303>
+    36.392          >01030303
+            1a001c07>
+    36.465 >1a101c07
+            1a101c07>
+    36.548 >1a101c0f
+                     01030303>
+    36.552          >03030303
+            1a101c0f>
+    36.633 >1a001c0f
+                     03030303>
+    36.708          >01030303
+            1a001c0f>
+    36.713 >1a001c07
+            1a001c07>
+    36.806 >1a101c07
+            1a101c07>
+    36.827 >1a101807
+            1a101807>
+    36.833 >1a101c07
+            1a101c07>
+    36.869 >1a101c0f
+                     01030303>
+    36.873          >03030303
+* scanning 8 bytes at 1479.565 Hz
+            1a101c0f>
+    37.029 >1a101c07
+                     03030303>
+    37.034          >01030303
+            1a101c07>
+    37.090 >1a101807
+            1a101807>
+    37.099 >1a101c07
+            1a101c07>
+    37.134 >1a100c07
+            1a100c07>
+    37.143 >1a101c07
+                     01030303>
+    37.190          >03030303
+            1a101c07>
+    37.194 >1a101c0f
+            1a101c0f>
+    37.263 >1a001c0f
+            1a001c0f>
+    37.270 >1a101c0f
+                     03030303>
+    37.350          >01030303
+            1a101c0f>
+    37.355 >1a100c07
+            1a100c07>
+    37.359 >1a101c07
+            1a101c07>
+    37.511 >1a101c0f
+                     01030303>
+    37.516          >03030303
+            1a101c0f>
+    37.552 >1a10180f
+            1a10180f>
+    37.565 >1a101c0f
+            ________ ________
+            04002084 04002088
+            --------+--------
+            1a101c0f>
+    37.672 >1a101c07
+                     03030303>
+    37.676          >01030303
+            1a101c07>
+    37.725 >1a001c07
+            1a001c07>
+    37.730 >1a101c07
+            1a101c07>
+    37.832 >1a101c0f
+                     01030303>
+    37.837          >03030303
+            1a101c0f>
+    37.993 >1a101c07
+                     03030303>
+    37.997          >01030303
+            1a101c07>
+    38.018 >1a001c07
+* scanning 8 bytes at 1443.782 Hz
+            1a001c07>
+    38.123 >1a000c0f
+                     01030303>
+    38.127          >03030303
+            1a000c0f>
+    38.133 >1a001c07
+                     03030303>
+    38.138          >01030303
+                     01030303>
+    38.153          >03030303
+            1a001c07>
+    38.158 >1a001c0f
+            1a001c0f>
+    38.278 >1a00180f
+            1a00180f>
+    38.292 >1a001c0f
+                     03030303>
+    38.314          >01030303
+            1a001c0f>
+    38.318 >1a001c07
+            1a001c07>
+    38.323 >1a000c07
+            1a000c07>
+    38.334 >1a001c07
+            1a001c07>
+    38.415 >1a001807
+            1a001807>
+    38.444 >1a001c07
+            1a001c07>
+    38.453 >1a000c07
+            1a000c07>
+    38.459 >1a001c07
+                     01030303>
+    38.474          >03030303
+            1a001c07>
+    38.484 >1a001c0f
+            1a001c0f>
+    38.508 >1a000c0f
+            1a000c0f>
+    38.515 >1a001c0f
+                     03030303>
+    38.635          >01030303
+            1a001c0f>
+    38.644 >1a001807
+            1a001807>
+    38.651 >1a00180f
+                     01030303>
+    38.656          >03010101
+            1a00180f>
+    38.661 >3a001808
+            3a001808>
+    38.720 >3a001c08
+            3a001c08>
+    38.730 >3a001808
+* scanning 8 bytes at 1409.529 Hz
+            3a001808>
+    39.061 >3a001c08
+            3a001c08>
+    39.071 >3a001808
+            3a001808>
+    39.188 >3a001c08
+            3a001c08>
+    39.198 >3a001808
+            ________ ________
+            04002084 04002088
+            --------+--------
+            3a001808>
+    39.253 >3a001c08
+            3a001c08>
+    39.262 >3a001808
+            3a001808>
+    39.317 >3a001c08
+            3a001c08>
+    39.326 >3a001808
+            3a001808>
+    39.381 >3a001c08
+            3a001c08>
+    39.388 >3a001808
+            3a001808>
+    39.466 >3a001c08
+            3a001c08>
+    39.481 >3a001808
+            3a001808>
+    39.636 >3a001c08
+            3a001c08>
+    39.646 >3a001808
+            3a001808>
+    39.680 >3a001c08
+            3a001c08>
+    39.685 >3a001808
+            3a001808>
+    39.764 >3a001c08
+            3a001c08>
+    39.771 >3a001808
+            3a001808>
+    39.786 >3a001c08
+            3a001c08>
+    39.800 >3a001808
+            3a001808>
+    39.849 >3a001c08
+            3a001c08>
+    39.859 >3a001808
+            3a001808>
+    39.913 >3a001c08
+            3a001c08>
+    39.918 >3a001808
+* scanning 8 bytes at 1376.858 Hz
+            3a001808>
+    40.063 >3a001c08
+            3a001c08>
+    40.070 >3a001808
+            3a001808>
+    40.190 >3a001c08
+            3a001c08>
+    40.195 >3a001808
+            3a001808>
+    40.254 >3a001c08
+            3a001c08>
+    40.259 >3a001808
+            3a001808>
+    40.382 >3a001c08
+            3a001c08>
+    40.387 >3a001808
+            3a001808>
+    40.402 >3a001c08
+            3a001c08>
+    40.412 >3a001808
+            3a001808>
+    40.488 >3a001c08
+            3a001c08>
+    40.498 >3a001808
+            3a001808>
+    40.574 >3a001c08
+            3a001c08>
+    40.584 >3a001808
+            3a001808>
+    40.637 >3a001c08
+            3a001c08>
+    40.647 >3a001808
+            3a001808>
+    40.743 >3a001c08
+            3a001c08>
+    40.758 >3a001808
+* scanning 8 bytes at 1345.762 Hz
+            3a001808>
+    41.149 >3a001c08
+            3a001c08>
+    41.159 >3a001808
+            ________ ________
+            04002084 04002088
+            --------+--------
+            3a001808>
+    41.212 >3a001c08
+            3a001c08>
+    41.222 >3a001808
+            3a001808>
+    41.276 >3a001c08
+            3a001c08>
+    41.291 >3a001808
+            3a001808>
+    41.298 >3a001c08
+            3a001c08>
+    41.305 >3a001808
+            3a001808>
+    41.320 >3a001c08
+            3a001c08>
+    41.330 >3a001808
+            3a001808>
+    41.448 >3a001c08
+            3a001c08>
+    41.458 >3a001808
+            3a001808>
+    41.489 >3a001c08
+            3a001c08>
+    41.497 >3a001808
+            3a001808>
+    41.511 >3a001c08
+            3a001c08>
+    41.516 >3a001808
+            3a001808>
+    41.553 >3a001c08
+            3a001c08>
+    41.563 >3a001808
+            3a001808>
+    41.767 >3a001c08
+            3a001c08>
+    41.782 >3a001808
+            3a001808>
+    41.789 >3a001c08
+            3a001c08>
+    41.794 >3a001808
+            3a001808>
+    41.917 >3a001c08
+            3a001c08>
+    41.926 >3a001808
+* scanning 8 bytes at 1316.247 Hz
+            3a001808>
+    42.066 >3a001c08
+            3a001c08>
+    42.075 >3a001808
+            3a001808>
+    42.107 >3a001c08
+            3a001c08>
+    42.117 >3a001808
+            3a001808>
+    42.192 >3a001c08
+            3a001c08>
+    42.197 >3a001808
+            3a001808>
+    42.256 >3a001c08
+            3a001c08>
+    42.265 >3a001808
+            3a001808>
+    42.319 >3a001c08
+            3a001c08>
+    42.329 >3a001808
+            3a001808>
+    42.405 >3a001c08
+            3a001c08>
+    42.410 >3a001808
+            3a001808>
+    42.660 >3a001c08
+            3a001c08>
+    42.670 >3a001808
+            3a001808>
+    42.874 >3a001c08
+            3a001c08>
+    42.884 >3a001808
+            3a001808>
+    42.896 >3a001c08
+            3a001c08>
+    42.906 >3a001808
+* scanning 8 bytes at 1287.946 Hz
+            ________ ________
+            04002084 04002088
+            --------+--------
+            3a001808>
+    43.088 >3a001c08
+            3a001c08>
+    43.093 >3a001808
+            3a001808>
+    43.174 >3a001c08
+            3a001c08>
+    43.184 >3a001808
+            3a001808>
+    43.258 >3a001c08
+            3a001c08>
+    43.272 >3a001808
+            3a001808>
+    43.343 >3a001c08
+            3a001c08>
+    43.348 >3a001808
+            3a001808>
+    43.493 >3a001c08
+            3a001c08>
+    43.503 >3a001808
+            3a001808>
+    43.706 >3a001c08
+            3a001c08>
+    43.716 >3a001808
+            3a001808>
+    43.897 >3a001c08
+            3a001c08>
+    43.906 >3a001808
+            3a001808>
+    43.961 >3a001c08
+            3a001c08>
+    43.966 >3a001808
+* scanning 8 bytes at 1260.978 Hz
+            3a001808>
+    44.238 >3a001c08
+            3a001c08>
+    44.243 >3a001808
+            3a001808>
+    44.301 >3a001c08
+            3a001c08>
+    44.306 >3a001808
+            3a001808>
+    44.387 >3a001c08
+            3a001c08>
+    44.402 >3a001808
+            3a001808>
+    44.472 >3a001c08
+            3a001c08>
+    44.477 >3a001808
+            3a001808>
+    44.514 >3a001c08
+            3a001c08>
+    44.529 >3a001808
+            3a001808>
+    44.600 >3a001c08
+            3a001c08>
+    44.604 >3a001808
+            3a001808>
+    44.748 >3a001c08
+            3a001c08>
+    44.763 >3a001808
+            3a001808>
+    44.962 >3a001c08
+            3a001c08>
+    44.967 >3a001808
+            3a001808>
+    45.026 >3a001c08
+            3a001c08>
+    45.041 >3a001808
+* scanning 8 bytes at 1235.231 Hz
+            3a001808>
+    45.303 >3a001c08
+            3a001c08>
+    45.308 >3a001808
+            3a001808>
+    45.345 >3a001c08
+            3a001c08>
+    45.355 >3a001808
+            3a001808>
+    45.389 >3a001c08
+            3a001c08>
+    45.394 >3a001808
+            ________ ________
+            04002084 04002088
+            --------+--------
+            3a001808>
+    45.409 >3a001c08
+            3a001c08>
+    45.419 >3a001808
+            3a001808>
+    45.431 >3a001c08
+            3a001c08>
+    45.446 >3a001808
+            3a001808>
+    45.537 >3a001c08
+            3a001c08>
+    45.547 >3a001808
+            3a001808>
+    45.644 >3a001c08
+            3a001c08>
+    45.654 >3a001808
+            3a001808>
+    45.686 >3a001c08
+            3a001c08>
+    45.691 >3a001808
+            3a001808>
+    45.858 >3a001c08
+            3a001c08>
+    45.865 >3a001808
+* scanning 8 bytes at 1210.629 Hz
+            3a001808>
+    46.175 >3a001c08
+            3a001c08>
+    46.190 >3a001808
+            3a001808>
+    46.219 >3a001c08
+            3a001c08>
+    46.229 >3a001808
+            3a001808>
+    46.283 >3a001c08
+            3a001c08>
+    46.295 >3a001808
+            3a001808>
+    46.538 >3a001c08
+            3a001c08>
+    46.548 >3a001808
+            3a001808>
+    46.560 >3a001c08
+            3a001c08>
+    46.570 >3a001808
+            3a001808>
+    46.686 >3a001c08
+            3a001c08>
+    46.696 >3a001808
+            3a001808>
+    46.772 >3a001c08
+            3a001c08>
+    46.782 >3a001808
+            3a001808>
+    46.813 >3a001c08
+            3a001c08>
+    46.823 >3a001808
+            3a001808>
+    46.984 >3a001c08
+            3a001c08>
+    46.989 >3a001808
+            3a001808>
+    47.033 >2a001808
+            2a001808>
+    47.048 >2a001c08
+            2a001c08>
+    47.060 >2a001808
+* scanning 8 bytes at 1187.145 Hz
+            2a001808>
+    47.112 >2a001c08
+            2a001c08>
+    47.126 >2a001808
+            2a001808>
+    47.175 >2a001c08
+            2a001c08>
+    47.182 >2a001808
+            2a001808>
+    47.219 >2a001c08
+            2a001c08>
+    47.224 >2a001808
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+* scanning 0 bytes at 1164.617 Hz
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+                     03010101>
+    48.294          >03030101
+            ________ ________
+            04002084 04002088
+            --------+--------
+            2a001808>
+    48.298 >2a00180c
+            2a00180c>
+    48.363 >2a001c0c
+            2a001c0c>
+    48.369 >2a00180c
+            2a00180c>
+    48.383 >2a001c0c
+            2a001c0c>
+    48.387 >2a00180c
+            2a00180c>
+    48.444 >2a001c0c
+            2a001c0c>
+    48.447 >2a00180c
+            2a00180c>
+    48.464 >2a001c0c
+            2a001c0c>
+    48.469 >2a00180c
+            2a00180c>
+    48.524 >2a001c0c
+            2a001c0c>
+    48.527 >2a00180c
+            2a00180c>
+    48.542 >3a00180c
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+* scanning 0 bytes at 1143.593 Hz
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+            3a00180c>
+    49.581 >3a001c0c
+            3a001c0c>
+    49.590 >3a00180c
+            3a00180c>
+    49.607 >3a001c0c
+            3a001c0c>
+    49.610 >3a00180c
+            3a00180c>
+    49.869 >3a001c0c
+            3a001c0c>
+    49.871 >3a00180c
+            3a00180c>
+    49.949 >3a001c0c
+            3a001c0c>
+    49.952 >3a00180c
+            3a00180c>
+    50.029 >3a001c0c
+            3a001c0c>
+    50.032 >3a00180c
+* scanning 8 bytes at 1124.067 Hz
+            3a00180c>
+    50.089 >3a001c0c
+            3a001c0c>
+    50.096 >3a00180c
+            3a00180c>
+    50.109 >3a001c0c
+            3a001c0c>
+    50.114 >3a00180c
+            3a00180c>
+    50.130 >3a001c0c
+            3a001c0c>
+    50.136 >3a00180c
+            3a00180c>
+    50.149 >3a001c0c
+            3a001c0c>
+    50.152 >3a00180c
+            3a00180c>
+    50.169 >3a001c0c
+            3a001c0c>
+    50.176 >3a00180c
+            3a00180c>
+    50.189 >3a001c0c
+            3a001c0c>
+    50.192 >3a00180c
+            3a00180c>
+    50.269 >3a001c0c
+            3a001c0c>
+    50.272 >3a00180c
+            3a00180c>
+    50.289 >3a001c0c
+            3a001c0c>
+    50.296 >3a00180c
+            3a00180c>
+    50.411 >3a001c0c
+            3a001c0c>
+    50.413 >3a00180c
+            ________ ________
+            04002084 04002088
+            --------+--------
+            3a00180c>
+    50.512 >3a001c0c
+            3a001c0c>
+    50.516 >3a00180c
+            3a00180c>
+    50.532 >3a001c0c
+            3a001c0c>
+    50.534 >3a00180c
+            3a00180c>
+    50.572 >3a001c0c
+            3a001c0c>
+    50.577 >3a00180c
+            3a00180c>
+    50.612 >3a001c0c
+            3a001c0c>
+    50.617 >3a00180c
+            3a00180c>
+    50.652 >3a001c0c
+            3a001c0c>
+    50.656 >3a00180c
+            3a00180c>
+    50.692 >3a001c0c
+            3a001c0c>
+    50.694 >3a00180c
+            3a00180c>
+    50.812 >3a001c0c
+            3a001c0c>
+    50.814 >3a00180c
+            3a00180c>
+    50.872 >3a001c0c
+            3a001c0c>
+    50.878 >3a00180c
+            3a00180c>
+    50.892 >3a001c0c
+            3a001c0c>
+    50.896 >3a00180c
+            3a00180c>
+    50.932 >3a001c0c
+            3a001c0c>
+    50.936 >3a00180c
+            3a00180c>
+    51.013 >3a001c0c
+            3a001c0c>
+    51.020 >3a00180c
+            3a00180c>
+    51.033 >3a001c0c
+            3a001c0c>
+    51.036 >3a00180c
+            3a00180c>
+    51.053 >3a001c0c
+            3a001c0c>
+    51.060 >3a00180c
+            3a00180c>
+    51.073 >3a001c0c
+            3a001c0c>
+    51.078 >3a00180c
+* scanning 8 bytes at 1106.411 Hz
+            3a00180c>
+    51.113 >3a001c0c
+            3a001c0c>
+    51.115 >3a00180c
+            3a00180c>
+    51.133 >3a001c0c
+            3a001c0c>
+    51.137 >3a00180c
+            3a00180c>
+    51.275 >3a001c0c
+            3a001c0c>
+    51.281 >3a00180c
+            3a00180c>
+    51.334 >3a001c0c
+            3a001c0c>
+    51.339 >3a00180c
+            3a00180c>
+    51.354 >3a001c0c
+            3a001c0c>
+    51.361 >3a00180c
+            3a00180c>
+    51.374 >3a001c0c
+            3a001c0c>
+    51.379 >3a00180c
+            ________ ________
+            04002084 04002088
+            --------+--------
+            3a00180c>
+    51.414 >3a001c0c
+            3a001c0c>
+    51.418 >3a00180c
+            3a00180c>
+    51.535 >3a001c0c
+            3a001c0c>
+    51.540 >3a00180c
+            3a00180c>
+    51.595 >3a001c0c
+            3a001c0c>
+    51.597 >3a00180c
+            3a00180c>
+    51.615 >3a001c0c
+            3a001c0c>
+    51.622 >3a00180c
+            3a00180c>
+    51.676 >3a001c0c
+            3a001c0c>
+    51.678 >3a00180c
+            3a00180c>
+    51.696 >3a001c0c
+            3a001c0c>
+    51.700 >3a00180c
+            3a00180c>
+    51.755 >3a001c0c
+            3a001c0c>
+    51.758 >3a00180c
+            3a00180c>
+    51.764 >2a00180c
+            2a00180c>
+    51.815 >2a001c0c
+            2a001c0c>
+    51.822 >2a00180c
+            2a00180c>
+    52.037 >2a001c0c
+            2a001c0c>
+    52.041 >2a00180c
+            2a00180c>
+    52.077 >2a001c0c
+            2a001c0c>
+    52.084 >2a00180c
+* scanning 8 bytes at 1089.473 Hz
+            2a00180c>
+    52.097 >2a001c0c
+            2a001c0c>
+    52.101 >2a00180c
+            2a00180c>
+    52.117 >2a001c0c
+            2a001c0c>
+    52.123 >2a00180c
+            2a00180c>
+    52.137 >2a001c0c
+            2a001c0c>
+    52.139 >2a00180c
+            2a00180c>
+    52.176 >2a001c0c
+            2a001c0c>
+    52.181 >2a00180c
+            2a00180c>
+    52.278 >2a001c0c
+            2a001c0c>
+    52.280 >2a00180c
+            2a00180c>
+    52.289 >3a00180c
+            3a00180c>
+    52.298 >3a001c0c
+            3a001c0c>
+    52.304 >3a00180c
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+* scanning 0 bytes at 1071.403 Hz
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+            3a00180c>
+    53.342 >3a001c0c
+            3a001c0c>
+    53.346 >3a00180c
+            3a00180c>
+    53.362 >3a001c0c
+            3a001c0c>
+    53.364 >3a00180c
+            3a00180c>
+    53.482 >3a001c0c
+            3a001c0c>
+    53.486 >3a00180c
+            ________ ________
+            04002084 04002088
+            --------+--------
+            3a00180c>
+    53.542 >3a001c0c
+            3a001c0c>
+    53.549 >3a00180c
+            3a00180c>
+    53.562 >3a001c0c
+            3a001c0c>
+    53.566 >3a00180c
+            3a00180c>
+    53.602 >3a001c0c
+            3a001c0c>
+    53.606 >3a00180c
+            3a00180c>
+    53.622 >3a001c0c
+            3a001c0c>
+    53.628 >3a00180c
+            3a00180c>
+    53.703 >3a001c0c
+            3a001c0c>
+    53.705 >3a00180c
+            3a00180c>
+    53.803 >3a001c0c
+            3a001c0c>
+    53.807 >3a00180c
+            3a00180c>
+    53.863 >3a001c0c
+            3a001c0c>
+    53.865 >3a00180c
+            3a00180c>
+    53.902 >3a001c0c
+            3a001c0c>
+    53.905 >3a00180c
+            3a00180c>
+    53.984 >3a001c0c
+            3a001c0c>
+    53.991 >3a00180c
+            3a00180c>
+    54.004 >3a001c0c
+            3a001c0c>
+    54.006 >3a00180c
+            3a00180c>
+    54.044 >3a001c0c
+            3a001c0c>
+    54.048 >3a00180c
+            3a00180c>
+    54.064 >3a001c0c
+            3a001c0c>
+    54.070 >3a00180c
+            3a00180c>
+    54.084 >3a001c0c
+            3a001c0c>
+    54.086 >3a00180c
+* scanning 8 bytes at 1055.231 Hz
+            3a00180c>
+    54.184 >3a001c0c
+            3a001c0c>
+    54.190 >3a00180c
+            3a00180c>
+    54.224 >3a001c0c
+            3a001c0c>
+    54.228 >3a00180c
+            3a00180c>
+    54.243 >3a001c0c
+            3a001c0c>
+    54.246 >3a00180c
+            3a00180c>
+    54.325 >3a001c0c
+            3a001c0c>
+    54.330 >3a00180c
+            3a00180c>
+    54.385 >3a001c0c
+            3a001c0c>
+    54.388 >3a00180c
+            3a00180c>
+    54.405 >3a001c0c
+            3a001c0c>
+    54.410 >3a00180c
+            3a00180c>
+    54.445 >3a001c0c
+            3a001c0c>
+    54.450 >3a00180c
+            ________ ________
+            04002084 04002088
+            --------+--------
+            3a00180c>
+    54.466 >3a001c0c
+            3a001c0c>
+    54.470 >3a00180c
+            3a00180c>
+    54.486 >3a001c0c
+            3a001c0c>
+    54.492 >3a00180c
+            3a00180c>
+    54.506 >3a001c0c
+            3a001c0c>
+    54.508 >3a00180c
+            3a00180c>
+    54.526 >3a001c0c
+            3a001c0c>
+    54.532 >3a00180c
+            3a00180c>
+    54.565 >3a001c0c
+            3a001c0c>
+    54.570 >3a00180c
+            3a00180c>
+    54.645 >3a001c0c
+            3a001c0c>
+    54.652 >3a00180c
+            3a00180c>
+    54.807 >3a001c0c
+            3a001c0c>
+    54.809 >3a00180c
+            3a00180c>
+    54.827 >3a001c0c
+            3a001c0c>
+    54.832 >3a00180c
+            3a00180c>
+    54.847 >3a001c0c
+            3a001c0c>
+    54.852 >3a00180c
+            3a00180c>
+    54.887 >3a001c0c
+            3a001c0c>
+    54.890 >3a00180c
+            3a00180c>
+    54.907 >3a001c0c
+            3a001c0c>
+    54.912 >3a00180c
+            3a00180c>
+    54.927 >3a001c0c
+            3a001c0c>
+    54.932 >3a00180c
+            3a00180c>
+    54.987 >3a001c0c
+            3a001c0c>
+    54.992 >3a00180c
+            3a00180c>
+    55.007 >3a001c0c
+            3a001c0c>
+    55.010 >3a00180c
+            3a00180c>
+    55.087 >3a001c0c
+            3a001c0c>
+    55.090 >3a00180c
+* scanning 8 bytes at 1040.105 Hz
+            3a00180c>
+    55.108 >3a001c0c
+            3a001c0c>
+    55.112 >3a00180c
+            3a00180c>
+    55.147 >3a001c0c
+            3a001c0c>
+    55.154 >3a00180c
+            3a00180c>
+    55.167 >3a001c0c
+            3a001c0c>
+    55.169 >3a00180c
+            3a00180c>
+    55.187 >3a001c0c
+            3a001c0c>
+    55.192 >3a00180c
+            3a00180c>
+    55.207 >3a001c0c
+            3a001c0c>
+    55.212 >3a00180c
+            ________ ________
+            04002084 04002088
+            --------+--------
+            3a00180c>
+    55.227 >3a001c0c
+            3a001c0c>
+    55.234 >3a00180c
+            3a00180c>
+    55.271 >2a00180c
+            2a00180c>
+    55.289 >2a001c0c
+            2a001c0c>
+    55.296 >2a00180c
+            2a00180c>
+    55.348 >2a001c0c
+            2a001c0c>
+    55.353 >2a00180c
+            2a00180c>
+    55.368 >2a001c0c
+            2a001c0c>
+    55.375 >2a00180c
+            2a00180c>
+    55.388 >2a001c0c
+            2a001c0c>
+    55.392 >2a00180c
+            2a00180c>
+    55.448 >2a001c0c
+            2a001c0c>
+    55.452 >2a00180c
+            2a00180c>
+    55.476 >3a00180c
+            3a00180c>
+    55.490 >3a001c0c
+            3a001c0c>
+    55.492 >3a00180c
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+* scanning 0 bytes at 1024.300 Hz
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+            3a00180c>
+    56.531 >3a001c0c
+            3a001c0c>
+    56.536 >3a00180c
+            3a00180c>
+    56.573 >3a001c0c
+            3a001c0c>
+    56.578 >3a00180c
+            3a00180c>
+    56.593 >3a001c0c
+            3a001c0c>
+    56.598 >3a00180c
+            3a00180c>
+    56.633 >3a001c0c
+            3a001c0c>
+    56.639 >3a00180c
+            3a00180c>
+    56.653 >3a001c0c
+            3a001c0c>
+    56.655 >3a00180c
+            3a00180c>
+    56.672 >3a001c0c
+            3a001c0c>
+    56.679 >3a00180c
+            3a00180c>
+    56.774 >3a001c0c
+            3a001c0c>
+    56.781 >3a00180c
+            3a00180c>
+    56.794 >3a001c0c
+            3a001c0c>
+    56.799 >3a00180c
+            3a00180c>
+    56.814 >3a001c0c
+            3a001c0c>
+    56.821 >3a00180c
+            3a00180c>
+    56.834 >3a001c0c
+            3a001c0c>
+    56.838 >3a00180c
+            3a00180c>
+    56.854 >3a001c0c
+            3a001c0c>
+    56.858 >3a00180c
+            3a00180c>
+    56.913 >3a001c0c
+            3a001c0c>
+    56.918 >3a00180c
+            ________ ________
+            04002084 04002088
+            --------+--------
+            3a00180c>
+    57.035 >3a001c0c
+            3a001c0c>
+    57.041 >3a00180c
+            3a00180c>
+    57.055 >3a001c0c
+            3a001c0c>
+    57.059 >3a00180c
+            3a00180c>
+    57.075 >3a001c0c
+            3a001c0c>
+    57.081 >3a00180c
+* scanning 8 bytes at 1009.448 Hz
+            3a00180c>
+    57.115 >3a001c0c
+            3a001c0c>
+    57.119 >3a00180c
+            3a00180c>
+    57.135 >3a001c0c
+            3a001c0c>
+    57.139 >3a00180c
+            3a00180c>
+    57.215 >3a001c0c
+            3a001c0c>
+    57.217 >3a00180c
+            3a00180c>
+    57.235 >3a001c0c
+            3a001c0c>
+    57.239 >3a00180c
+            3a00180c>
+    57.295 >3a001c0c
+            3a001c0c>
+    57.297 >3a00180c
+            3a00180c>
+    57.315 >3a001c0c
+            3a001c0c>
+    57.319 >3a00180c
+            3a00180c>
+    57.335 >3a001c0c
+            3a001c0c>
+    57.337 >3a00180c
+            3a00180c>
+    57.376 >3a001c0c
+            3a001c0c>
+    57.381 >3a00180c
+            3a00180c>
+    57.414 >3a00190c
+            3a00190c>
+    57.416 >3a001d0c
+                     03030101>
+    57.421          >03010101
+            3a001d0c>
+    57.431 >3a001908
+            3a001908>
+    57.436 >3a001d08
+            3a001d08>
+    57.450 >3a001908
+            3a001908>
+    57.521 >3a001d08
+            3a001d08>
+    57.531 >3a001908
+            3a001908>
+    57.629 >3a001d08
+            3a001d08>
+    57.644 >3a001908
+            3a001908>
+    57.693 >3a001d08
+            3a001d08>
+    57.707 >3a001908
+            3a001908>
+    57.778 >3a001d08
+            3a001d08>
+    57.787 >3a001908
+            3a001908>
+    57.863 >3e001908
+            3e001908>
+    57.883 >3e001d08
+            3e001d08>
+    57.892 >3e001908
+            3e001908>
+    57.969 >3e001d08
+            ________ ________
+            04002084 04002088
+            --------+--------
+            3e001d08>
+    57.978 >3e001908
+            3e001908>
+    58.054 >3e001d08
+            3e001d08>
+    58.064 >3e001908
+* scanning 8 bytes at 994.572 Hz
+            3e001908>
+    58.118 >3e001d08
+            3e001d08>
+    58.132 >3e001908
+            3e001908>
+    58.203 >3e001d08
+            3e001d08>
+    58.208 >3e001908
+            3e001908>
+    58.353 >3e001d08
+            3e001d08>
+    58.368 >3e001908
+            3e001908>
+    58.373 >3e001d08
+            3e001d08>
+    58.382 >3e001908
+            3e001908>
+    58.417 >3e001d08
+            3e001d08>
+    58.422 >3e001908
+            3e001908>
+    58.481 >3e001d08
+            3e001d08>
+    58.486 >3e001908
+            3e001908>
+    58.522 >3e001d08
+            3e001d08>
+    58.537 >3e001908
+            3e001908>
+    58.758 >3e001d08
+            3e001d08>
+    58.763 >3e001908
+            3e001908>
+    58.778 >3e001d08
+            3e001d08>
+    58.788 >3e001908
+            3e001908>
+    59.013 >3e001d08
+            3e001d08>
+    59.023 >3e001908
+            3e001908>
+    59.035 >3e001d08
+            3e001d08>
+    59.040 >3e001908
+            3e001908>
+    59.076 >3e001d08
+            3e001d08>
+    59.086 >3e001908
+            3e001908>
+    59.101 >3a001908
+* scanning 8 bytes at 979.419 Hz
+            3a001908>
+    59.150 >3e001908
+            3e001908>
+    59.162 >3e001d08
+            3e001d08>
+    59.174 >3e001908
+            3e001908>
+    59.184 >3a001908
+            3a001908>
+    59.248 >3a001d08
+            3a001d08>
+    59.257 >3a001908
+            3a001908>
+    59.267 >3a001d08
+            3a001d08>
+    59.272 >3a001908
+            3a001908>
+    59.375 >3a001d08
+            3a001d08>
+    59.385 >3a001908
+            3a001908>
+    59.417 >3a001d08
+            3a001d08>
+    59.426 >3a001908
+            ________ ________
+            04002084 04002088
+            --------+--------
+            3a001908>
+    59.519 >3a001808
+            3a001808>
+    59.604 >3a001c08
+            3a001c08>
+    59.609 >3a001808
+            3a001808>
+    59.625 >3a001c08
+            3a001c08>
+    59.631 >3a001808
+            3a001808>
+    59.704 >3a001c08
+            3a001c08>
+    59.711 >3a001808
+            3a001808>
+    59.745 >3a001c08
+            3a001c08>
+    59.749 >3a001808
+            3a001808>
+    59.765 >3a001c08
+            3a001c08>
+    59.767 >3a001808
+            3a001808>
+    59.825 >3a001c08
+            3a001c08>
+    59.831 >3a001808
+            3a001808>
+    59.905 >3a001c08
+            3a001c08>
+    59.909 >3a001808
+            3a001808>
+    59.945 >3a001c08
+            3a001c08>
+    59.949 >3a001808
+            3a001808>
+    60.026 >3a001c08
+            3a001c08>
+    60.029 >3a001808
+            3a001808>
+    60.046 >3a001c08
+            3a001c08>
+    60.051 >3a001808
+            3a001808>
+    60.066 >3a001c08
+            3a001c08>
+    60.099 >1a001c0f
+                     03010101>
+    60.103          >03030303
+* scanning 8 bytes at 965.934 Hz
+            1a001c0f>
+    60.226 >1a001c07
+                     03030303>
+    60.230          >01030303
+                     01030303>
+    60.320          >03030303
+            1a001c07>
+    60.326 >1a000c07
+                     03030303>
+    60.331          >01030303
+            1a000c07>
+    60.335 >1a001c07
+                     01030303>
+    60.386          >03030303
+            1a001c07>
+    60.391 >1a001c0f
+                     03030303>
+    60.547          >01030303
+            1a001c0f>
+    60.551 >1a001c07
+            1a001c07>
+    60.707 >1a001c0f
+                     01030303>
+    60.712          >03030303
+            1a001c0f>
+    60.833 >1a00180f
+            1a00180f>
+    60.848 >1a001c0f
+            1a001c0f>
+    60.868 >1a001c07
+                     03030303>
+    60.877          >01030303
+            ________ ________
+            04002084 04002088
+            --------+--------
+            1a001c07>
+    60.933 >1a001807
+            1a001807>
+    60.942 >1a001c07
+                     01030303>
+    61.028          >03030303
+            1a001c07>
+    61.033 >1a001c0f
+* scanning 8 bytes at 952.105 Hz
+                     03030303>
+    61.189          >01030303
+            1a001c0f>
+    61.193 >1a001c07
+            1a001c07>
+    61.269 >1a101c07
+            1a101c07>
+    61.350 >1a101c0f
+                     01030303>
+    61.354          >03030303
+            1a101c0f>
+    61.430 >1a00180f
+            1a00180f>
+    61.445 >1a001c0f
+            1a001c0f>
+    61.490 >1a000c0f
+            1a000c0f>
+    61.495 >1a001c0f
+            1a001c0f>
+    61.510 >1a001c07
+                     03030303>
+    61.515          >01030303
+            1a001c07>
+    61.608 >1a101c07
+            1a101c07>
+    61.671 >1a101c0f
+                     01030303>
+    61.675          >03030303
+            1a101c0f>
+    61.720 >1a100c0f
+            1a100c0f>
+    61.731 >1a101c0f
+            1a101c0f>
+    61.831 >1a101c07
+                     03030303>
+    61.836          >01030303
+            1a101c07>
+    61.856 >1a100c07
+            1a100c07>
+    61.865 >1a101c07
+            1a101c07>
+    61.941 >1a100c07
+            1a100c07>
+    61.950 >1a101c07
+                     01030303>
+    61.992          >03030303
+            1a101c07>
+    61.996 >1a101c0f
+* scanning 8 bytes at 938.738 Hz
+                     03030303>
+    62.152          >01030303
+            1a101c0f>
+    62.157 >1a101c07
+            1a101c07>
+    62.233 >1a100c07
+            1a100c07>
+    62.242 >1a101c07
+            1a101c07>
+    62.257 >1a100c07
+            1a100c07>
+    62.266 >1a101c07
+                     01030303>
+    62.313          >03030303
+            1a101c07>
+    62.318 >1a101c0f
+            1a101c0f>
+    62.407 >1a100c0f
+            1a100c0f>
+    62.411 >1a101c0f
+            1a101c0f>
+    62.471 >1a100c0f
+            1a100c0f>
+    62.474 >1a101c07
+            ________ ________
+            04002084 04002088
+            --------+--------
+                     03030303>
+    62.478          >01030303
+            1a101c07>
+    62.502 >1a100c07
+            1a100c07>
+    62.511 >1a101c07
+            1a101c07>
+    62.634 >1a101c0f
+                     01030303>
+    62.639          >03030303
+            1a101c0f>
+    62.708 >1a100c0f
+            1a100c0f>
+    62.714 >1a101c0f
+                     03030303>
+    62.795          >01030303
+            1a101c0f>
+    62.799 >1a101c07
+            1a101c07>
+    62.820 >1a001c07
+            1a001c07>
+    62.925 >1a001c0f
+                     01030303>
+    62.929          >03030303
+                     03030303>
+    62.940          >01030303
+            1a001c0f>
+    62.949 >1a001c07
+                     01030303>
+    62.955          >03030303
+            1a001c07>
+    62.960 >1a001c0f
+            1a001c0f>
+    63.004 >1a000c0f
+            1a000c0f>
+    63.013 >1a001c0f
+            1a001c0f>
+    63.080 >1a00180f
+            1a00180f>
+    63.090 >1a000c0f
+            1a000c0f>
+    63.100 >1a001c0f
+            1a001c0f>
+    63.116 >1a001c07
+                     03030303>
+    63.120          >01030303
+            1a001c07>
+    63.125 >1a000c07
+            1a000c07>
+    63.134 >1a001c07
+* scanning 8 bytes at 925.810 Hz
+            1a001c07>
+    63.169 >1a000c07
+            1a000c07>
+    63.176 >1a001c07
+            1a001c07>
+    63.215 >1a001807
+            1a001807>
+    63.246 >1a001c07
+                     01030303>
+    63.276          >03030303
+            1a001c07>
+    63.281 >1a001c0f
+                     03030303>
+    63.437          >01030303
+            1a001c0f>
+    63.442 >1a001c07
+            1a001c07>
+    63.453 >1a00180f
+            1a00180f>
+    63.458 >3a001c08
+                     01030303>
+    63.463          >03010101
+            3a001c08>
+    63.468 >3a001808
+            3a001808>
+    63.586 >3a001c08
+            3a001c08>
+    63.591 >3a001808
+            3a001808>
+    63.735 >3a001c08
+            ________ ________
+            04002084 04002088
+            --------+--------
+            3a001c08>
+    63.750 >3a001808
+            3a001808>
+    63.991 >3a001c08
+            3a001c08>
+    63.996 >3a001808
+* scanning 8 bytes at 913.072 Hz
+            3a001808>
+    64.205 >3a001c08
+            3a001c08>
+    64.219 >3a001808
+            3a001808>
+    64.225 >3a001c08
+            3a001c08>
+    64.232 >3a001808
+            3a001808>
+    64.247 >3a001c08
+            3a001c08>
+    64.251 >3a001808
+            3a001808>
+    64.374 >3a001c08
+            3a001c08>
+    64.389 >3a001808
+            3a001808>
+    64.525 >3a001c08
+            3a001c08>
+    64.529 >3a001808
+            3a001808>
+    64.673 >3a001c08
+            3a001c08>
+    64.682 >3a001808
+            3a001808>
+    64.908 >3a001c08
+            3a001c08>
+    64.920 >3a001808
+            3a001808>
+    64.930 >3a001c08
+            3a001c08>
+    64.939 >3a001808
+            3a001808>
+    65.035 >3a001c08
+            3a001c08>
+    65.044 >3a001808
+* scanning 8 bytes at 900.689 Hz
+            3a001808>
+    65.355 >3a001c08
+            3a001c08>
+    65.360 >3a001808
+            3a001808>
+    65.396 >3a001c08
+            3a001c08>
+    65.411 >3a001808
+            3a001808>
+    65.418 >3a001c08
+            3a001c08>
+    65.423 >3a001808
+            3a001808>
+    65.460 >3a001c08
+            3a001c08>
+    65.470 >3a001808
+            3a001808>
+    65.610 >3a001c08
+            3a001c08>
+    65.620 >3a001808
+            3a001808>
+    65.951 >3a001c08
+            3a001c08>
+    65.965 >3a001808
+            3a001808>
+    66.015 >3a001c08
+            3a001c08>
+    66.020 >3a001808
+            3a001808>
+    66.059 >3a001c08
+            3a001c08>
+    66.066 >3a001808
+* scanning 8 bytes at 888.599 Hz
+            3a001808>
+    66.186 >3a001c08
+            3a001c08>
+    66.196 >3a001808
+            3a001808>
+    66.250 >3a001c08
+            ________ ________
+            04002084 04002088
+            --------+--------
+            3a001c08>
+    66.260 >3a001808
+            3a001808>
+    66.419 >3a001c08
+            3a001c08>
+    66.429 >3a001808
+            3a001808>
+    66.547 >3a001c08
+            3a001c08>
+    66.552 >3a001808
+            3a001808>
+    66.569 >3a001c08
+            3a001c08>
+    66.584 >3a001808
+            3a001808>
+    66.633 >3a001c08
+            3a001c08>
+    66.642 >3a001808
+            3a001808>
+    66.719 >3a001c08
+            3a001c08>
+    66.728 >3a001808
+            3a001808>
+    66.760 >3a001c08
+            3a001c08>
+    66.765 >3a001808
+            3a001808>
+    66.824 >3a001c08
+            3a001c08>
+    66.834 >3a001808
+            3a001808>
+    66.868 >3a001c08
+            3a001c08>
+    66.878 >3a001808
+            3a001808>
+    66.910 >3a001c08
+            3a001c08>
+    66.917 >3a001808
+            3a001808>
+    66.932 >3a001c08
+            3a001c08>
+    66.942 >3a001808
+            3a001808>
+    66.952 >3a001c08
+            3a001c08>
+    66.966 >3a001808
+            3a001808>
+    67.037 >3a001c08
+            3a001c08>
+    67.042 >3a001808
+* scanning 8 bytes at 876.869 Hz
+            3a001808>
+    67.251 >3a001c08
+            3a001c08>
+    67.260 >3a001808
+            3a001808>
+    67.292 >3a001c08
+            3a001c08>
+    67.297 >3a001808
+            3a001808>
+    67.614 >3a001c08
+            3a001c08>
+    67.623 >3a001808
+            3a001808>
+    67.633 >3a001c08
+            3a001c08>
+    67.648 >3a001808
+            3a001808>
+    67.677 >3a001c08
+            3a001c08>
+    67.692 >3a001808
+            3a001808>
+    67.783 >3a001c08
+            3a001c08>
+    67.795 >3a001808
+            3a001808>
+    67.847 >3a001c08
+            3a001c08>
+    67.856 >3a001808
+            3a001808>
+    67.933 >3a001c08
+            ________ ________
+            04002084 04002088
+            --------+--------
+            3a001c08>
+    67.942 >3a001808
+            3a001808>
+    67.996 >3a001c08
+            3a001c08>
+    68.006 >3a001808
+            3a001808>
+    68.038 >3a001c08
+            3a001c08>
+    68.043 >3a001808
+            3a001808>
+    68.124 >3a001c08
+            3a001c08>
+    68.129 >3a001808
+            3a001808>
+    68.146 >3a001c08
+            3a001c08>
+    68.156 >3a001808
+* scanning 8 bytes at 865.485 Hz
+            3a001808>
+    68.187 >3a001c08
+            3a001c08>
+    68.197 >3a001808
+            3a001808>
+    68.273 >3a001c08
+            3a001c08>
+    68.283 >3a001808
+            3a001808>
+    68.337 >3a001c08
+            3a001c08>
+    68.342 >3a001808
+            3a001808>
+    68.410 >2a001808
+            2a001808>
+    68.487 >2a001c08
+            2a001c08>
+    68.492 >3a001808
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+            3a001808>
+    68.591 >3e001d0c
+                     03010101>
+    68.595          >03030101
+            3e001d0c>
+    68.599 >3e001908
+                     03030101>
+    68.604          >03010101
+            3e001908>
+    68.609 >3e001d08
+            3e001d08>
+    68.616 >3e001908
+            3e001908>
+    68.800 >3e001d08
+            3e001d08>
+    68.805 >3e001908
+            3e001908>
+    68.863 >3e001d08
+            3e001d08>
+    68.870 >3e001908
+            3e001908>
+    68.884 >3e001d08
+            3e001d08>
+    68.889 >3e001908
+            3e001908>
+    69.098 >3e001d08
+            3e001d08>
+    69.110 >3e001908
+            3e001908>
+    69.161 >3e001d08
+* scanning 8 bytes at 854.541 Hz
+            3e001d08>
+    69.171 >3e001908
+            3e001908>
+    69.183 >3e001d08
+            3e001d08>
+    69.193 >3e001908
+            3e001908>
+    69.459 >3e001d08
+            3e001d08>
+    69.474 >3e001908
+            3e001908>
+    69.481 >3e001d08
+            3e001d08>
+    69.491 >3e001908
+            ________ ________
+            04002084 04002088
+            --------+--------
+            3e001908>
+    69.523 >3e001d08
+            3e001d08>
+    69.538 >3e001908
+* scanning 8 bytes at 843.839 Hz
+            3e001908>
+    70.183 >3e001d08
+            3e001d08>
+    70.195 >3e001908
+            3e001908>
+    70.205 >3e001d08
+            3e001d08>
+    70.210 >3e001908
+            3e001908>
+    70.332 >3e001d08
+            3e001d08>
+    70.347 >3e001908
+            3e001908>
+    70.374 >3e001d08
+            3e001d08>
+    70.379 >3e001908
+            3e001908>
+    70.459 >3e001d08
+            3e001d08>
+    70.474 >3e001908
+            3e001908>
+    70.715 >3e001d08
+            3e001d08>
+    70.722 >3e001908
+            3e001908>
+    70.737 >3e001d08
+            3e001d08>
+    70.751 >3e001908
+            3e001908>
+    70.885 >3e001d08
+            3e001d08>
+    70.895 >3e001908
+            3e001908>
+    70.971 >3e001d08
+            3e001d08>
+    70.980 >3e001908
+            3e001908>
+    71.034 >3e001d08
+            3e001d08>
+    71.044 >3e001908
+            3e001908>
+    71.142 >3e001d08
+            3e001d08>
+    71.151 >3e001908
+            3e001908>
+    71.161 >3e001d08
+            3e001d08>
+    71.176 >3e001908
+* scanning 8 bytes at 833.440 Hz
+            3e001908>
+    71.269 >3e001d08
+            3e001d08>
+    71.274 >3e001908
+            3e001908>
+    71.311 >3e001d08
+            3e001d08>
+    71.321 >3e001908
+            3e001908>
+    71.375 >3e001d08
+            3e001d08>
+    71.380 >3e001908
+            3e001908>
+    71.696 >3e001d08
+            3e001d08>
+    71.710 >3e001908
+            3e001908>
+    71.950 >3e001d08
+            3e001d08>
+    71.957 >3e001908
+            3e001908>
+    71.972 >3e001d08
+            3e001d08>
+    71.982 >3e001908
+            3e001908>
+    72.058 >3e001d08
+            3e001d08>
+    72.073 >3e001908
+            ________ ________
+            04002084 04002088
+            --------+--------
+            3e001908>
+    72.100 >3e001d08
+            3e001d08>
+    72.104 >3e001908
+* scanning 8 bytes at 823.314 Hz
+            3e001908>
+    72.397 >3e001d08
+            3e001d08>
+    72.407 >3e001908
+            3e001908>
+    72.461 >3e001d08
+            3e001d08>
+    72.476 >3e001908
+            3e001908>
+    72.547 >3e001d08
+            3e001d08>
+    72.557 >3e001908
+            3e001908>
+    72.589 >3e001d08
+            3e001d08>
+    72.594 >3e001908
+            3e001908>
+    72.675 >3e001d08
+            3e001d08>
+    72.685 >3e001908
+            3e001908>
+    72.867 >3e001d08
+            3e001d08>
+    72.879 >3e001908
+            3e001908>
+    72.889 >3e001d08
+            3e001d08>
+    72.894 >3e001908
+^C
