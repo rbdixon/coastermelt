@@ -200,9 +200,10 @@ def watch_tabulator(change_iterator, legend_interval = 40, warmup_seconds = 1):
                 add_column(address)
             warmup_addresses = {}
 
-        # Allocate new columns first-come-first-serve
+        # Allocate new columns first-come-first-serve, and refresh the legend when we do
         if address not in address_to_column:
             add_column(address)
+            legend_countdown = 0
 
         # Print the legend when we get new columns, or every 'legend_interval' lines
         if legend_countdown == 0:
