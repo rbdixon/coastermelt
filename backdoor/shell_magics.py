@@ -191,12 +191,16 @@ class ShellMagics(magic.Magics):
     @argument('size', type=hexint, help='Size of region to search')
     @argument('byte', type=hexint, nargs='+', help='List of bytes to search for, at any alignment')
     @argument('-f', '--fast', action='store_true', help='Go much faster, using somewhat less trustworthy methods')
+    @argument('-s', '--space', type=str, default='arm', help='What address space to read from. See dump.py')
     def find(self, line):
         """Read ARM memory block, and look for all occurrences of a byte sequence"""
         args = parse_argstring(self.find, line)
         d = self.shell.user_ns['d']
         substr = ''.join(map(chr, args.byte))
-        for address, before, after in search_block(d, args.address, args.size, substr, fast=args.fast):
+
+        results = search_block(d, args.address, args.size, substr, fast=args.fast, addr_space=args.space)
+
+        for address, before, after in results:
             self.shell.write("%08x %52s [ %s ] %s\n" %
                 (address, hexstr(before), hexstr(substr), hexstr(after)))
 

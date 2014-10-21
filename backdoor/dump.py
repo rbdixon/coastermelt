@@ -167,7 +167,8 @@ def read_block(d, address, size, max_round_trips = None, fast = False, addr_spac
         )[sub_begin:sub_end]
 
 
-def search_block(d, address, size, substring, context_length = 16, fast = False):
+def search_block(d, address, size, substring,
+    context_length = 16, fast = False, addr_space = 'arm'):
     """Read a block of ARM memory, and search for all occurrences of a byte string.
 
     Yields tuples every time a match is found:
@@ -176,7 +177,7 @@ def search_block(d, address, size, substring, context_length = 16, fast = False)
 
     # We may have a way to do this gradually later, but for now we read all at once
     # then search all at once.
-    block = read_block(d, address, size, fast=fast)
+    block = read_block(d, address, size, fast=fast, addr_space=addr_space)
 
     offset = 0
     while True:
