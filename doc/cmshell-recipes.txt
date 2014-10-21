@@ -221,3 +221,15 @@ sc 400   ac 6c 6f 63   0 1 0 0   0 1 0 0
 	correct, then it's blank for a while, then starts showing totally
 	different data!
 
+	The 'different' data below the zeroes change every time, and they appear
+	to be data structures related to internal management of other SCSI
+	commands.
+
+	The actual transfer length I'm seeing before the zeroes can change (this
+	causes issue #1 in the tracker) but it's usually 0x74 bytes or 0x1d words.
+
+	Tried some related experiments: looking for bytes in the 2000c00 region
+	that related to the length of the reply, both in the 1d and the 4 word
+	states. No luck yet. Current theory is that the actual reply length is a
+	function of a protocol state machine operating in the 8051.
+
