@@ -152,12 +152,28 @@ Very rough notes, may be wildly wrong.
                                     - Measured this at about 527350 Hz. It's probably
                                       actually an even (1 << 19) Hz
 
+            4002084   uint32      Flags
+                                      1
+                                      2
+                                      4
+                                      8
+                                    400
+                                    800
+                                   1000
+                                 100000
+                                2000000
+                                8000000
+                               10000000
+                               20000000    Tray out?
+
             4002088   uint32      Flags
 
                                       1
-                                      2    Solenoid
+                                      2    Solenoid +
                                     100
+                                    200    Solenoid -
                                   10000
+                                  20000    Solenoid
                                 1000000
                                 2000000    LED, 1=off, 0=on
 
