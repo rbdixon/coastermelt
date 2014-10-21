@@ -115,21 +115,39 @@ def overlay_hook(d, hook_address, handler,
     # are too much trouble to relocate, though, and we'll throw up a NotImplementedError.
 
     reloc = ovl_asm_lines[0]
+    reloc_ldr_word = ldrpc_source_word(d, reloc)
 
     if replace_one_instruction:
         # We want to replace one instruction with the C++ function, which it turns
-        # out is exactly what we do if we replace the relocation with a nop.
-        reloc.op = 'nop'
-        reloc.args = ''
+        # out is exactly what we do if we omit the relocation entirely.
+        reloc = ''
 
-    word = ldrpc_source_word(d, reloc)
-    if word is not None:
+    elif reloc.op == 'bl':
+        # Calls are a really special case! We can handle them, but they
+        # require a different strategy than other instructions. For most
+        # instructions we use r12 to store the address of our scratchpad
+        # across stacks, which works fine for thumb code. But calls can invoke
+        # ARM code that trashes r12, and in fact this is very common because
+        # of how switch statements are often implemented.
+        #
+        # But good news! If this function respects the ARM procedure call
+        # standard, which the code we have seems to, we can use any of r4-r8
+        # to save r12 and the called function will preserve it for us.
+
+        reloc = """
+            mov     r8, r12
+            %s
+            mov     r12, r8
+            """ % reloc
+
+    elif reloc_ldr_word is not None:
         # Relocate to the assembler's automatic constant pool
         reloc.args = reloc.args.split(',')[0] + ', =0x%08x' % word
 
-    if reloc.op != 'bl' and reloc.op.startswith('b'):
+    elif reloc.op.startswith('b'):
         raise NotImplementedError("Can't hook branches yet: %s" % reloc)
-    if reloc.args.find('pc') > 0:
+
+    elif reloc.args.find('pc') > 0:
         raise NotImplementedError("Can't hook instructions that read or write pc: %s" % reloc)
 
     # The ISR lives just after the handler, in RAM. It includes:
