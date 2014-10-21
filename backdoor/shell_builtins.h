@@ -39,3 +39,22 @@ typedef volatile int8_t   vi8;
 typedef volatile int16_t  vi16;
 typedef volatile int32_t  vi32;
 typedef volatile int64_t  vi64;
+
+
+//// Half-baked things that don't have a good home yet
+
+void ipc_send_4206000(unsigned op0, unsigned op1)
+{
+	// Send some kind of inter-processor message. ARM sends (0x22b, 0x7fff) to
+	// eject the disc, and another processor taps the solenoid 4 times in a loop.
+	// Sending this command on its own, however, doesn't produce the eject.
+
+	auto& reg_op1    = *(volatile uint32_t*) 0x4206000;
+	auto& reg_status = *(volatile uint32_t*) 0x4206004;
+	auto& reg_op0    = *(volatile uint32_t*) 0x4206010;
+
+	reg_op0 = op0;
+	reg_op1 = op1;
+
+	while (reg_status & 0x80000000);
+}

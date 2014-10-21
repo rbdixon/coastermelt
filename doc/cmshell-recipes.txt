@@ -79,6 +79,19 @@ end_critical_section(psr);
 	being modified by hardware and not an interrupt handler.
 
 
+%%hook -Rc 78898
+console(SysTime::now());
+println("  ", r0, r1);
+
+	This is a minimal logging hook for an IPC send-and-wait function used on
+	the ARM side. This writes to registers [4206010]=r1 and [4206000]=r0+900000,
+	then it waits for bit31=1 in [4206004].
+	
+	You can see a flurry of commands here (after the console reattaches) when
+	ejecting the tray, starting with it closed. The final command (22b, 7fff)
+	actually does the eject.
+
+
 ------------
 Eject Button
 ------------
@@ -232,4 +245,17 @@ sc 400   ac 6c 6f 63   0 1 0 0   0 1 0 0
 	that related to the length of the reply, both in the 1d and the 4 word
 	states. No luck yet. Current theory is that the actual reply length is a
 	function of a protocol state machine operating in the 8051.
+
+
+-------
+Console
+-------
+
+
+rd -f 1e5_ 1_
+cat result.log
+
+	See what was last in the console buffer, without the bother of reading it
+	as a FIFO. This is useful if the buffer overflowed or otherwise got
+	trashed and there's still data you want in it.
 
