@@ -32,7 +32,6 @@ int ipc_eject_4200000()
 }
 
 
-
 auto& reg_tray_mmio = *(volatile uint32_t*) 0x4002088;
 
 void set_led(bool on)
@@ -58,14 +57,13 @@ void set_solenoid(bool on)
 void blink_led(unsigned count = 4)
 {
 	// Seems to work at any time during normal firmware
-	unsigned saved = begin_critical_section();
+	critical_section c;
 	while (count--) {
 		set_led(1);
 		SysTime::wait_ms(100);
 		set_led(0);
 		SysTime::wait_ms(250);
 	}
-	end_critical_section(saved);
 }
 
 void buzz_solenoid()
@@ -77,15 +75,14 @@ void buzz_solenoid()
 	//
 	// Now when this runs, the solenoid rattles.
 
+	critical_section c;
 	unsigned count = 50;
-	unsigned saved = begin_critical_section();
 	while (count--) {
 		set_solenoid(1);
 		SysTime::wait_ms(4);
 		set_solenoid(0);
 		SysTime::wait_ms(4);
 	}
-	end_critical_section(saved);
 }
 
 

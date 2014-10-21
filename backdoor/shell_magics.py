@@ -405,7 +405,6 @@ class ShellMagics(magic.Magics):
     @argument('-d', '--delay', type=float, default=None, metavar='SEC', help='Add a delay loop to the default hook')
     @argument('-m', '--message', type=str, default=None, help='Message to log in the default hook')
     @argument('-r', '--replace', action='store_true', help='Replace the hooked instruction instead of relocating it')
-    @argument('-I', '--irq-disable', action='store_true', help='Run the hook with interrupts disabled')
     @argument('-s', '--sram', action='store_true', help='The target already has an SRAM mapping, use that instead of moving the overlay')
     def hook(self, line, cell=None):
         """Inject a C++ hook into Thumb code executing from Flash memory.
@@ -432,13 +431,6 @@ class ShellMagics(magic.Magics):
             cell = 'default_hook(regs, %s)' % json.dumps(message)
             if args.delay:
                 cell = '%s; wait_ms(%d)' % (cell, args.delay * 1000)
-
-        if args.irq_disable:
-            cell = '''
-                unsigned _saved_cpsr = begin_critical_section();
-                { %s; }
-                end_critical_section(_saved_cpsr);
-                ''' % cell;
 
         else:
             if args.message:

@@ -10,11 +10,12 @@
 auto cpsr_mov_on_exit = (void(*)(uint32_t saved_cpsr)) 0x2b4;
 auto cpsr_orr_on_enter = (uint32_t (*)(uint32_t bits_to_or)) 0x2bc;
 
-// The usage pattern is to call cpsr_orr_on_enter(0xC0) to disable interrupts,
-// save the value it returns, then pass that to cpsr_mov_on_exit() to restore
-// interrupts.
-unsigned begin_critical_section() { return cpsr_orr_on_enter(0xC0); }
-void end_critical_section(unsigned saved) { cpsr_mov_on_exit(saved); }
+// Common usage pattern for critical sections (IRQs disabled)
+struct critical_section {
+	unsigned saved;
+	critical_section() : saved(cpsr_orr_on_enter(0xC0)) {}
+	~critical_section() { cpsr_mov_on_exit(saved); }
+};
 
 // Some fast but nonstandard memory functions
 auto aligned_memcpy = (void(*)(void *dst, const void *src, unsigned byte_count)) 0x16558c;
