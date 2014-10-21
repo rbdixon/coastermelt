@@ -150,6 +150,17 @@ class ShellMagics(magic.Magics):
         for i, w in enumerate(args.word):
             poke_bic(d, args.address + i*4, w)
 
+    @magic.line_cell_magic
+    @magic_arguments()
+    @argument('address', type=hexint_aligned, help='Hex address')
+    @argument('mask', type=hexint, help='Mask of bit(s) to set')
+    @argument('bit', type=int, nargs='?', default=1, help='Set or clear the bit?')
+    def bitset(self, line, cell=''):
+        """Either orr/bic depending on the the value of 'bit'"""
+        args = parse_argstring(self.bitset, line)
+        d = self.shell.user_ns['d']
+        return poke_bit(d, args.address, args.mask, args.bit)
+
     @magic.line_magic
     @magic_arguments()
     @argument('address', type=hexint_aligned, help='Hex address, word aligned')

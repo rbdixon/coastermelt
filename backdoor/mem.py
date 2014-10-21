@@ -2,7 +2,7 @@
 # and memory-mapped memory-mapping hardware.
 
 __all__ = [
-    'poke_orr', 'poke_bic',
+    'poke_orr', 'poke_bic', 'poke_bit',
     'ivt_find_target', 'ivt_set', 'ivt_get',
     'overlay_set', 'overlay_get', 'reset_arm',
 ]
@@ -12,12 +12,21 @@ import code
 
 def poke_orr(d, address, word):
     """Read-modify-write sequence to bitwise OR, named after the ARM instruction"""
-    d.poke(address, d.peek(address) | word)
+    word = d.peek(address) | word
+    d.poke(address, word)
+    return word
 
 
 def poke_bic(d, address, word):
     """Read-modify-write to bitwise AND with the inverse, named after the ARM instruction"""
-    d.poke(address, d.peek(address) & ~word)
+    word = d.peek(address) & ~word
+    d.poke(address, word)
+    return word
+
+
+def poke_bit(d, address, mask, bit):
+    """Read-modify-write, bic/orr based on 'bit'"""
+    return (poke_orr, poke_bic)[not bit](d, address, mask)
 
 
 def ivt_find_target(d, address):
