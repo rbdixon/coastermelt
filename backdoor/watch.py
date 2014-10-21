@@ -186,7 +186,7 @@ def watch_tabulator(change_iterator, legend_interval = 40, warmup_seconds = 1):
 
     for timestamp, address, new_value, old_value in change_iterator:
 
-        timestamp_str = '%10.03f  ' % (timestamp - start_time)
+        timestamp_str = '%10.03f ' % (timestamp - start_time)
         timestamp_blank = ' ' * len(timestamp_str)
 
         # Still in warmup? Save this address and do nothing else yet
@@ -206,13 +206,14 @@ def watch_tabulator(change_iterator, legend_interval = 40, warmup_seconds = 1):
 
         # Print the legend when we get new columns, or every 'legend_interval' lines
         if legend_countdown == 0:
-            yield timestamp_blank + ' '.join(['_' * 8 for a in column_to_address])
-            yield timestamp_blank + ' '.join(['%08x' % a for a in column_to_address])
-            yield timestamp_blank + '+'.join(['-' * 8 for a in column_to_address])
+            yield timestamp_blank + ' ' + ' '.join(['_' * 8 for a in column_to_address])
+            yield timestamp_blank + ' ' + ' '.join(['%08x' % a for a in column_to_address])
+            yield timestamp_blank + ' ' + '+'.join(['-' * 8 for a in column_to_address])
             legend_countdown = legend_interval
 
-        # Put this change in the right column
-        yield timestamp_str + ' ' * (9 * address_to_column[address]) + '%08x' % new_value
+        # Put this change in the right column, show before-and-after
+        yield timestamp_blank + ' ' * (9 * address_to_column[address]) + ' %08x>' % old_value
+        yield timestamp_str   + ' ' * (9 * address_to_column[address]) + '>%08x' % new_value
         legend_countdown -= 1
 
 
