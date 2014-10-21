@@ -56,11 +56,12 @@ class ShellMagics(magic.Magics):
     @argument('size', type=hexint, nargs='?', default=0x100, help='Number of bytes to read')
     @argument('-f', '--fast', action='store_true', help='Go much faster, using somewhat less trustworthy methods')
     @argument('-s', '--space', type=str, default='arm', help='What address space to read from. See dump.py')
+    @argument('--check-fast', action='store_true', help='Try fast and slow mode, make sure they match')
     def rd(self, line):
         """Read memory block"""
         args = parse_argstring(self.rd, line)
         d = self.shell.user_ns['d']
-        dump(d, args.address, args.size, fast=args.fast, addr_space=args.space)
+        dump(d, args.address, args.size, fast=args.fast, check_fast=args.check_fast, addr_space=args.space)
 
     @magic.line_magic
     @magic_arguments()

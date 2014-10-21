@@ -106,19 +106,33 @@ def read_word_aligned_block(d, address, size,
 
     while i < size:
         wordcount = min(size - i, 64*1024) / 4
+        dram_address = (address - 0x1c08000) & 0xffffffff
 
         if addr_space == 'dma':
-            # Read DMA memory (possibly DRAM?) via scsi_read_buffer
+            # Undocumented SCSI command that reads some kind of DMA memory space.
+            # Begins with DRAM, but starts doing other things around 0x368500.
+
             part = scsi_read_buffer(d, 2, address + i, wordcount * 4)
 
-        elif fast and addr_space == 'arm' and address < 0x1000000:
-            # Use some weird DMA thing we found hanging out in SCSI.
+        elif fast and addr_space == 'arm' and dram_address + i <= 0x368000:
+            # Use the DMA reads, where we can, to implement fast DRAM reads.
+
+            part = scsi_read_buffer(d, 2, address - 0x1c08000 + i, wordcount * 4)
+
+        elif fast and addr_space == 'arm' and address + i <= 0x200000:
+            # Undocumented SCSI command that copies data from flash addresses
+            # via the ARM to DRAM and DMA's it out to SCSI. Very fast, handles
+            # addreses (including RAM mappings) below 2MB.
+
             wordcount = min(wordcount, 64 * 1024 / 4)
             part = scsi_read_buffer(d, 6, address + i, wordcount * 4)
 
         elif addr_space == 'arm':
-            # Use our backdoor's small PIO block read
-            wordcount = min(wordcount, 0x1c)
+            # Use our backdoor's small PIO block read. It can usually handle
+            # up to 0x1c words, but when there's a disc spinning some mode seems
+            # to change that resets this to 4 words. Blah.
+
+            wordcount = min(wordcount, 4)
             part = d.read_block(address + i, wordcount)
 
         else:
@@ -226,8 +240,10 @@ def hexdump_words(src, words_per_line = 8, address = 0, log_file = None):
     return ''.join(lines)
 
 
-def dump(d, address, size, log_file = 'result.log', fast = False, addr_space = 'arm'):
+def dump(d, address, size, log_file = 'result.log', fast = False, check_fast = False, addr_space = 'arm'):
     data = read_block(d, address, size, fast=fast, addr_space=addr_space)
+    if check_fast:
+        assert read_block(d, address, size, fast=not fast, addr_space=addr_space) == data
     sys.stdout.write(hexdump(data, 16, address, log_file))
 
 def dump_words(d, address, wordcount, log_file = 'result.log', fast = False, addr_space = 'arm'):

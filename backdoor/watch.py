@@ -15,7 +15,7 @@ def break_up_addresses(device, addrs, block_wordcount):
     boundaries, to reduce correlation with effects of SCSI packet boundaries
     when scanning large blocks.
     
-    The erturned list contains (address, fn) tuples. When the function is
+    The returned list contains (address, fn) tuples. When the function is
     called, it returns a string of data starting at 'address'. Length is
     implied by the function results.
 
@@ -77,7 +77,7 @@ def break_up_addresses(device, addrs, block_wordcount):
     return parts
 
 
-def watch_scanner(d, addrs, verbose = True, block_wordcount = 0x1c, memo_filename = None):
+def watch_scanner(d, addrs, verbose = True, block_wordcount = 4, memo_filename = None):
     """Repeatedly scan memory, in randomized order, looking for changes.
 
     When a change is found, we yield:
