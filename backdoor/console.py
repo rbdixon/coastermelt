@@ -52,57 +52,58 @@ class ConsoleBuffer:
         self.next_write = None
         self.next_read = None
 
-    def read(self, max_round_trips = 10):
+    def flush(self):
+        """Write back our updated next_read value
+        So the next ConsoleBuffer knows where to start reading.
+        """
+        if self.next_read is not None:
+            self.d.poke(self.buffer + 0x10004, self.next_read)
+
+    def read(self, max_round_trips = 1, fast = True):
         """Read all the data we can get from the console quickly.
         If a buffer overflow occurred, raises a ConsoleOverflowError.
         """
-        try:
-            # Update cached FIFO pointers if needed
-            if self.next_write is None or self.next_read is None:
-                self.next_write, self.next_read = words_from_string(
-                    self.d.read_block(self.buffer + 0x10000, 2))
+        # Update cached FIFO pointers if needed
+        if self.next_write is None:
+            self.next_write = self.d.peek(self.buffer + 0x10000)
+        if self.next_read is None:
+            self.next_read = self.d.peek(self.buffer + 0x10004)
 
-            byte_count = (self.next_write - self.next_read) & 0xffffffff
-            if byte_count > 0xffff:
-                # Overflow! Catch up, and leave
-                e = ConsoleOverflowError(self.next_write, self.next_read)
-                self.next_read = self.next_write
-                self.d.poke(self.buffer + 0x10004, self.next_read)
-                raise e
+        byte_count = (self.next_write - self.next_read) & 0xffffffff
+        if byte_count > 0xffff:
+            # Overflow! Catch up, and leave
+            e = ConsoleOverflowError(self.next_write, self.next_read)
+            self.next_read = self.next_write
+            self.flush()
+            raise e
 
-            wr16 = self.next_write & 0xffff
-            rd16 = self.next_read & 0xffff
-            if wr16 > rd16:
-                # More data available, and the buffer didn't wrap
-                max_read_len = wr16 - rd16
-            elif wr16 < rd16:
-                # Buffer wrapped; just get the contiguous piece for now
-                max_read_len = 0x10000 - rd16
-            else:
-                # No change; return without updating next_read. Make sure to reload the cache next time.
-                assert byte_count == 0
-                self.next_read = None
-                return ''
-
-            data = read_block(self.d, self.buffer + rd16, max_read_len,
-                    max_round_trips=max_round_trips)
-
-            # Acknowledge the amount we actually read
-            self.next_read = (self.next_read + len(data)) & 0xffffffff;
-            self.d.poke(self.buffer + 0x10004, self.next_read)
-            return data
-
-        except:
-            # If anything went wrong, invalidate the FIFO pointer cache
+        wr16 = self.next_write & 0xffff
+        rd16 = self.next_read & 0xffff
+        if wr16 > rd16:
+            # More data available, and the buffer didn't wrap
+            max_read_len = wr16 - rd16
+        elif wr16 < rd16:
+            # Buffer wrapped; just get the contiguous piece for now
+            max_read_len = 0x10000 - rd16
+        else:
+            # No change; return without updating next_read. Make sure to look for new data next time
+            assert byte_count == 0
             self.next_write = None
-            self.next_read = None
-            raise
+            return ''
+
+        data = read_block(self.d, self.buffer + rd16, max_read_len,
+            max_round_trips=max_round_trips, fast=fast)
+
+        # Acknowledge the amount we actually read
+        self.next_read = (self.next_read + len(data)) & 0xffffffff;
+        return data
 
 
 def console_mainloop(d,
     buffer = console_address,
     stdout = sys.stdout,
     log_filename = None,
+    use_fast_read = True,
     spinner_interval = 1.0 / 8
     ):
     """Main loop to forward data from the console buffer to stdout.
@@ -121,7 +122,7 @@ def console_mainloop(d,
     try:
         while True:
             try:
-                data = console_buffer.read()
+                data = console_buffer.read(fast = use_fast_read)
                 now = time.time()
 
                 if data:
@@ -161,6 +162,8 @@ def console_mainloop(d,
         return
 
     finally:
+        # On our way out, update the buffer FIFO so the next console knows where to start
+        console_buffer.flush()
         if log_file:
             log_file.close()
 

@@ -6,7 +6,7 @@ import sys, struct, time
 
 __all__ = [
     'words_from_string', 'poke_words', 'poke_words_from_string',
-    'read_block',
+    'read_block', 'scsi_read_buffer',
     'hexdump', 'hexdump_words',
     'dump', 'dump_words',
     'search_block'
@@ -73,8 +73,27 @@ def poke_words(d, address, words, verbose = True, reporting_interval = 0.1):
     progress.complete(l, l)
 
 
+def scsi_read_buffer(d, mode, address, size):
+    """Use the SCSI 'Read Buffer' command to grab a block of data quickly.
+
+    The bootloader and TS01 firmware implement a version of this command
+    with mode 6 mapped to ARM memory (low 16MB only) and mode 2 mapped
+    to something we'll call DMA memory.
+    """
+    return d.scsi_in(''.join(map(chr, [
+        0x3c, mode, 0,
+        (address >> 16) & 0xff,
+        (address >> 8) & 0xff,
+        (address >> 0) & 0xff,
+        (size >> 16) & 0xff,
+        (size >> 8) & 0xff,
+        (size >> 0) & 0xff,
+        0,0,0 ])), size)
+
+
 def read_word_aligned_block(d, address, size,
-    verbose = True, reporting_interval = 0.2, max_round_trips = None):
+    verbose = True, reporting_interval = 0.2,
+    max_round_trips = None, fast = False, addr_space = 'arm'):
     # Implementation detail for read_block
 
     assert (address & 3) == 0
@@ -86,9 +105,28 @@ def read_word_aligned_block(d, address, size,
         enabled=verbose, reporting_interval=reporting_interval)
 
     while i < size:
-        wordcount = min((size - i) / 4, 0x1c)
-        parts.append(d.read_block(address + i, wordcount))
+        wordcount = min(size - i, 64*1024) / 4
+
+        if addr_space == 'dma':
+            # Read DMA memory (possibly DRAM?) via scsi_read_buffer
+            part = scsi_read_buffer(d, 2, address + i, wordcount * 4)
+
+        elif fast and addr_space == 'arm' and address < 0x1000000:
+            # Use some weird DMA thing we found hanging out in SCSI.
+            wordcount = min(wordcount, 64 * 1024 / 4)
+            part = scsi_read_buffer(d, 6, address + i, wordcount * 4)
+
+        elif addr_space == 'arm':
+            # Use our backdoor's small PIO block read
+            wordcount = min(wordcount, 0x1c)
+            part = d.read_block(address + i, wordcount)
+
+        else:
+            raise ValueError("Don't know how to read address %08x in %r memory" % (address, addr_space))
+
+        assert len(part) == 4 * wordcount
         i += 4 * wordcount
+        parts.append(part)
         if max_round_trips and len(parts) >= max_round_trips:
             break
 
@@ -98,8 +136,8 @@ def read_word_aligned_block(d, address, size,
     return ''.join(parts)
 
 
-def read_block(d, address, size, max_round_trips = None):
-    """Read a block of ARM memory, return it as a string.
+def read_block(d, address, size, max_round_trips = None, fast = False, addr_space = 'arm'):
+    """Read a block of memory, return it as a string.
 
     Reads using LDR (word-aligned) reads only. The requested block
     does not need to be aligned.
@@ -107,6 +145,9 @@ def read_block(d, address, size, max_round_trips = None):
     If max_round_trips is set, we stop after that many round-trip
     commands to the device. This can be used for real-time applications
     where it may be better to have some data soon than all the data later.
+
+    If 'fast' is set, this uses a much faster DMA-based approach that probably
+    doesn't work in all cases.
     """
 
     # Convert to half-open interval [address, end)
@@ -122,11 +163,11 @@ def read_block(d, address, size, max_round_trips = None):
     sub_end = sub_begin + size
 
     return read_word_aligned_block(d, word_address, word_size,
-        max_round_trips=max_round_trips
+        max_round_trips=max_round_trips, fast=fast, addr_space=addr_space
         )[sub_begin:sub_end]
 
 
-def search_block(d, address, size, substring, context_length = 16):
+def search_block(d, address, size, substring, context_length = 16, fast = False):
     """Read a block of ARM memory, and search for all occurrences of a byte string.
 
     Yields tuples every time a match is found:
@@ -135,7 +176,7 @@ def search_block(d, address, size, substring, context_length = 16):
 
     # We may have a way to do this gradually later, but for now we read all at once
     # then search all at once.
-    block = read_block(d, address, size)
+    block = read_block(d, address, size, fast=fast)
 
     offset = 0
     while True:
@@ -184,12 +225,12 @@ def hexdump_words(src, words_per_line = 8, address = 0, log_file = None):
     return ''.join(lines)
 
 
-def dump(d, address, size, log_file = 'result.log'):
-    data = read_block(d, address, size)
+def dump(d, address, size, log_file = 'result.log', fast = False, addr_space = 'arm'):
+    data = read_block(d, address, size, fast=fast, addr_space=addr_space)
     sys.stdout.write(hexdump(data, 16, address, log_file))
 
-def dump_words(d, address, wordcount, log_file = 'result.log'):
-    data = read_block(d, address, wordcount * 4)
+def dump_words(d, address, wordcount, log_file = 'result.log', fast = False, addr_space = 'arm'):
+    data = read_block(d, address, wordcount * 4, fast=fast, addr_space=addr_space)
     sys.stdout.write(hexdump_words(data, 8, address, log_file))
 
 

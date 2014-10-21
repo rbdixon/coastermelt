@@ -54,21 +54,25 @@ class ShellMagics(magic.Magics):
     @magic_arguments()
     @argument('address', type=hexint, help='Address to read from')
     @argument('size', type=hexint, nargs='?', default=0x100, help='Number of bytes to read')
+    @argument('-f', '--fast', action='store_true', help='Go much faster, using somewhat less trustworthy methods')
+    @argument('-s', '--space', type=str, default='arm', help='What address space to read from. See dump.py')
     def rd(self, line):
-        """Read ARM memory block"""
+        """Read memory block"""
         args = parse_argstring(self.rd, line)
         d = self.shell.user_ns['d']
-        dump(d, args.address, args.size)
+        dump(d, args.address, args.size, fast=args.fast, addr_space=args.space)
 
     @magic.line_magic
     @magic_arguments()
     @argument('address', type=hexint, help='Address to read from')
     @argument('wordcount', type=hexint, nargs='?', default=0x100, help='Number of words to read')
+    @argument('-f', '--fast', action='store_true', help='Go much faster, using somewhat less trustworthy methods')
+    @argument('-s', '--space', type=str, default='arm', help='What address space to read from. See dump.py')
     def rdw(self, line):
         """Read ARM memory block, displaying the result as words"""
         args = parse_argstring(self.rdw, line)
         d = self.shell.user_ns['d']
-        dump_words(d, args.address, args.wordcount)
+        dump_words(d, args.address, args.wordcount, fast=args.fast, addr_space=args.space)
 
     @magic.line_cell_magic
     @magic_arguments()
@@ -186,12 +190,13 @@ class ShellMagics(magic.Magics):
     @argument('address', type=hexint, help='First address to search')
     @argument('size', type=hexint, help='Size of region to search')
     @argument('byte', type=hexint, nargs='+', help='List of bytes to search for, at any alignment')
+    @argument('-f', '--fast', action='store_true', help='Go much faster, using somewhat less trustworthy methods')
     def find(self, line):
         """Read ARM memory block, and look for all occurrences of a byte sequence"""
         args = parse_argstring(self.find, line)
         d = self.shell.user_ns['d']
         substr = ''.join(map(chr, args.byte))
-        for address, before, after in search_block(d, args.address, args.size, substr):
+        for address, before, after in search_block(d, args.address, args.size, substr, fast=args.fast):
             self.shell.write("%08x %52s [ %s ] %s\n" %
                 (address, hexstr(before), hexstr(substr), hexstr(after)))
 
@@ -416,6 +421,7 @@ class ShellMagics(magic.Magics):
     @magic_arguments()
     @argument('buffer_address', type=hexint_aligned, nargs='?', default=console_address, help='Specify a different address for the console_buffer_t data structure')
     @argument('-f', type=str, default=None, metavar='FILE', help='Append output to a text file')
+    @argument('--slow', action='store_true', help='Use slower but possibly more reliable memory reads')
     def console(self, line):
         """Read console output until KeyboardInterrupt.
         Optionally append the output to a file also.
@@ -423,7 +429,8 @@ class ShellMagics(magic.Magics):
         """
         args = parse_argstring(self.console, line)
         d = self.shell.user_ns['d']
-        console_mainloop(d, buffer=args.buffer_address, log_filename=args.f)
+        console_mainloop(d, buffer=args.buffer_address, log_filename=args.f,
+            use_fast_read = not args.slow)
 
     @magic.line_cell_magic
     def fc(self, line, cell=None):
