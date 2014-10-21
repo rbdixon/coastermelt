@@ -13,14 +13,14 @@ from hilbert import hilbert
 import remote, sys, png, struct, time
 
 
-def categorize_block(d, address, size):
+def categorize_block(d, address, size, addr_space='arm'):
     # Look at everything we can get in one round trip.
     # Returns scaled red and green values, but raw blue values;
     # they can't be calculated until the whole image is known.
 
     t1 = time.time()
     try:
-        head = read_block(d, address, min(0x1d, size))    
+        head = read_block(d, address, size, max_round_trips=1, addr_space=addr_space)
     except IOError, e:
         print e
         head = None
@@ -52,7 +52,8 @@ def categorize_block(d, address, size):
         t2 - t1                                    # Blue is in floating point seconds. We post-process below.
     ]
 
-def categorize_block_array(d, base_address, blocksize, pixelsize):
+
+def categorize_block_array(d, base_address, blocksize, pixelsize, addr_space = 'arm'):
     print 'Categorizing blocks in memory, following a 2D Hilbert curve'
 
     a = []
@@ -63,7 +64,7 @@ def categorize_block_array(d, base_address, blocksize, pixelsize):
         row = []
         for x in xrange(pixelsize):
             addr = base_address + blocksize * hilbert(x, y, pixelsize)
-            row.extend(categorize_block(d, addr, blocksize))
+            row.extend(categorize_block(d, addr, blocksize, addr_space=addr_space))
 
             # Keep the crowd informed!
             now = time.time()
@@ -107,8 +108,9 @@ def categorize_block_array(d, base_address, blocksize, pixelsize):
     print 'Done scaling'
     return a
 
-def memsquare(d, filename, base_address, blocksize, pixelsize = 4096):
-    b = categorize_block_array(d, base_address, blocksize, pixelsize)
+
+def memsquare(d, filename, base_address, blocksize, pixelsize = 4096, addr_space = 'arm'):
+    b = categorize_block_array(d, base_address, blocksize, pixelsize, addr_space=addr_space)
     w = png.Writer(len(b[0])/3, len(b))
     f = open(filename, 'wb')
     w.write(f, b)
@@ -138,9 +140,13 @@ def sram():
     # Small 8kB mapping, looks like SRAM. 2-byte scale.
     memsquare(remote.Device(), 'memsquare-02000000-02001fff.png', 0x02000000, 2, 64)
 
+def dma():
+    # DMA memory space, starting with DRAM. 
+    memsquare(remote.Device(), 'memsquare-dma-000000-ffffff.png', 0, 16, 1024, 'dma')
+
 
 if __name__ == '__main__':
-    modes = ['survey', 'low64', 'mmio', 'dram', 'sram']
+    modes = ['survey', 'low64', 'mmio', 'dram', 'sram', 'dma']
     if len(sys.argv) == 2 and sys.argv[1] in modes:
         globals()[sys.argv[1]]()
     else:

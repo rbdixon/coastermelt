@@ -18,10 +18,20 @@ The MT1939 system-on-chip has at least two, possibly several more CPU cores.
   doesn't contain any USB descriptors- descriptors are uploaded to the 8051
   somehow at runtime from the ARM.
 
+
+==============
+System Bringup
+==============
+
 The bootloader itself is an ARM image that contains an 8051 image. The 8051
 image is included in every firmware image (including the boot sector) but each
 of these images appear to differ only in trivial ways, indicating that the
 8051 is probably seen as a "black box" to most of the system.
+
+ * Note: I'm actually not sure the ARM is the first processor to boot.
+         There's a 0x800 byte region at the beginning of flash that may
+         be DSP firmware. I earlier thought this was encrypted ARM code, but
+         now I'm not so sure.
 
 The main TS00/TS01 firmware images contain a region after the main ARM
 firmware where several firmware images can be seen laid out in order and
@@ -60,5 +70,20 @@ random-looking literal data.
 Currently my bet is that this is for an onboard DSP. Might also be for the
 motor controller or laser control chips. This MCU appears NOT to be used by
 the bootloader at all.
+
+
+==========
+DMA Memory
+==========
+
+A different address space is visible to whatever DMA peripheral handles SCSI
+transfers. This space is at least 24 bits long, and it begins with the DRAM
+that's visible to the ARM CPU at 01c08000.
+
+You can read DMA memory with the %rd -s dma
+
+* As visible in memsquare-dma-000000-ffffff, this mostly matches DRAM in the
+  low 4MB, but there's about a 768 kB unmapped region. This may be protected
+  DRAM used for firmware.
 
 
