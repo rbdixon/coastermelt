@@ -7,14 +7,14 @@ Time
 ----
 
 
-ecc println(SysTime::now())
+ecc println(now())
 
 	This is a somewhat roundabout but convenient way to print the time.
 	Same formatting used by the default %hook
 
 
 %%hook -Rc 18ccc
-println(SysTime::now())
+println(now())
 
 	This installs a hook at the top of the ARM firmware's supervisor-mode main
 	loop. As fast as it can without blocking the rest of the firmware, that
@@ -25,10 +25,10 @@ println(SysTime::now())
 
 
 %%hook -Rc 18ccc
-static u32 last = 0;
-auto now = SysTime::now();
-println(now.difference(last));
-last = now;
+static u32 t1 = 0;
+auto t2 = now();
+println(t2.difference(t1));
+last = t2;
 
 	Hook the main loop, and print how many ticks has elapsed between
 	successive main loop iterations. It's such a tight loop that the
@@ -53,7 +53,7 @@ test_delay = 100
 %%hook -Rc 18ccc
 auto& test_word = *(vu32*) test_addr;
 u32 sample_1 = test_word;
-SysTime::wait_ms(test_delay);
+wait_ms(test_delay);
 u32 sample_2 = test_word;
 if (sample_1 != sample_2) println(sample_1, sample_2);
 
@@ -69,7 +69,7 @@ test_delay = 100
 auto& test_word = *(vu32*) test_addr;
 u32 psr = begin_critical_section();
 u32 sample_1 = test_word;
-SysTime::wait_ms(test_delay);
+wait_ms(test_delay);
 u32 sample_2 = test_word;
 if (sample_1 != sample_2) println(sample_1, sample_2);
 end_critical_section(psr);
@@ -80,7 +80,7 @@ end_critical_section(psr);
 
 
 %%hook -Rc 78898
-console(SysTime::now());
+console(now());
 println("  ", r0, r1);
 
 	This is a minimal logging hook for an IPC send-and-wait function used on

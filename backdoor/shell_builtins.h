@@ -41,3 +41,8 @@ typedef volatile int8_t   vi8;
 typedef volatile int16_t  vi16;
 typedef volatile int32_t  vi32;
 typedef volatile int64_t  vi64;
+
+// SysTime is a good default time source for the shell
+SysTime now() { return SysTime::now(); }
+void wait_ms(unsigned ms = 1) { return SysTime::wait_ms(ms); }
+void wait_sec(unsigned s = 1) { wait_ms(s * 1000); }
