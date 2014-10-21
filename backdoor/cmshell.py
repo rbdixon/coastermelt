@@ -12,7 +12,7 @@ Internal _ are ignored so you can use them as separators.
 
     rd 1ff_ 100
     wr _ 1febb
-    ALSO: rdw, orr, bic, fill, watch, find
+    ALSO: rdw, orr, bic, fill, watch, find, bitfuzz
           peek, poke, read_block
 
 Disassemble, assemble, and invoke ARM assembly:

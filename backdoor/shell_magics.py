@@ -20,6 +20,7 @@ from mem import *
 from watch import *
 from console import *
 from hook import *
+from bitfuzz import *
 
 
 @magic.magics_class
@@ -204,6 +205,24 @@ class ShellMagics(magic.Magics):
         for address, before, after in results:
             self.shell.write("%08x %52s [ %s ] %s\n" %
                 (address, hexstr(before), hexstr(substr), hexstr(after)))
+
+    @magic.line_magic
+    @magic_arguments()
+    @argument('address', type=hexint_aligned, nargs='?')
+    @argument('wordcount', type=hexint, nargs='?', default=1, help='Number of words to remap')
+    @argument('-d', '--delay', type=float, default=0.05, metavar='SEC', help='Add a delay between rounds')
+    @argument('-p', '--period', type=int, default=8, metavar='N', help='Number of rounds per cycle repeat')
+    def bitfuzz(self, line):
+        """Scan a small number of words in binary while writing 00000000/ffffffff patterns.
+        This can help determine the implementation of bits in an MMIO register.
+        """
+        args = parse_argstring(self.bitfuzz, line)
+        d = self.shell.user_ns['d']
+        try:
+            for line in bitfuzz_rounds(d, args.address, args.wordcount, args.period, args.delay):
+                print line
+        except KeyboardInterrupt:
+            return
 
     @magic.line_magic
     @magic_arguments()

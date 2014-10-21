@@ -20,6 +20,7 @@ from mem import *
 from watch import *
 from console import *
 from hook import *
+from bitfuzz import *
 from hilbert import hilbert
 
 import IPython
