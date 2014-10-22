@@ -1,0 +1,689 @@
+            ________ ________ ________
+            0400203c 04002044 04002078
+            --------+--------+--------
+                              02eef3bc>
+     4.301                   >02eefddb
+                     0000001e>
+     4.302          >0000001f
+            000028b9>
+     4.306 >00001105
+            00001105>
+     4.307 >0000128a
+                              02eefddb>
+     4.312                   >02ef14c9
+                              02ef14c9>
+     4.315                   >02ef1b12
+            0000128a>
+     4.318 >000000a6
+                     0000001f>
+     4.318          >000000b8
+                     000000b8>
+     4.321          >00000019
+                              02ef1b12>
+     4.322                   >02ef29be
+            000000a6>
+     4.323 >000009e4
+                              02ef29be>
+     4.326                   >02ef31d1
+            000009e4>
+     4.328 >00001577
+                     00000019>
+     4.328          >0000001f
+            00001577>
+     4.331 >00001aaf
+                     0000001f>
+     4.331          >00000021
+                              02ef31d1>
+     4.333                   >02ef3fad
+            00001aaf>
+     4.338 >00002836
+                     00000021>
+     4.338          >0000001d
+                              02ef3fad>
+     4.340                   >02ef4d4e
+            00002836>
+     4.344 >00000c57
+                     0000001d>
+     4.347          >00000018
+                              02ef4d4e>
+     4.348                   >02ef5f45
+            00000c57>
+     4.349 >0000161c
+                     00000018>
+     4.349          >00000020
+                              02ef5f45>
+     4.351                   >02ef63d0
+                     00000020>
+     4.357          >0000001d
+            0000161c>
+     4.358 >00002941
+                              02ef63d0>
+     4.359                   >02ef7546
+            00002941>
+     4.361 >000005cb
+                     0000001d>
+     4.361          >0000001e
+                              02ef7546>
+     4.363                   >02ef7cca
+                     0000001e>
+     4.368          >0000001c
+                              02ef7cca>
+     4.369                   >02ef8a8a
+            000005cb>
+     4.370 >000018a6
+            000018a6>
+     4.373 >00001db0
+                     0000001c>
+     4.373          >0000001e
+                              02ef8a8a>
+     4.377                   >02ef9a50
+                              02ef9a50>
+     4.379                   >02ef9dc1
+            00001db0>
+     4.381 >00000559
+            ________ ________ ________
+            0400203c 04002044 04002078
+            --------+--------+--------
+                     0000001e>
+     4.381          >0000001b
+            00000559>
+     4.386 >000010d8
+                     0000001b>
+     4.388          >0000001c
+                              02ef9dc1>
+     4.390                   >02efb48f
+                              02efb48f>
+     4.393                   >02efbbfd
+            000010d8>
+     4.394 >00002011
+                     0000001c>
+     4.394          >00000024
+            00002011>
+     4.398 >0000291f
+                     00000024>
+     4.398          >0000001d
+                              02efbbfd>
+     4.400                   >02efc9ef
+            0000291f>
+     4.404 >00000b25
+                     0000001d>
+     4.404          >00000019
+                              02efc9ef>
+     4.407                   >02efd789
+            00000b25>
+     4.409 >00001670
+                              02efd789>
+     4.411                   >02efe0bb
+                     00000019>
+     4.414          >0000001e
+                              02efe0bb>
+     4.415                   >02efe7fb
+            00001670>
+     4.415 >000022b4
+                     0000001e>
+     4.415          >00000020
+                     00000020>
+     4.421          >00000024
+            000022b4>
+     4.421 >00000677
+                              02efe7fb>
+     4.425                   >02effc38
+                     00000024>
+     4.427          >0000001b
+                              02effc38>
+     4.429                   >02f004c7
+            00000677>
+     4.429 >0000162b
+            0000162b>
+     4.434 >00001f46
+                     0000001b>
+     4.434          >00000020
+                              02f004c7>
+     4.435                   >02f01183
+                              02f01183>
+     4.440                   >02f01cb3
+            00001f46>
+     4.443 >000008ee
+                              02f01cb3>
+     4.445                   >02f025f2
+            000008ee>
+     4.447 >000010e2
+                     00000020>
+     4.449          >0000001c
+                              02f025f2>
+     4.451                   >02f031b1
+                     0000001c>
+     4.452          >00000022
+            000010e2>
+     4.454 >0000209b
+                              02f031b1>
+     4.457                   >02f03e3e
+                     00000022>
+     4.460          >00000019
+            0000209b>
+     4.462 >00000639
+            ________ ________ ________ ________
+            0400203c 04002044 04002078 04002084
+            --------+--------+--------+--------
+                                       3a001c08>
+     4.463                            >2a001c08
+                     00000019>
+     4.464          >00000016
+            00000639>
+     4.465 >00000d90
+                              02f03e3e>
+     4.466                   >02f051d8
+            00000d90>
+     4.468 >00001422
+                     00000016>
+     4.469          >0000001b
+                              02f051d8>
+     4.473                   >02f060ea
+            00001422>
+     4.476 >000023dc
+                              02f060ea>
+     4.479                   >02f06c74
+                              02f06c74>
+     4.480                   >02f06dfa
+                     0000001b>
+     4.482          >0000001c
+            000023dc>
+     4.482 >000006fe
+            ________ ________ ________ ________ ________
+            0400203c 04002044 04002078 04002084 04002004
+            --------+--------+--------+--------+--------
+                                                0000001a>
+     4.483                                     >0000000a
+                     0000001c>
+     4.487          >0000001b
+            000006fe>
+     4.489 >000015a8
+                              02f06dfa>
+     4.491                   >02f084a6
+                     0000001b>
+     4.492          >0000001d
+            000015a8>
+     4.494 >00001fd9
+                              02f084a6>
+     4.494                   >02f08c0e
+                     0000001d>
+     4.498          >00000020
+            00001fd9>
+     4.500 >0000035c
+                              02f08c0e>
+     4.502                   >02f09bb5
+                              02f09bb5>
+     4.504                   >02f09f69
+            0000035c>
+     4.505 >00000c21
+                     00000020>
+     4.507          >0000001f
+            00000c21>
+     4.509 >0000162c
+                     0000001f>
+     4.509          >00000020
+                              02f09f69>
+     4.513                   >02f0b303
+                              02f0b303>
+     4.515                   >02f0b750
+            0000162c>
+     4.517 >00002571
+                     00000020>
+     4.518          >0000001d
+            00002571>
+     4.522 >00000621
+                              02f0b750>
+     4.522                   >02f0c5ab
+                              02f0c5ab>
+     4.530                   >02f0d5ec
+            00000621>
+     4.532 >00001c01
+                     0000001d>
+     4.532          >0000001e
+                              02f0d5ec>
+     4.537                   >02f0e404
+            00001c01>
+     4.538 >00002768
+            00002768>
+     4.542 >0000069b
+                     0000001e>
+     4.542          >00000024
+                              02f0e404>
+     4.544                   >02f0f228
+            0000069b>
+     4.547 >0000104d
+                              02f0f228>
+     4.548                   >02f0f9e1
+                     00000024>
+     4.549          >0000001a
+                     0000001a>
+     4.552          >0000001b
+                              02f0f9e1>
+     4.552                   >02f102f0
+            0000104d>
+     4.553 >00001c47
+                              02f102f0>
+     4.557                   >02f10d0c
+                     0000001b>
+     4.560          >0000001f
+            00001c47>
+     4.562 >00000662
+            00000662>
+     4.563 >00000962
+                     0000001f>
+     4.563          >0000001e
+            ________ ________ ________ ________ ________
+            0400203c 04002044 04002078 04002084 04002004
+            --------+--------+--------+--------+--------
+                              02f10d0c>
+     4.569                   >02f124fc
+                     0000001e>
+     4.569          >0000001d
+                              02f124fc>
+     4.572                   >02f12c72
+            00000962>
+     4.573 >00001dd5
+                     0000001d>
+     4.577          >0000001e
+            00001dd5>
+     4.580 >00000127
+                              02f12c72>
+     4.580                   >02f13c28
+                     0000001e>
+     4.583          >0000001d
+            00000127>
+     4.585 >00000cd6
+                              02f13c28>
+     4.586                   >02f14897
+            00000cd6>
+     4.588 >0000121c
+                     0000001d>
+     4.588          >00000020
+                              02f14897>
+     4.588                   >02f14db0
+                              02f14db0>
+     4.594                   >02f158ce
+            0000121c>
+     4.594 >00001f66
+                     00000020>
+     4.596          >0000001c
+                              02f158ce>
+     4.601                   >02f16759
+            00001f66>
+     4.604 >00000a36
+                     0000001c>
+     4.604          >00000022
+                     00000022>
+     4.605          >0000001e
+            00000a36>
+     4.606 >00000e94
+                              02f16759>
+     4.607                   >02f174ee
+                              02f174ee>
+     4.611                   >02f17c01
+            00000e94>
+     4.616 >00002265
+                     0000001e>
+     4.616          >0000001c
+                     0000001c>
+     4.616          >00000021
+                              02f17c01>
+     4.617                   >02f18789
+            00002265>
+     4.621 >0000047f
+                              02f18789>
+     4.622                   >02f1937a
+            0000047f>
+     4.624 >00000a17
+                     00000021>
+     4.624          >0000001e
+            00000a17>
+     4.627 >00001136
+                     0000001e>
+     4.632          >0000001b
+                              02f1937a>
+     4.632                   >02f1a7d6
+            00001136>
+     4.636 >0000234c
+                     0000001b>
+     4.636          >00000020
+                              02f1a7d6>
+     4.637                   >02f1b1a6
+                              02f1b1a6>
+     4.639                   >02f1b5f1
+                                       2a001c08>
+     4.639                            >3a001c08
+            0000234c>
+     4.644 >000009d3
+            ________ ________ ________ ________ ________
+            0400203c 04002044 04002078 04002084 04002004
+            --------+--------+--------+--------+--------
+                     00000020>
+     4.644          >0000001b
+                              02f1b5f1>
+     4.649                   >02f1cab0
+            000009d3>
+     4.650 >00001692
+                     0000001b>
+     4.650          >00000022
+            00001692>
+     4.654 >00001e16
+                     00000022>
+     4.654          >0000001b
+                              02f1cab0>
+     4.655                   >02f1d71f
+                                                0000000a>
+     4.656                                     >0000001a
+                              02f1d71f>
+     4.657                   >02f1da04
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+* scanning 0 bytes at 157.099 Hz
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+[SCSI] Command error
+            ________ ________ ________ ________ ________ ________
+            0400203c 04002044 04002078 04002084 04002004 04002064
+            --------+--------+--------+--------+--------+--------
+                                                         00000001>
+     5.712                                              >00000002
+                              02f1da04>
+     5.715                   >02fa5d8e
+            ________ ________ ________ ________ ________ ________ ________
+            0400203c 04002044 04002078 04002084 04002004 04002064 04002028
+            --------+--------+--------+--------+--------+--------+--------
+                                                                  00080211>
+     5.715                                                       >00080000
+            ________ ________ ________ ________ ________ ________ ________ ________
+            0400203c 04002044 04002078 04002084 04002004 04002064 04002028 0400202c
+            --------+--------+--------+--------+--------+--------+--------+--------
+                                                                           00010211>
+     5.715                                                                >00010000
+            ________ ________ ________ ________ ________ ________ ________ ________ ________
+            0400203c 04002044 04002078 04002084 04002004 04002064 04002028 0400202c 04002088
+            --------+--------+--------+--------+--------+--------+--------+--------+--------
+                                                                                    03010101>
+     5.717                                                                         >03030101
+                     0000001b>
+     5.717          >00000021
+                     00000021>
+     5.719          >00000023
+                              02fa5d8e>
+     5.722                   >02fa6d5b
+                                       3a001c08>
+     5.725                            >3a001c0c
+            00001e16>
+     5.727 >00000779
+            00000779>
+     5.733 >000013dd
+                     00000023>
+     5.737          >0000001b
+                              02fa6d5b>
+     5.739                   >02fa8f2b
+                     0000001b>
+     5.741          >0000001f
+                              02fa8f2b>
+     5.748                   >02faa1b2
+            000013dd>
+     5.750 >00000ecf
+            00000ecf>
+     5.753 >0000150f
+                              02faa1b2>
+     5.755                   >02fab033
+                     0000001f>
+     5.762          >00000020
+                              02fab033>
+     5.772                   >02fad319
+            0000150f>
+     5.773 >000014d5
+                     00000020>
+     5.774          >0000001d
+                     0000001d>
+     5.778          >00000022
+            000014d5>
+     5.783 >0000283f
+                              02fad319>
+     5.784                   >02faec0e
+            0000283f>
+     5.792 >000011ee
+                              02faec0e>
+     5.794                   >02fb010f
+                     00000022>
+     5.797          >0000001c
+                     0000001c>
+     5.799          >00000021
+                              02fb010f>
+     5.805                   >02fb16d7
+            000011ee>
+     5.805 >000003f9
+

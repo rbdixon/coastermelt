@@ -33,7 +33,7 @@ Components
 - Sled stepper motor
 - Front panel LED (blue)
 - Eject latch solenoid
-- Sled homing sensor? (don't see this, might use current feedback)
+- Probably NO sled homing sensor. Seems designed to slam the sled into the edge to zero it.
 - Lens focus/tracking voice coils
 - Spindle brushless (also coreless?) motor
 
@@ -114,6 +114,39 @@ Wiring Harness
     - Tray closed switch soldered on
     - 56 pin flex cable leading to tray PCB
 
+    1 - 4    PD DATA      High speed serial signals, probably two differential
+                          pairs 1:2 and 3:4. These are amplified but otherwise
+                          unprocessed outputs from the photodiode detectors.
+
+                           They're routed as differential pairs on the FPC, then
+                          they go straight into the SoC on the main PCB.
+
+                          Both pairs are active when reading from a CD-ROM.
+                          Seeing a signal with ~350 mV peak-to-peak. Signal
+                          rate is about ~16 MHz when spinning at normal rates,
+                          but I can slow down the signal by pressing on the
+                          spindle.
+                          
+                          Both signals are read. They might be quadrants from
+                          the photodetector. Haven't tried sampling multiple
+                          signals concurrently yet.
+
+    5        GND?
+
+    6 - 7    PD DATA      A little thicker than usual, capacitively coupled to SoC.
+                          Looks like another differential or AC photodiode signal.
+                          Speed proportional to disc rotation rate.
+
+    8        DATA         Regular thickness, levels suggest an AC signal, no
+                          discernable signal when reading a CD-ROM
+
+    9        5V           Switched 5V power
+
+    45 - 48  COIL         Spindle motor
+
+    50 - 55  VCM          Voice coil motor
+         56  GND (VCM)
+
 - Tray PCB
     - Some passive components. Capacitors, at least one resistor.
     - Mostly just a breakout for the 56 pin cable (soldered to the back)
@@ -176,4 +209,56 @@ Wiring Harness
 
     40 - 45  VCM          A set of six enormous traces. Verified that these connect
                           directly to the voice coil motor on the lens assembly.
+
+
+Tray Mechanism
+==============
+
+The tray is the thing that holds the disc and all optical/mechanical parts. In
+this section we're talking about the stuff that's specific to how the tray
+moves in and out for disc loading and eject. The tray mechanism consists of:
+
+- Two tray position sensor switches (almost-closed and closed).
+
+  The almost-closed switch seems to get the ARM processor into gear, whereas
+  the actually-closed switch seems to be more about power interlock. Both
+  switches can be read by the ARM, but the fully-closed switch seems more
+  indirect.
+
+- A spring-loaded mechanism that pushes a core into the solenoid when the
+  tray closes. You can trigger this by hand when the tray is open by pushing
+  a small white plastic lever until it locks.
+
+- A eject solenoid, powered by 5V, uni-polar. Terminal nearest the edge is
+  ground, the other switches to +5 when activated. Measured in-circuit at 11
+  ohms. This ground is shared by the tray LED. Mapped to ARM GPIO, driven
+  directly by TPIC1356 chip. (TPIC1356 pins 5 & 17 show this signal but without
+  visible ringing)
+
+- An LED and button,
+  both attached to ARM GPIO. Button generates a TBD interrupt.
+
+All tray hardware is directly attached to the ARM core as GPIO.
+
+
+Power Consumption
+=================
+
+Totals:
+
+   50 mA    Minimum observed
+   90 mA    Idle at cmshell
+  200 mA    Initial current when booting
+  220 mA    After %eject (tray powered still?)
+  400 mA    Disc spinning, otherwise idle
+  410 mA    Reading blu-ray
+  580 mA    Tray solenoid on
+  600 mA    Burning blu-ray
+  650 mA    Reading CD-ROM at high speed
+  850 mA    Bringing spindle up to speed, looking for disc
+ 1000 mA    Approx maximum observed
+
+Components:
+
+  360 mA    Tray solenoid
 
