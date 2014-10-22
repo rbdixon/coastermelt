@@ -10,7 +10,7 @@ from IPython.core.magic_arguments import magic_arguments, argument, parse_argstr
 from IPython.core.display import display
 from IPython.core.error import UsageError
 
-import struct, sys, json
+import struct, sys, json, argparse
 from hilbert import hilbert
 
 from shell_functions import *
@@ -536,7 +536,7 @@ class ShellMagics(magic.Magics):
         d = self.shell.user_ns['d']
         cdb = ''.join(map(chr, args.cdb))
         data = scsi_in(d, cdb, args.len)
-        sys.stdout.write(hexdump(data))
+        self.shell.write(hexdump(data))
 
     @magic.line_magic
     @magic_arguments()
@@ -561,13 +561,29 @@ class ShellMagics(magic.Magics):
 
     @magic.line_magic
     @magic_arguments()
-    @argument('lba', type=hexint, help='Logical Block Address')
-    @argument('length', type=hexint, nargs='?', default=1, help='Transfer length, in 2kb blocks')
-    @argument('-f', type=str, default=None, metavar='FILE', help='Log binary data to a file also')
+    @argument('lba', type=hexint, nargs='?', help='Logical Block Address')
+    @argument('blockcount', type=hexint, nargs='?', help='Transfer length, in 2kb blocks')
+    @argument('-f', type=argparse.FileType('wb'), metavar='FILE', help='Log binary data to a file also')
     def sc_read(self, line, cell=''):
-        """Read blocks from the SCSI device."""
+        """Read blocks from the SCSI device.
+        You can specify the LBA and address. With no arguments, goes into
+        record-player mode and starts reading in order from the beginning.
+        This is good if you just want the drive to read anything for testing.
+        """
         args = parse_argstring(self.sc_read, line)
         d = self.shell.user_ns['d']
-        cdb = struct.pack('>BBII', 0xA8, 0, args.lba, args.length)
-        data = scsi_in(d, cdb, args.length * 2048)
-        sys.stdout.write(hexdump(data, log_file=args.f))
+        lba = args.lba or 0
+
+        while True:
+            data = scsi_read(d, lba, args.blockcount or 1)
+            if args.f:
+                args.f.write(data)
+                args.f.flush()
+
+            self.shell.write(hexdump(data, address=lba*2048))
+            if args.lba is None:
+                # sequential mode
+                lba += 1
+            else:
+                # Just one read
+                break

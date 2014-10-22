@@ -8,14 +8,14 @@
 __all__ = [
     'hexstr', 'hexint', 'hexint_tuple', 'hexint_aligned',
     'get_signature',
-    'scsi_out', 'scsi_in',
+    'scsi_out', 'scsi_in', 'scsi_read',
     'peek', 'poke', 'peek_byte', 'poke_byte',
     'blx',
     'all_defines',
 ]
 
 from IPython.core.error import UsageError
-import code
+import code, struct
 
 
 def hexstr(s):
@@ -54,6 +54,10 @@ def scsi_out(d, cdb, data):
 def scsi_in(d, cdb, size=0x20):
     """Send a low-level SCSI packet that expects incoming data."""
     return d.scsi_in(pad_cdb(cdb), size)
+
+def scsi_read(d, lba, blockcount=1):
+    cdb = struct.pack('>BBII', 0xA8, 0, lba, blockcount)
+    return scsi_in(d, cdb, blockcount * 2048)
 
 def get_signature(d):
     """Return a 12-byte signature identifying the firmware patch."""
