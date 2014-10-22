@@ -142,7 +142,7 @@ def overlay_hook(d, hook_address, handler,
 
     elif reloc_ldr_word is not None:
         # Relocate to the assembler's automatic constant pool
-        reloc.args = reloc.args.split(',')[0] + ', =0x%08x' % word
+        reloc.args = reloc.args.split(',')[0] + ', =0x%08x' % reloc_ldr_word
 
     elif reloc.op.startswith('b'):
         raise NotImplementedError("Can't hook branches yet: %s" % reloc)
