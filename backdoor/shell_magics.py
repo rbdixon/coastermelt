@@ -400,6 +400,7 @@ class ShellMagics(magic.Magics):
     @argument('-q', '--quiet', action='store_true', help="Just install the hook, don't talk about it")
     @argument('-R', '--reset', action='store_true', help="Reset the ARM before starting")
     @argument('-c', '--console', action='store_true', help='Immediately launch into a %%console after installing')
+    @argument('-B', '--bitbang',action='store_true', help='Use bitbang_console() to send output to the bitbang serial port')
     @argument('-f', '--console-file', type=str, default=None, metavar='FILE', help='Append console output to a text file')
     @argument('-b', '--console-buffer', type=hexint_aligned, metavar='HEX', default=console_address, help='Specify a different address for the console_buffer_t data structure')
     @argument('-d', '--delay', type=float, default=None, metavar='SEC', help='Add a delay loop to the default hook')
@@ -429,8 +430,12 @@ class ShellMagics(magic.Magics):
             # Default hook, including our command line as a trace message
             message = args.message or ('%%hook %x' % args.hook_address)
             cell = 'default_hook(regs, %s)' % json.dumps(message)
-            if args.delay:
-                cell = '%s; wait_ms(%d)' % (cell, args.delay * 1000)
+
+        if args.delay:
+            cell = '%s;\n wait_ms(%d)' % (cell, args.delay * 1000)
+
+        if args.bitbang:
+            cell = '%s;\n bitbang_console();' % cell
 
         else:
             if args.message:
