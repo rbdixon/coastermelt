@@ -12,6 +12,7 @@
 #include "hook.h"
 #include "console.h"
 #include "ts01_defs.h"
+#include "bitbang.h"
 
 #include "../lib/tiniest_stdlib.h"
 #include "../lib/mt1939_regs.h"
