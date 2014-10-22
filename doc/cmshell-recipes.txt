@@ -256,6 +256,13 @@ sc 400   ac 6c 6f 63   0 1 0 0   0 1 0 0
 	function of a protocol state machine operating in the 8051.
 
 
+while True:
+    scsi_read(d, 0)
+    scsi_read(d, 0x40000)
+
+    Seek the drive back and forth repeatedly, to test the sled motor.
+
+
 -------
 Console
 -------

@@ -86,3 +86,42 @@ void buzz_solenoid()
 }
 
 
+void speed_test()
+{
+	// Toggle the LED output as fast as we can. The actual LED driver
+	// can't switch off this fast, but if we probe the signal at pin
+	// 10 of the TPIC1391 chip (which has a handy via right by it) we
+	// can get this signal at full rate. Let's find out what that rate is,
+	// and also maybe how fast our CPU might be.
+
+	uint32_t off = reg_tray_mmio | 0x2000000;
+	uint32_t on = reg_tray_mmio & ~0x2000000;
+	while (1) {
+
+		// Just I/O
+		reg_tray_mmio = on;
+		reg_tray_mmio = off;
+		reg_tray_mmio = on;
+		reg_tray_mmio = off;
+		reg_tray_mmio = on;
+		reg_tray_mmio = off;
+		reg_tray_mmio = on;
+		reg_tray_mmio = off;
+
+		// 100 nops, running from RAM
+		asm volatile (".rept 100; nop; .endr");
+
+		// Just I/O
+		reg_tray_mmio = on;
+		reg_tray_mmio = off;
+		reg_tray_mmio = on;
+		reg_tray_mmio = off;
+		reg_tray_mmio = on;
+		reg_tray_mmio = off;
+		reg_tray_mmio = on;
+		reg_tray_mmio = off;
+
+		// Long sleep
+		SysTime::wait_ms(1);
+	}
+}
