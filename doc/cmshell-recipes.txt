@@ -132,6 +132,15 @@ hook -Rcm "Top of main loop" 18ccc
     stalling communications.
 
 
+%%hook 18ccc
+*(vu32*)0x4002088 ^= 0x2000000
+
+	This is a simple mainloop heartbeat signal. As long as the hook is working,
+	the tray LED will glow dimly as it toggles every mainloop iteration. If you
+	have an oscilloscope on the board, you can see this signal on the mainboard's
+	flexcable at pin 51.
+
+
 ---------------------------
 Unknown Hardware Device #xx
 ---------------------------

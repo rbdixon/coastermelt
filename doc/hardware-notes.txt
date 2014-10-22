@@ -142,10 +142,26 @@ Wiring Harness
 
     9        5V           Switched 5V power
 
-    45 - 48  COIL         Spindle motor
+    10
+    ..
+    44
 
-    50 - 55  VCM          Voice coil motor
-         56  GND (VCM)
+    45 - 48  COIL         Spindle brushless motor
+                          Connected to TPIC1356
+
+    49       COIL         Eject solenoid, active high
+                          Connected to TPIC1356
+
+    50       BUTTON       Eject button, active low, weak pull-up
+    51       LED          Front panel LED, active high
+
+    52       GND?
+
+    53 - 56  COIL         Sled stepper motor
+                          Connected to TPIC1356
+
+    57       GND
+
 
 - Tray PCB
     - Some passive components. Capacitors, at least one resistor.
