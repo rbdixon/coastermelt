@@ -21,11 +21,12 @@ standard firmawre.
 
 00: reset
 04: ARM undefined instruction
-08: ARM software interrupt         (svc)
-0c: ARM prefetch abort exception   (bkpt)
-10: ARM data abort exception 
-18: hardware interrupt?
-1c: fiq fast hardware interrupt
+08: ARM software interrupt         -- hangs (infinite loop)
+0c: ARM prefetch abort exception   -- unused normally; we use this to implement %hook
+10: ARM data abort exception       -- unused normally
+18: hardware interrupt
+1c: fiq fast hardware interrupt    -- seems SCSI related? Handler reads CDB.
+
 40: Very complex (IPC?) message handler?
 46: SCSI command handler?
 
@@ -71,19 +72,6 @@ Hardware Memory Map
   04000000 - 043fffff      Memory mapped I/O
 
 
-Typical Memory Usage
---------------------
-
-Currently keeping notes on things I'm less certain about here. The hardware
-includes some memory mapping features, and the standard firmware seems to use
-these for initialization and/or security purposes.
-
-00400000 - 00400fff      Writeable 4kB page
-                            Set up via reg [4011f08]=00400000
-                            Copy of application IVT (0x10000) written here
-                            Mirror of SRAM?
-
-
 DRAM
 ----
 
@@ -115,6 +103,7 @@ after, the same 2MB of memory mirrors over and over.
 
 Most of this memory seems to be dynamically allocated, so it often has useful
 tidbits in it but the overall structure varies wildly from run to run.
+
 
 Memory Mapped I/O
 -----------------

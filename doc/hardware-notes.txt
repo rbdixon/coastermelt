@@ -328,6 +328,7 @@ Totals:
   580 mA    Tray solenoid on
   620 mA    Burning blu-ray at 1x
   650 mA    Reading CD-ROM at high speed
+  700 mA    Reading BD-R at high speed
   850 mA    Bringing spindle up to speed, looking for disc
  1000 mA    Approx maximum observed
 
