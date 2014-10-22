@@ -7,6 +7,7 @@ ARM CPU Core
 - No Thumb-2
 - Seems to have a flash icache, but I'm not totally sure
 - No cp15 (not sure how to control cache, get CPU ID)
+- Not fast. About 2 MIPS running Thumb NOPs from DRAM.
 
 
 Vector Table
@@ -130,7 +131,7 @@ Very rough notes, may be wildly wrong.
 
 4002000     GPIO, System Timer
 
-            4002004   uint32      Flags
+            4002004   uint32      Flags    Read only
                                     800
                                      40
                                      10    Eject button, 1=open, 0=pressed
@@ -147,12 +148,12 @@ Very rough notes, may be wildly wrong.
             400202c   uint32      Interrupt vector pointer?
 
             4002058   uint32      "App select", affects bootloader in many ways
+                                  Fully read/write. May be intended for firmware use,
+                                  perhaps this survives some forms of reset.
 
-            4002078   uint32      System tick counter
-                                    - Measured this at about 527350 Hz. It's probably
-                                      actually an even (1 << 19) Hz
+            4002078   uint32      System tick counter, 512*1024 Hz
 
-            4002084   uint32      Flags    Inputs only
+            4002084   uint32      Flags    Read only
                                       1
                                       2
                                       4
