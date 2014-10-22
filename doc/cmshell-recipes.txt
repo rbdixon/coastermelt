@@ -92,6 +92,18 @@ println("  ", r0, r1);
 	actually does the eject.
 
 
+hook -bm "Eject over bitbang" 18eb4
+
+	Debugging the 8051, which is responsible for our USB backdoor pipe, may
+	require having yet another way in. For that we have the option of a
+	bitbang serial port. You can use %hook -b to send hook console output
+	directly to the serial port.
+
+	For more information on the port and how to wire it, see bitbang.h.
+
+	tl;dr  It's 57600/8-N-1, 3.3v, RX comes from pin 10 of the TPIC1391.
+
+
 ------------
 Eject Button
 ------------
