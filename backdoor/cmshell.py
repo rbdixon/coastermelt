@@ -58,8 +58,9 @@ from shell_magics import ShellMagics
 from remote import Device
 import shell_namespace
 
-# Make a global device, but only give it to the user namespace
-shell_namespace.d = Device()
+# Make a global device, but only give it to the user namespace.
+# Make it default by assigning it to 'd', our current device.
+shell_namespace.d = shell_namespace.d_remote = Device()
 
 # Make a shell that feels like a debugger
 ipy = InteractiveShellEmbed(user_ns = shell_namespace.__dict__)
