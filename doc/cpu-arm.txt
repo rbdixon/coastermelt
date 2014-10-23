@@ -24,8 +24,15 @@ standard firmawre.
 08: ARM software interrupt         -- hangs (infinite loop)
 0c: ARM prefetch abort exception   -- unused normally; we use this to implement %hook
 10: ARM data abort exception       -- unused normally
+
 18: hardware interrupt
-1c: fiq fast hardware interrupt    -- seems SCSI related? Handler reads CDB.
+     - SCSI / inter-processor comms
+
+1c: FIQ hardware interrupt
+     - Eject button?
+
+
+Not sure if these are actually vectors or they just look similar:
 
 40: Very complex (IPC?) message handler?
 46: SCSI command handler?
@@ -133,12 +140,19 @@ Very rough notes, may be wildly wrong.
                                                readable via GPIO.
                                       2
 
+                                  NOTE: This may not be generated directly by hardware, this
+                                        may be the result of some other software or SoC process.
+                                        When pressing the tray button, reg [4002084] changes
+                                        80ms ahead of this one.
+
             4002028   uint32      Interrupt flags?
             400202c   uint32      Interrupt vector pointer?
 
             4002058   uint32      "App select", affects bootloader in many ways
                                   Fully read/write. May be intended for firmware use,
                                   perhaps this survives some forms of reset.
+
+            4002064   uint32      Used by ISR 1c
 
             4002078   uint32      System tick counter, 512*1024 Hz
 
@@ -153,8 +167,10 @@ Very rough notes, may be wildly wrong.
                                  100000
                                 2000000
                                 8000000
-                               10000000
-                               20000000    Tray out?
+                               10000000    Eject button
+                               20000000    Tray sensor
+
+                                  NOTE: Possibly a lower-level version of [4002004]
 
             4002088   uint32      flags    Outputs, a few bits not implemented
                                            wwww_00ww_wwww_wwww_wwww_wwww_wwww_0www
@@ -173,6 +189,7 @@ Very rough notes, may be wildly wrong.
                                 1000000    \  LED enable,   1=off, 0=on
                                 2000000    /  LED control,  1=off, 0=on
 
+            4002108   uint32              - Clear upper half (ldrh/str) to ack interrupt
 
 4003000
 4004000

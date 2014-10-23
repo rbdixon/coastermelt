@@ -144,7 +144,7 @@ def overlay_hook(d, hook_address, handler,
         # Relocate to the assembler's automatic constant pool
         reloc.args = reloc.args.split(',')[0] + ', =0x%08x' % reloc_ldr_word
 
-    elif reloc.op.startswith('b'):
+    elif reloc.op.startswith('b') and not reloc.op.startswith('bic'):
         raise NotImplementedError("Can't hook branches yet: %s" % reloc)
 
     elif reloc.args.find('pc') > 0:
