@@ -191,7 +191,9 @@ void bitbang_backdoor()
     /*
      * A debug backdoor based on the bitbang serial port.
      * Our protocol is weird because the serial port is prone to
-     * drop data and desynchronize. The first layer
+     * drop data and desynchronize. The first layer is a simple
+     * padding/framing scheme implemented in bitbang_read. Next,
+     * we have some packet formats processed by a tiny state machine:
      *
      * Peek         55 ff F0 word(address)                                -> word(data) word(data ^ address)
      * Poke         55 ff E1 word(address) word(data)                     -> word(data ^ address)
