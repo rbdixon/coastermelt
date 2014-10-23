@@ -9,15 +9,11 @@
  */
 
 #pragma once
-#include "hook.h"
-#include "console.h"
-#include "ts01_defs.h"
-#include "bitbang.h"
 
-#include "../lib/tiniest_stdlib.h"
-#include "../lib/mt1939_regs.h"
+// SoC namespace for interactive use
 using namespace MT1939;
 
+// Experimental tests and toys!
 #include "science_experiments.h"
 
 // Aliases for the pad

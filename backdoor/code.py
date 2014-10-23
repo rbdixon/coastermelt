@@ -44,11 +44,16 @@ pad = 0x1e00000
 defines = collections.OrderedDict()
 defines['pad'] = pad
 
-# Default dictionary of named C++ snippets.
-# The names are ignored by the compiler, but they help the shell manage.
+# Default dictionary of named C++ snippets. The names are ignored by the
+# compiler, but they can help identify code in the shell. Individual
+# Python modules can add their corresponding C++ headers at import time.
 
 includes = collections.OrderedDict()
-includes['builtins'] = '#include "shell_builtins.h"'
+
+# Low-level includes
+includes['stdlib'] = '#include "../lib/tiniest_stdlib.h"'
+includes['mt1939'] = '#include "../lib/mt1939_regs.h"'
+includes['firmware'] = '#include "ts01_defs.h"'
 
 
 class CodeError(Exception):

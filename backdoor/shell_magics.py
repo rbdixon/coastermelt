@@ -12,7 +12,6 @@ from IPython.core.error import UsageError
 
 import struct, sys, json, argparse
 from hilbert import hilbert
-from bitbang import BitbangDevice
 
 from shell_functions import *
 from code import *
@@ -22,6 +21,7 @@ from watch import *
 from console import *
 from hook import *
 from bitfuzz import *
+from bitbang import *
 
 
 @magic.magics_class
@@ -288,7 +288,7 @@ class ShellMagics(magic.Magics):
         d = self.shell.user_ns['d']
         code = ' '.join(args.code) + '\n' + cell
         try:
-            assemble(d, args.address, code, defines=all_defines())
+            assemble(d, args.address, code, defines=all_defines(), includes=all_includes())
         except CodeError, e:
             raise UsageError(str(e))
 
@@ -303,7 +303,7 @@ class ShellMagics(magic.Magics):
         args = parse_argstring(self.asmf, line)
         d = self.shell.user_ns['d']
         code = ' '.join(args.code) + '\n' + cell
-        data = assemble_string(args.address, code, defines=all_defines())
+        data = assemble_string(args.address, code, defines=all_defines(), includes=all_includes())
 
         # Write assembled code to the virtual apping
         words = words_from_string(data)
@@ -340,7 +340,7 @@ class ShellMagics(magic.Magics):
         """Evaluate a 32-bit C++ expression on the target"""
         d = self.shell.user_ns['d']
         try:
-            return evalc(d, line + cell, defines=all_defines(), address=address, verbose=True)
+            return evalc(d, line + cell, defines=all_defines(), includes=all_includes(), address=address, verbose=True)
         except CodeError, e:
             raise UsageError(str(e))
 
@@ -349,7 +349,7 @@ class ShellMagics(magic.Magics):
         """Evaluate a 32-bit C++ expression on the target, and immediately start a console"""
         d = self.shell.user_ns['d']
         try:
-            return_value = evalc(d, line + cell, defines=all_defines(), address=address, verbose=True)
+            return_value = evalc(d, line + cell, defines=all_defines(), includes=all_includes(), address=address, verbose=True)
         except CodeError, e:
             raise UsageError(str(e))
 
@@ -379,7 +379,7 @@ class ShellMagics(magic.Magics):
         r0 = int(self.shell.user_ns.get('r0') or 0)
 
         try:
-            r0, r1 = evalasm(d, line, r0, defines=all_defines(), address=address, thumb=thumb)
+            r0, r1 = evalasm(d, line, r0, defines=all_defines(), includes=all_includes(), address=address, thumb=thumb)
         except CodeError, e:
             raise UsageError(str(e))
 
@@ -447,6 +447,7 @@ class ShellMagics(magic.Magics):
         try:
             overlay_hook(d, args.hook_address, cell,
                 defines = all_defines(),
+                includes = all_includes(),
                 handler_address = args.handler_address,
                 replace_one_instruction = args.replace,
                 reset = args.reset,
@@ -600,7 +601,7 @@ class ShellMagics(magic.Magics):
     @argument('serial_port', type=str, nargs='?', help='Serial port filename to use for reaching the bitbang port')
     @argument('-e', '--exit', action='store_true', help='Exit an existing bitbang debug session')
     @argument('-a', '--attach', action='store_true', help='Assume bitbang_backdoor() is already running, attach to it')
-    @argument('--address', type=hexint_aligned, default=console_address-0x400, help='Where to load the bitbang backdoor code. By default this goes just below the console buffer.')
+    @argument('--address', type=hexint_aligned, default=console_address-0x1000, help='Where to load the bitbang backdoor code. By default this goes just below the console buffer.')
     def bitbang(self, line):
         """Switch to a new debug channel based on a bitbang serial port
 
@@ -634,7 +635,7 @@ class ShellMagics(magic.Magics):
                                 top-left corner of the SoC, and it's much
                                 easier to solder there.
 
-        See also:  doc/bitbang-seria-port.jpg
+        See also:  doc/bitbang-serial-port.jpg
                    doc/hardware-notes.txt
 
         After %bitbang runs successfully, the default debug device 'd' will be
@@ -661,7 +662,7 @@ class ShellMagics(magic.Magics):
                 raise UsageError("Need a hardware serial port; see 'bitbang?' for more info")
 
             if not args.attach:
-                evalc(d_remote, 'bitbang_backdoor()', defines=all_defines(), address=args.address, verbose=True) 
+                bitbang_backdoor(d_remote, args.address)
 
             d_bitbang = BitbangDevice(args.serial_port)
             self.shell.user_ns['d_bitbang'] = d_bitbang

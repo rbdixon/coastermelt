@@ -21,6 +21,7 @@ from watch import *
 from console import *
 from hook import *
 from bitfuzz import *
+from bitbang import *
 from hilbert import hilbert
 
 import IPython
@@ -31,10 +32,3 @@ from binascii import a2b_hex, b2a_hex
 
 import random
 from random import randint
-
-# Shell variables for default_hook()
-hook_stack_lines = 8
-hook_show_stack = True
-hook_show_registers = True
-hook_show_timestamp = True
-hook_show_message = True

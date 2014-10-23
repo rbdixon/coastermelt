@@ -25,6 +25,7 @@
 #pragma once
 #include <stdint.h>
 #include "console.h"
+#include "ts01_defs.h"   // for critical_section
 
 
 void bitbang(char c)

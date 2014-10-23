@@ -11,7 +11,7 @@ __all__ = [
     'scsi_out', 'scsi_in', 'scsi_read',
     'peek', 'poke', 'peek_byte', 'poke_byte',
     'blx',
-    'all_defines',
+    'all_defines', 'all_includes'
 ]
 
 from IPython.core.error import UsageError
@@ -93,3 +93,9 @@ def all_defines():
     d = dict(shell_namespace.__dict__)
     d.update(code.defines)
     return d
+
+def all_includes():
+    """Returns a dictionary of standard code includes plus our shell includes"""
+    return dict(code.includes,
+        shell_builtins = '#include "shell_builtins.h"')
+

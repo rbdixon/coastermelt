@@ -15,17 +15,13 @@ import sys, time
 from code import *
 from dump import *
 
-
 # Our ring buffer is 64 KiB. The default location comes from
 # more guesswork and memsquares. It's 1MB above the default
 # pad, still in an area of DRAM that seems very lightly used.
 
 console_address = 0x1e50000
 
-# If console.h appears in shell_builtins.h, we should be sure
-# the console_address is always available even in code compiled
-# without the whole shell namespace.
-
+includes['console'] = '#include "console.h"'
 defines['console_address'] = console_address
 
 

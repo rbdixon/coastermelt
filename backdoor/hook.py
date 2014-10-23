@@ -6,6 +6,14 @@ from code import *
 from dump import *
 from mem import *
 
+includes['hook'] = '#include "hook.h"'
+
+defines['hook_stack_lines'] = 8
+defines['hook_show_stack'] = True
+defines['hook_show_registers'] = True
+defines['hook_show_timestamp'] = True
+defines['hook_show_message'] = True
+
 
 def overlay_hook(d, hook_address, handler,
     includes = includes, defines = defines,
