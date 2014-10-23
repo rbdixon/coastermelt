@@ -643,6 +643,7 @@ class ShellMagics(magic.Magics):
         d_bitbang, but the bitbang interface is now in the driver's seat.
         """
         args = parse_argstring(self.bitbang, line)
+        d = self.shell.user_ns['d']
         d_remote = self.shell.user_ns.get('d_remote')
         d_bitbang = self.shell.user_ns.get('d_bitbang')
 
@@ -656,11 +657,10 @@ class ShellMagics(magic.Magics):
             d_remote.reset()
 
         else:
-            if d_bitbang:
-                raise UsageError("A bitbang connection already exists (d_bitbang)")
+            if d == d_bitbang:
+                raise UsageError("Already using the bitbang device")
             if not args.serial_port:
                 raise UsageError("Need a hardware serial port; see 'bitbang?' for more info")
-
             if not args.attach:
                 bitbang_backdoor(d_remote, args.address)
 

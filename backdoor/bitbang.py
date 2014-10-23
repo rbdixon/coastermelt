@@ -5,7 +5,7 @@
 
 __all__ = [ 'bitbang_backdoor', 'BitbangDevice' ]
 
-import struct
+import struct, time
 from hook import *
 from code import *
 
@@ -54,13 +54,19 @@ class BitbangDevice:
         self.port = serial.Serial(port=serial_port, baudrate=57600, timeout=1)
         self.sync()
 
+    def _write(self, s):
+        # Low-level write. Since it's a janky bit-bang serial port, go really slowly.
+        for c in s:
+            self.port.write(c)
+            self.port.flushOutput()
+            time.sleep(0.2)
+
     def sync(self, num_retries = 6):
         # Gross delay-based synchronization, but it keeps the part on the slow CPU simple.
         expected_signature = '~MeS`14 [bitbang]\r\n'
         while num_retries > 0:
-            self.port.flushOutput()
             self.port.flushInput()
-            self.port.write('\n')
+            self._write('\n')
             if self.port.read(len(expected_signature)) == expected_signature:
                 # Make sure we're synchronized, cuz the dumb protocol is dumb.
                 # This discards input until timeout, so we know there's no buffered
@@ -72,55 +78,54 @@ class BitbangDevice:
         raise IOError("Can't establish contact with bitbang_backdoor()")
 
     def peek(self, address):
-        self.port.write(struct.pack('<BBBI', 0x55, 0xff, 0xf0, address))
+        self._write(struct.pack('<BBBI', 0x55, 0xff, 0xf0, address))
         data, check = struct.unpack('<II', self.port.read(8))
         if check != data ^ address:
-            raise IOError("Check word incorrect")
+            raise IOError("Check word incorrect, addr %08x response %08x %08x" % (address, data, check))
         return data
 
     def poke(self, address, word):
-        self.port.write(struct.pack('<BBBII', 0x55, 0xff, 0xe1, address, data))
+        self._write(struct.pack('<BBBII', 0x55, 0xff, 0xe1, address, data))
         check, = struct.unpack('<I', self.port.read(4))
         if check != data ^ address:
             raise IOError("Check word incorrect")
 
     def peek_byte(self, address):
-        self.port.write(struct.pack('<BBBI', 0x55, 0xff, 0xd2, address))
+        self._write(struct.pack('<BBBI', 0x55, 0xff, 0xd2, address))
         data, check = struct.unpack('<BI', self.port.read(8))
         if check != data ^ address:
             raise IOError("Check word incorrect")
         return data
 
     def poke_byte(self, address, word):
-        self.port.write(struct.pack('<BBBIB', 0x55, 0xff, 0xc3, address, data))
+        self._write(struct.pack('<BBBIB', 0x55, 0xff, 0xc3, address, data))
         check, = struct.unpack('<I', self.port.read(4))
         if check != data ^ address:
             raise IOError("Check word incorrect")
 
     def blx(self, address, r0):
-        self.port.write(struct.pack('<BBBII', 0x55, 0xff, 0xb4, address, r0))
+        self._write(struct.pack('<BBBII', 0x55, 0xff, 0xb4, address, r0))
         r0, r1, check = struct.unpack('<III', self.port.read(12))
         if check != r0 ^ address:
             raise IOError("Check word incorrect")
         return (r0, r1)
 
     def read_block(self, address, wordcount):
-        self.port.write(struct.pack('<BBBII', 0x55, 0xff, 0xa5, address, wordcount))
+        self._write(struct.pack('<BBBII', 0x55, 0xff, 0xa5, address, wordcount))
         data = self.port.read(4 * (1 + wordcount))
-        print repr(data)
         last_word, check = struct.unpack('<II', data[-8:])
-        if check != last_word ^ (address + 4 * (1 + wordcount)):
+        if check != last_word ^ (address + 4 * wordcount):
             raise IOError("Check word incorrect")
         return data[:-4]
 
     def fill_words(self, address, word, wordcount):
-        self.port.write(struct.pack('<BBBIII', 0x55, 0xff, 0x96, address, word, wordcount))
+        self._write(struct.pack('<BBBIII', 0x55, 0xff, 0x96, address, word, wordcount))
         check = struct.unpack('<I', self.port.read(4))
-        if check != word ^ (address + 4 * (1 + wordcount)):
+        if check != word ^ (address + 4 * wordcount):
             raise IOError("Check word incorrect")
 
     def exit(self):
-        self.port.write(struct.pack('<BBB', 0x55, 0xff, 0x87))
+        self._write(struct.pack('<BBB', 0x55, 0xff, 0x87))
         if self.port.read() != chr(0x55):
             raise IOError("Response byte incorrect")
         self.port.close()

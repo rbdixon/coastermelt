@@ -105,10 +105,10 @@ void bitbang32(uint32_t word)
 uint32_t bitbang_read32()
 {
 	// Blocking read of one little-endian 32-bit word
-	uint32_t r = bitbang_read32();
-	r |= bitbang_read32() << 8;
-	r |= bitbang_read32() << 16;
-	r |= bitbang_read32() << 24;
+	uint32_t r = bitbang_read();
+	r |= bitbang_read() << 8;
+	r |= bitbang_read() << 16;
+	r |= bitbang_read() << 24;
 	return r;
 }
 
@@ -148,14 +148,14 @@ void bitbang_backdoor()
 	/*
 	 * A debug backdoor based on the bitbang serial port. Commands:
 	 *
-	 * Peek         55 00 F0 word(address)                                -> word(data) word(data ^ address)
-	 * Poke         55 00 E1 word(address) word(data)                     -> word(data ^ address)
-	 * Peek byte    55 00 D2 word(address)                                -> byte(data) word(data ^ address)
-	 * Poke byte    55 00 C3 word(address) byte(data)                     -> word(data ^ address)
-	 * BLX          55 00 B4 word(address) word(r0)                       -> word(r0) word(r1) word(address ^ r0)
-	 * Read block   55 00 A5 word(address) word(wordcount)                -> word(data) * wordcount word(last_data ^ (4+last_address))
-	 * Fill words   55 00 96 word(address) word(pattern) word(wordcount)  -> word(pattern ^ (4+last_address)
-	 * Exit         55 00 87                                              -> 55
+	 * Peek         55 ff F0 word(address)                                -> word(data) word(data ^ address)
+	 * Poke         55 ff E1 word(address) word(data)                     -> word(data ^ address)
+	 * Peek byte    55 ff D2 word(address)                                -> byte(data) word(data ^ address)
+	 * Poke byte    55 ff C3 word(address) byte(data)                     -> word(data ^ address)
+	 * BLX          55 ff B4 word(address) word(r0)                       -> word(r0) word(r1) word(address ^ r0)
+	 * Read block   55 ff A5 word(address) word(wordcount)                -> word(data) * wordcount word(last_data ^ (4+last_address))
+	 * Fill words   55 ff 96 word(address) word(pattern) word(wordcount)  -> word(pattern ^ (4+last_address)
+	 * Exit         55 ff 87                                              -> 55
 	 * Signature    (other)                                               -> (text line)
      */
 
@@ -173,7 +173,7 @@ void bitbang_backdoor()
 
     s_00:
     	switch (bitbang_read()) {
-    		case 0x00:	break;
+    		case 0xff:	break;
     		case 0x55:  goto s_55;
     		default:	goto s_sig;
     	}
