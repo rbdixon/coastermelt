@@ -426,22 +426,22 @@ class ShellMagics(magic.Magics):
         args = parse_argstring(self.hook, line)
         d = self.shell.user_ns['d']
 
+        # Hook body is either the cell provided or a trivial default_hook()
+
         if not cell:
             # Default hook, including our command line as a trace message
             message = args.message or ('%%hook %x' % args.hook_address)
             cell = 'default_hook(regs, %s)' % json.dumps(message)
+        elif args.message:
+            raise UsageError('--message only applies when using the default hook')
+
+        # Add-ons for any hook body
 
         if args.delay:
             cell = '%s;\n wait_ms(%d)' % (cell, args.delay * 1000)
 
         if args.bitbang:
             cell = '%s;\n bitbang_console();' % cell
-
-        else:
-            if args.message:
-                raise UsageError('--message only applies when using the default hook')
-            if args.delay:
-                raise UsageError('--delay only applies when using the default hook')
 
         try:
             overlay_hook(d, args.hook_address, cell,

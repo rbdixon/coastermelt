@@ -97,7 +97,9 @@ hook -bm "Eject over bitbang" 18eb4
 	Debugging the 8051, which is responsible for our USB backdoor pipe, may
 	require having yet another way in. For that we have the option of a
 	bitbang serial port. You can use %hook -b to send hook console output
-	directly to the serial port.
+	directly to the serial port. In many cases, the -b and -c switches can be
+	interchangeable. Especially convenient if you keep a serial terminal open
+	next to your cmshell!
 
 	For more information on the port and how to wire it, see bitbang.h.
 
