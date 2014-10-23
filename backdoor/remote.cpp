@@ -414,9 +414,13 @@ static PyObject* device_read_block(Device *self, PyObject *args)
         return 0;
     }
 
-    // Buffer is more than enough for what the firmware/hardware seems to handle
-    uint32_t result[0x40];
-    wordcount = std::min<unsigned>(wordcount, sizeof result / 4);
+    // We use the backdoor's small PIO block read. It can usually handle
+    // up to 0x1c words, but when there's a disc spinning some mode seems
+    // to change that resets this to 4 words. Blah.
+    const unsigned max_words = 4;
+
+    wordcount = std::min<unsigned>(wordcount, max_words);
+    uint32_t result[max_words];
     uint32_t cdb[3] = { 0x636f6cac, address, wordcount };
     bool ok;
 

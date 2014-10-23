@@ -130,6 +130,7 @@ class BitbangDevice:
 
     @_maintain_sync
     def read_block(self, address, wordcount):
+        wordcount = min(wordcount, 0x1000)
         self._write(struct.pack('<BBBII', 0x55, 0xff, 0xa5, address, wordcount))
         data = self.port.read(4 * (1 + wordcount))
         last_word, check = struct.unpack('<II', data[-8:])

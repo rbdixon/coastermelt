@@ -128,18 +128,13 @@ def read_word_aligned_block(d, address, size,
             part = scsi_read_buffer(d, 6, address + i, wordcount * 4)
 
         elif addr_space == 'arm':
-            # Use our backdoor's small PIO block read. It can usually handle
-            # up to 0x1c words, but when there's a disc spinning some mode seems
-            # to change that resets this to 4 words. Blah.
-
-            wordcount = min(wordcount, 4)
             part = d.read_block(address + i, wordcount)
 
         else:
             raise ValueError("Don't know how to read address %08x in %r memory" % (address, addr_space))
 
-        assert len(part) == 4 * wordcount
-        i += 4 * wordcount
+        assert (len(part) & 3) == 0
+        i += len(part)
         parts.append(part)
         if max_round_trips and len(parts) >= max_round_trips:
             break
