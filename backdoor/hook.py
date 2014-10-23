@@ -309,7 +309,7 @@ def overlay_hook(d, hook_address, handler,
 
     # Look at our handiwork in the disassembler
 
-    verify_asm = disassemble_context(d, hook_address)
+    verify_asm = disassemble_context(d, hook_address, size=10)
     asm_diff = side_by_side_disassembly(
         disassembly_lines(ovl_asm),       # Original unpatched hook on the left
         disassembly_lines(verify_asm),    # Fresh context disassembly on the right

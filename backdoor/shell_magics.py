@@ -599,8 +599,10 @@ class ShellMagics(magic.Magics):
     @magic.line_magic
     @magic_arguments()
     @argument('serial_port', type=str, nargs='?', help='Serial port filename to use for reaching the bitbang port')
+    @argument('-q', '--quiet', action='store_true', help="Just install the hook, don't talk about it")
     @argument('-e', '--exit', action='store_true', help='Exit an existing bitbang debug session')
     @argument('-a', '--attach', action='store_true', help='Assume bitbang_backdoor() is already running, attach to it')
+    @argument('-R', '--reset', action='store_true', help="Reset the ARM before starting")
     @argument('--address', type=hexint_aligned, default=console_address-0x1000, help='Where to load the bitbang backdoor code. By default this goes just below the console buffer.')
     def bitbang(self, line):
         """Switch to a new debug channel based on a bitbang serial port
@@ -651,6 +653,7 @@ class ShellMagics(magic.Magics):
             if not d_bitbang:
                 raise UsageError("No bitbang shell to exit")
 
+            self.shell.write('* Asking bitbang backdoor to exit\n')
             d_bitbang.exit()
             self.shell.user_ns['d_bitbang'] = None
             self.shell.user_ns['d'] = d_remote
@@ -661,10 +664,19 @@ class ShellMagics(magic.Magics):
                 raise UsageError("Already using the bitbang device")
             if not args.serial_port:
                 raise UsageError("Need a hardware serial port; see 'bitbang?' for more info")
-            if not args.attach:
-                bitbang_backdoor(d_remote, args.address)
 
+            if args.reset:
+                print '* Trying to reset... (cycle power if target does not respond)'
+                reset_arm(d_remote)
+
+            if not args.attach:
+                bitbang_backdoor(d_remote, args.address, verbose=not args.quiet)
+
+            self.shell.write('* Connecting to bitbang backdoor via %s\n' % args.serial_port)
             d_bitbang = BitbangDevice(args.serial_port)
+
             self.shell.user_ns['d_bitbang'] = d_bitbang
             self.shell.user_ns['d'] = d_bitbang
+
+        self.shell.write('* Debug interface switched to %r\n' % self.shell.user_ns['d'])
 

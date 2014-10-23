@@ -108,18 +108,18 @@ def read_word_aligned_block(d, address, size,
         wordcount = min(size - i, 64*1024) / 4
         dram_address = (address - 0x1c08000) & 0xffffffff
 
-        if addr_space == 'dma':
+        if addr_space == 'dma' and hasattr(d, 'scsi_in'):
             # Undocumented SCSI command that reads some kind of DMA memory space.
             # Begins with DRAM, but starts doing other things around 0x368500.
 
             part = scsi_read_buffer(d, 2, address + i, wordcount * 4)
 
-        elif fast and addr_space == 'arm' and dram_address + i <= 0x368000:
+        elif fast and hasattr(d, 'scsi_in') and addr_space == 'arm' and dram_address + i <= 0x368000:
             # Use the DMA reads, where we can, to implement fast DRAM reads.
 
             part = scsi_read_buffer(d, 2, address - 0x1c08000 + i, wordcount * 4)
 
-        elif fast and addr_space == 'arm' and address + i <= 0x200000:
+        elif fast and hasattr(d, 'scsi_in') and addr_space == 'arm' and address + i <= 0x200000:
             # Undocumented SCSI command that copies data from flash addresses
             # via the ARM to DRAM and DMA's it out to SCSI. Very fast, handles
             # addreses (including RAM mappings) below 2MB.
