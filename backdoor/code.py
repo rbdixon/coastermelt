@@ -279,7 +279,7 @@ def compile_string(address, expression, includes = includes, defines = defines, 
         # Linker script
         with open(temp.ld, 'w') as f: f.write('''\
 MEMORY { PATCH (rwx) : ORIGIN = 0x%(address)08x, LENGTH = 2M }
-SECTIONS { .text : { *(.first) *(.text) *(.rodata) } > PATCH }
+SECTIONS { .text : { *(.first) *(.text) *(.rodata) *(.bss) } > PATCH }
         ''' % locals())
 
         # C+ source
