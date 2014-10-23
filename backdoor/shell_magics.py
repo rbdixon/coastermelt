@@ -12,6 +12,7 @@ from IPython.core.error import UsageError
 
 import struct, sys, json, argparse
 from hilbert import hilbert
+from bitbang import BitbangDevice
 
 from shell_functions import *
 from code import *
@@ -549,7 +550,7 @@ class ShellMagics(magic.Magics):
     def reset(self, line=''):
         """Reset and reopen the USB interface."""
         args = parse_argstring(self.reset, line)
-        d = self.shell.user_ns['d']
+        d = self.shell.user_ns['d_remote']
         d.reset()
         if args.arm:
             reset_arm(d)
@@ -571,6 +572,7 @@ class ShellMagics(magic.Magics):
     @argument('-f', type=argparse.FileType('wb'), metavar='FILE', help='Log binary data to a file also')
     def sc_read(self, line, cell=''):
         """Read blocks from the SCSI device.
+
         You can specify the LBA and address. With no arguments, goes into
         record-player mode and starts reading in order from the beginning.
         This is good if you just want the drive to read anything for testing.
@@ -592,3 +594,76 @@ class ShellMagics(magic.Magics):
             else:
                 # Just one read
                 break
+
+    @magic.line_magic
+    @magic_arguments()
+    @argument('serial_port', type=str, nargs='?', help='Serial port filename to use for reaching the bitbang port')
+    @argument('-e', '--exit', action='store_true', help='Exit an existing bitbang debug session')
+    @argument('-a', '--attach', action='store_true', help='Assume bitbang_backdoor() is already running, attach to it')
+    @argument('--address', type=hexint_aligned, default=console_address-0x400, help='Where to load the bitbang backdoor code. By default this goes just below the console buffer.')
+    def bitbang(self, line):
+        """Switch to a new debug channel based on a bitbang serial port
+
+        This command switches from the default debug channel (SCSI commands to
+        our backdoored firmware) to a new debug channel based on a simple
+        hardware modification that adds a serial port to the IO pins used for
+        the LED and Eject button.
+
+        This command will run the bitbang_backdoor() C++ function (bitbang.h)
+        via the current debug channel. This will put the ARM core into our own
+        event loop, with interrupts disabled. It is now waiting for commands
+        sent to it over the bitbang serial port, and no other ARM firmware
+        runs.
+
+        This will reqiure any common 3.3v USB-serial adapter, soldered to a
+        few key points on the drive's main PCB:
+
+            GND                 Many places to get this. I chose a 0-ohm
+                                resistor near the motor controller chips.
+
+            RX (from device)    This taps into the signal for the tray LED,
+                                but prior to the LED's drive transistor.
+                                Here it's a very sharp square wave. The
+                                easiest place to grab the signal is the via
+                                at pin 10 of the TPIC1391 chip.
+
+            TX (to device)      This drives the eject button signal, which
+                                normally has a weak pull-up on it. This signal
+                                is on pin 50 of the main PCB's flat cable, but
+                                there's a via connected to this pin near the
+                                top-left corner of the SoC, and it's much
+                                easier to solder there.
+
+        See also:  doc/bitbang-seria-port.jpg
+                   doc/hardware-notes.txt
+
+        After %bitbang runs successfully, the default debug device 'd' will be
+        the new serial connection. Both devices are available as d_remote and
+        d_bitbang, but the bitbang interface is now in the driver's seat.
+        """
+        args = parse_argstring(self.bitbang, line)
+        d_remote = self.shell.user_ns.get('d_remote')
+        d_bitbang = self.shell.user_ns.get('d_bitbang')
+
+        if args.exit:
+            if not d_bitbang:
+                raise UsageError("No bitbang shell to exit")
+
+            d_bitbang.exit()
+            self.shell.user_ns['d_bitbang'] = None
+            self.shell.user_ns['d'] = d_remote
+            d_remote.reset()
+
+        else:
+            if d_bitbang:
+                raise UsageError("A bitbang connection already exists (d_bitbang)")
+            if not args.serial_port:
+                raise UsageError("Need a hardware serial port; see 'bitbang?' for more info")
+
+            if not args.attach:
+                evalc(d_remote, 'bitbang_backdoor()', defines=all_defines(), address=args.address, verbose=True) 
+
+            d_bitbang = BitbangDevice(args.serial_port)
+            self.shell.user_ns['d_bitbang'] = d_bitbang
+            self.shell.user_ns['d'] = d_bitbang
+

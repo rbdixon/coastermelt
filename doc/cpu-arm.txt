@@ -161,7 +161,7 @@ Very rough notes, may be wildly wrong.
                                       2
                                       4
                                       8
-                                    400
+                                    400    Also changing frequently
                                     800
                                    1000
                                  100000
