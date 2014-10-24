@@ -140,7 +140,7 @@ class BitbangDevice:
     @_maintain_sync
     def peek_byte(self, address):
         self._write(struct.pack('<BI', 0xd2, address))
-        data, check = struct.unpack('<BI', self.port.read(8))
+        data, check = struct.unpack('<BI', self.port.read(5))
         self._check(check, data, address)
         return data
 
