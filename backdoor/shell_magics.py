@@ -709,7 +709,7 @@ class ShellMagics(magic.Magics):
         else:
             # New simulator object, default to 0 steps
             if steps is None: steps = 0
-            arm = SimARM(d)
+            arm = simulate_arm(d)
             ns['arm'] = arm
             self.shell.write('- initialized simulation state\n')
             state = 'INIT'

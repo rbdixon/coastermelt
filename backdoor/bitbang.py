@@ -173,7 +173,7 @@ class BitbangDevice:
     @_maintain_sync
     def fill_words(self, address, word, wordcount):
         self._write(struct.pack('<BIII', 0x96, address, word, wordcount))
-        check = struct.unpack('<I', self.port.read(4))
+        check = struct.unpack('<I', self.port.read(4))[0]
         self._check(check, word, address + 4 * wordcount)
 
     @_auto_retry

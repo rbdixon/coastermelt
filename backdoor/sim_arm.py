@@ -11,23 +11,32 @@
 # language. This is really more of an ARM assembly interpreter than a CPU
 # simulator, but it'll be close enough.
 
-__all__ = [ 'SimARM' ]
+__all__ = [ 'simulate_arm' ]
 
+import cStringIO
 from code import *
+from dump import *
 
 
-class SimARM:
+def simulate_arm(device):
+    """Create a new ARM simulator, backed by the provided remote device
+    Returns a SimARM object with regs[], memory, and step().
+    """
+    return SimARM(SimARMMemory(device))
+
+
+class SimARMMemory:
+    """Memory manager for a simulated ARM core, backed by a remote device.
+    
+    This manages a tiny bit of caching and write consolidation, to conserve
+    bandwidth on the bitbang debug pipe.
+    """
     def __init__(self, device):
-        # Link with the device whose memory we'll be using
         self.device = device
 
-        # State
-        self.regs = [0] * 16
-        self.thumb = False
-        self.cpsrV = False
-        self.cpsrC = False
-        self.cpsrZ = False
-        self.cpsrN = False
+        # Caches, read-only data and instructions from program memory
+        self.rodata = {}
+        self.instructions = {}
 
         # Special addresses
         self.skip_stores = {
@@ -36,8 +45,96 @@ class SimARM:
             0x04030f44: "Power or GPIO init? Breaks bitbang backdoor.",
         }
 
-        # Cache for disassembled instructions
-        self.instructions = {}
+        # Detect fills
+        self._fill_pattern = None
+        self._fill_address = None
+        self._fill_count = None
+
+    def flush(self):
+        # If there's a cached fill, make it happen
+        if self._fill_count:
+            count = self._fill_count
+            address = self._fill_address - count * 4
+            pattern = self._fill_pattern
+            self._fill_pattern = None
+            self._fill_address = None
+            self._fill_count = None
+
+            print "FILL  [%08x]x%04x <- %08x" % (address, count, pattern)
+            self.device.fill_words(address, pattern, count)
+
+    def load(self, address):
+        # Cached
+        if address in self.rodata:
+            return self.rodata[address]
+
+        # Flash prefetch
+        if address < 0x200000:
+            block = read_block(self.device, address, 0x20, max_round_trips=1)
+            for i, w in enumerate(words_from_string(block)):
+                self.rodata[address + 4*i] = w
+            return self.rodata[address]
+
+        # Non-cached device address
+        self.flush()
+        data = self.device.peek(address)
+        print "LOAD  [%08x] -> %08x" % (address, data)
+        return data
+
+    def store(self, address, data):
+        if address in self.skip_stores:
+            print "STORE [%08x] <- %08x (skipped: %s)" % (address, data, self.skip_stores[address])
+            return
+
+        if data == self._fill_pattern and address == self._fill_address:
+            # Extend an existing fill
+            self._fill_count += 1
+            self._fill_address += 4
+            return
+
+        elif self._fill_count:
+            # End a fill
+            self.flush()
+
+        else:
+            # Look for a fill starting at the next word
+            self._fill_pattern = data
+            self._fill_address = address + 4
+            self._fill_count = 0
+
+        print "STORE [%08x] <- %08x" % (address, data)
+        self.device.poke(address, data)
+
+    def fetch(self, addr, thumb):
+        try:
+            return self.instructions[addr]
+        except KeyError:
+            self._load_instruction(addr, thumb)
+            return self.instructions[addr]
+
+    def _load_instruction(self, addr, thumb, fetch_size = 32):
+        lines = disassembly_lines(disassemble(self.device, addr, fetch_size, thumb=thumb))
+        for i in range(len(lines) - 1):
+            lines[i].next_address = lines[i+1].address
+            self.instructions[lines[i].address] = lines[i]
+
+
+class SimARM:
+    """Main simulator class for the ARM subset we support in %sim
+
+    Registers are available at regs[], call step() to single-step. Uses the
+    provided memory manager object to handle load(), store(), and fetch().
+    """
+    def __init__(self, memory):
+        self.memory = memory
+
+        # State
+        self.regs = [0] * 16
+        self.thumb = False
+        self.cpsrV = False
+        self.cpsrC = False
+        self.cpsrZ = False
+        self.cpsrN = False
 
         # Register lookup
         self.reg_names = ('r0', 'r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7', 
@@ -58,6 +155,24 @@ class SimARM:
             if name.startswith('op_'):
                 self._generate_condition_codes(getattr(self, name), name + '%s')
 
+    def step(self):
+        """Step the simulated ARM by one instruction"""
+        regs = self.regs
+        instr = self.memory.fetch(regs[15], self.thumb)
+        self._branch = None
+
+        # Inside the instruction, PC reads as PC+8
+        regs[15] += 8
+        try:
+            getattr(self, 'op_' + instr.op)(instr)
+            regs[15] = self._branch or instr.next_address
+        except:
+            regs[15] = instr.address
+            raise
+
+    def get_next_instruction(self):
+        return self.memory.fetch(self.regs[15], self.thumb)
+
     def _generate_ldstm(self, memop, mode):
         impl = mode or 'ia'
         def fn(i):
@@ -71,9 +186,9 @@ class SimARM:
                 if impl == 'ib': addr += 4
                 if impl == 'db': addr -= 4
                 if memop == 'st':
-                    self.store(addr, self.regs[self.reg_numbers[r]])
+                    self.memory.store(addr, self.regs[self.reg_numbers[r]])
                 else:
-                    self._dstpc(r, self.load(addr))
+                    self._dstpc(r, self.memory.load(addr))
                 if impl == 'ia': addr += 4
                 if impl == 'da': addr -= 4
     
@@ -102,48 +217,6 @@ class SimARM:
         setattr(self, name % 'gt', lambda i, fn=fn: (((not not self.cpsrN) == (not not self.cpsrV)) and not self.cpsrZ ) and fn(i))
         setattr(self, name % 'le', lambda i, fn=fn: (((not not self.cpsrN) != (not not self.cpsrV)) or self.cpsrZ      ) and fn(i))
         setattr(self, name % 'al', fn)
-
-    def step(self):
-        regs = self.regs
-        instr = self.get_instruction(regs[15])
-        self._branch = None
-
-        # Inside the instruction, PC reads as PC+8
-        regs[15] += 8
-        try:
-            getattr(self, 'op_' + instr.op)(instr)
-            regs[15] = self._branch or instr.next_address
-        except:
-            regs[15] = instr.address
-            raise
-
-    def load(self, address):
-        data = self.device.peek(address)
-        print "LOAD  [%08x] -> %08x" % (address, data)
-        return data
-
-    def store(self, address, data):
-        if address in self.skip_stores:
-            print "STORE [%08x] <- %08x (skipped: %s)" % (address, data, self.skip_stores[address])
-        else:
-            print "STORE [%08x] <- %08x" % (address, data)
-            self.device.poke(address, data)
-
-    def get_next_instruction(self):
-        return self.get_instruction(self.regs[15])
-
-    def get_instruction(self, addr):
-        try:
-            return self.instructions[addr]
-        except KeyError:
-            self._load_instruction(addr)
-            return self.instructions[addr]
-
-    def _load_instruction(self, addr, fetch_size = 32):
-        lines = disassembly_lines(disassemble(self.device, addr, fetch_size, thumb=self.thumb))
-        for i in range(len(lines) - 1):
-            lines[i].next_address = lines[i+1].address
-            self.instructions[lines[i].address] = lines[i]
 
     def _reg_or_literal(self, s):
         if s[0] == '#':
@@ -178,7 +251,7 @@ class SimARM:
         if len(addrs) > 1:
             assert addrs[1][0] == '#'
             v = (v & ~3) + int(addrs[1][1:], 0)
-        self._dstpc(left, self.load(v))
+        self._dstpc(left, self.memory.load(v))
 
     def op_str(self, i):
         left, right = i.args.split(', ', 1)
@@ -188,20 +261,20 @@ class SimARM:
         if len(addrs) > 1:
             assert addrs[1][0] == '#'
             v = (v & ~3) + int(addrs[1][1:], 0)
-        self.store(v, self.regs[self.reg_numbers[left]])
+        self.memory.store(v, self.regs[self.reg_numbers[left]])
 
     def op_push(self, i):
         reglist = i.args.strip('{}').split(', ')
         sp = self.regs[13] - 4 * len(reglist)
         self.regs[13] = sp
         for i in range(len(reglist)):
-            self.store(sp + 4 * i, self.regs[self.reg_numbers[reglist[i]]])
+            self.memory.store(sp + 4 * i, self.regs[self.reg_numbers[reglist[i]]])
 
     def op_pop(self, i):
         reglist = i.args.strip('{}').split(', ')
         sp = self.regs[13]
         for i in range(len(reglist)):
-            self._dstpc(reglist[i], self.load(sp + 4 * i))
+            self._dstpc(reglist[i], self.memory.load(sp + 4 * i))
         self.regs[13] = sp + 4 * len(reglist)
 
     def op_bx(self, i):
@@ -228,6 +301,10 @@ class SimARM:
     def op_mov(self, i):
         dst, src = i.args.split(', ', 1)
         self._dstpc(dst, self._reg_or_literal(src))
+
+    def op_mvn(self, i):
+        dst, src = i.args.split(', ', 1)
+        self._dstpc(dst, 0xffffffff ^ self._reg_or_literal(src))
 
     def op_bic(self, i):
         dst, src0, src1 = self._3arg(i)
@@ -358,4 +435,3 @@ class SimARM:
         """Stub"""
         dst, src = i.args.split(', ')
         self.regs[self.reg_numbers[dst]] = 0x5d5d5d5d
-
