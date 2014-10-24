@@ -683,7 +683,8 @@ class ShellMagics(magic.Magics):
 
     @magic.line_magic
     @magic_arguments()
-    @argument('-t', '--trace', action='store_true', help='Show full state after every step, not just when done')
+    @argument('-t', '--trace', action='store_true', help='Show full register state after every step, not just when done')
+    @argument('-q', '--quiet', action='store_true', help='Avoid logging trace state, just log I/O')
     @argument('steps', nargs='?', type=int, help='Number of steps to take (decimal int)')
     def sim(self, line):
         """Take a step in a simulated ARM processor.
@@ -697,7 +698,8 @@ class ShellMagics(magic.Magics):
         d = ns['d']
         arm = ns.get('arm')
         steps = args.steps
-            
+        state = ''
+
         if arm:
             # Update existing ARM object, default to 1 step
             if steps is None: steps = 1
@@ -710,19 +712,32 @@ class ShellMagics(magic.Magics):
             arm = SimARM(d)
             ns['arm'] = arm
             self.shell.write('- initialized simulation state\n')
+            state = 'INIT'
 
         while True:
             if steps > 0:
-                self.shell.write('- step, %d left\n' % (steps - 1))
+                state = 'step'
                 arm.step()
                 steps -= 1
 
+                # Bridge updated register state back to shell
+                # after every successful step; helps recover from
+                # errors during development. If this is a performance
+                # bottleneck it can easily move to the end of this function.
+                for i, name in enumerate(arm.reg_names):
+                    ns[name] = arm.regs[i]
+
+            if not args.quiet:
+                up_next = arm.get_next_instruction()
+                self.shell.write("%4s>> %08x  %-11s %-10s %-32s\n" %
+                    (state, up_next.address,
+                    ('arm', 'thumb')[arm.thumb],
+                    up_next.op, up_next.args))
+
             # Trace, either once at the end or each step
             if steps == 0 or args.trace:
-                up_next = arm.get_next_instruction()
-                self.shell.write(" >>> %08x    %s\t%s\n" % (up_next.address, up_next.op, up_next.args))
-
                 for y in range(4):
+                    self.shell.write('  ')
                     for x in range(4):
                         i = y + x*4
                         self.shell.write('%4s=%08x' % (arm.reg_names[i], arm.regs[i]))
@@ -730,8 +745,3 @@ class ShellMagics(magic.Magics):
 
             if steps == 0:
                 break
-
-        # Bridge updated register state back to shell
-        for i, name in enumerate(arm.reg_names):
-            ns[name] = arm.regs[i]
-
