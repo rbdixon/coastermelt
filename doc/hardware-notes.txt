@@ -336,3 +336,16 @@ Components:
 
   360 mA    Tray solenoid
 
+
+Spindle Motor
+=============
+
+Brushless motor, highest power draw in system. Driven by TPIC1356 chip.
+Power cutoff controlled by tray switch #2.
+
+With ARM wedged in bitbang_backdoor:
+- motor still starts/stops when tray switch opened/closed
+- can detect disc / no-disc. With no-disc, stops rotation.
+
+Could be these smarts are in the TPIC1356. Also could be in the DSP code?
+
