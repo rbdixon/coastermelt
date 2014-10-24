@@ -43,6 +43,7 @@ class SimARMMemory:
             0x04020f24: "Power or GPIO init? Breaks bitbang backdoor.",
             0x04030f04: "Power or GPIO init? Breaks bitbang backdoor.",
             0x04030f44: "Power or GPIO init? Breaks bitbang backdoor.",
+            0x04002088: "LED / Solenoid GPIOs, breaks bitbang backdoor",
         }
 
         # Detect fills
@@ -117,7 +118,7 @@ class SimARMMemory:
     def store(self, address, data):
         if address in self.skip_stores:
             self.log_store(address, data,
-                message='(skipped: %s)"'% self.skip_stores[address])
+                message='(skipped: %s)'% self.skip_stores[address])
             return
 
         if data == self._fill_pattern and address == self._fill_address:
@@ -208,9 +209,11 @@ class SimARM:
         self.cpsrZ = False
         self.cpsrN = False
         self.regs[15] = vector
+        self.step_count = 0
 
     def step(self):
         """Step the simulated ARM by one instruction"""
+        self.step_count += 1
         regs = self.regs
         instr = self.memory.fetch(regs[15], self.thumb)
         self._branch = None
@@ -280,6 +283,19 @@ class SimARM:
             return int(s[1:], 0)
         return self.regs[self.reg_numbers[s]]
 
+    def _shifter(self, s):
+        l = s.split(', ', 1)
+        if len(l) == 2:
+            op, arg = l[1].split(' ')
+            assert arg[0] == '#'
+            if op == 'lsl':  return 0xffffffff & (self._reg_or_literal(l[0]) << int(arg[1:], 0))
+            if op == 'lsr':  return 0xffffffff & (self._reg_or_literal(l[0]) >> int(arg[1:], 0))
+            if op == 'asr':
+                r = self._reg_or_literal(l[0])
+                if r & 0x80000000: r |= 0xffffffff00000000
+                return 0xffffffff & (r >> int(arg[0], 0))
+        return self._reg_or_literal(s)
+
     def _reg_or_target(self, s):
         if s in self.reg_numbers:
             return self.regs[self.reg_numbers[s]]
@@ -296,7 +312,7 @@ class SimARM:
 
     @staticmethod
     def _3arg(i):
-        l = i.args.split(', ')
+        l = i.args.split(', ', 2)
         if len(l) == 3:
             return l
         else:
@@ -380,7 +396,7 @@ class SimARM:
 
     def op_mov(self, i):
         dst, src = i.args.split(', ', 1)
-        self._dstpc(dst, self._reg_or_literal(src))
+        self._dstpc(dst, self._shifter(src))
 
     def op_movs(self, i):
         dst, src = i.args.split(', ', 1)
@@ -391,58 +407,65 @@ class SimARM:
 
     def op_mvn(self, i):
         dst, src = i.args.split(', ', 1)
-        self._dstpc(dst, 0xffffffff ^ self._reg_or_literal(src))
+        self._dstpc(dst, 0xffffffff ^ self._shifter(src))
 
     def op_bic(self, i):
         dst, src0, src1 = self._3arg(i)
-        r = self.regs[self.reg_numbers[src0]] & ~self._reg_or_literal(src1)
+        r = self.regs[self.reg_numbers[src0]] & ~self._shifter(src1)
+        self._dstpc(dst, r)
+
+    def op_bics(self, i):
+        dst, src0, src1 = self._3arg(i)
+        r = self.regs[self.reg_numbers[src0]] & ~self._shifter(src1)
+        self.cpsrZ = r == 0
+        self.cpsrN = r >> 31
         self._dstpc(dst, r)
 
     def op_orr(self, i):
         dst, src0, src1 = self._3arg(i)
-        r = self.regs[self.reg_numbers[src0]] | self._reg_or_literal(src1)
+        r = self.regs[self.reg_numbers[src0]] | self._shifter(src1)
         self._dstpc(dst, r)
 
     def op_orrs(self, i):
         dst, src0, src1 = self._3arg(i)
-        r = self.regs[self.reg_numbers[src0]] | self._reg_or_literal(src1)
+        r = self.regs[self.reg_numbers[src0]] | self._shifter(src1)
         self.cpsrZ = r == 0
         self.cpsrN = r >> 31
         self._dstpc(dst, r)
 
     def op_and(self, i):
         dst, src0, src1 = self._3arg(i)
-        r = self.regs[self.reg_numbers[src0]] & self._reg_or_literal(src1)
+        r = self.regs[self.reg_numbers[src0]] & self._shifter(src1)
         self._dstpc(dst, r)
 
     def op_ands(self, i):
         dst, src0, src1 = self._3arg(i)
-        r = self.regs[self.reg_numbers[src0]] & self._reg_or_literal(src1)
+        r = self.regs[self.reg_numbers[src0]] & self._shifter(src1)
         self.cpsrZ = r == 0
         self.cpsrN = r >> 31
         self._dstpc(dst, r)
 
     def op_tst(self, i):
         dst, src0, src1 = self._3arg(i)
-        r = self.regs[self.reg_numbers[src0]] & self._reg_or_literal(src1)
+        r = self.regs[self.reg_numbers[src0]] & self._shifter(src1)
         self.cpsrZ = r == 0
         self.cpsrN = r >> 31
 
     def op_eor(self, i):
         dst, src0, src1 = self._3arg(i)
-        r = self.regs[self.reg_numbers[src0]] ^ self._reg_or_literal(src1)
+        r = self.regs[self.reg_numbers[src0]] ^ self._shifter(src1)
         self._dstpc(dst, r)
 
     def op_eors(self, i):
         dst, src0, src1 = self._3arg(i)
-        r = self.regs[self.reg_numbers[src0]] ^ self._reg_or_literal(src1)
+        r = self.regs[self.reg_numbers[src0]] ^ self._shifter(src1)
         self.cpsrZ = r == 0
         self.cpsrN = r >> 31
         self._dstpc(dst, r)
         
     def op_add(self, i):
         dst, src0, src1 = self._3arg(i)
-        r = self.regs[self.reg_numbers[src0]] + self._reg_or_literal(src1)
+        r = self.regs[self.reg_numbers[src0]] + self._shifter(src1)
         self._dstpc(dst, r & 0xffffffff)
 
     def op_adds(self, i):
@@ -458,7 +481,7 @@ class SimARM:
 
     def op_sub(self, i):
         dst, src0, src1 = self._3arg(i)
-        r = self.regs[self.reg_numbers[src0]] - self._reg_or_literal(src1)
+        r = self.regs[self.reg_numbers[src0]] - self._shifter(src1)
         self._dstpc(dst, r & 0xffffffff)
 
     def op_subs(self, i):

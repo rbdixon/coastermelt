@@ -685,6 +685,7 @@ class ShellMagics(magic.Magics):
     @magic_arguments()
     @argument('-t', '--trace', action='store_true', help='Show full register state after every step, not just when done')
     @argument('-q', '--quiet', action='store_true', help='Avoid logging trace state, just log I/O')
+    @argument('-r', '--reset', type=hexint, help='Reset the processor, sending it to the indicated vector')
     @argument('steps', nargs='?', type=int, help='Number of steps to take (decimal int)')
     def sim(self, line):
         """Take a step in a simulated ARM processor.
@@ -714,6 +715,10 @@ class ShellMagics(magic.Magics):
             self.shell.write('- initialized simulation state\n')
             state = 'INIT'
 
+        if args.reset is not None:
+            state = 'RST'
+            arm.reset(args.reset)
+
         while True:
             if steps > 0:
                 state = 'step'
@@ -729,8 +734,8 @@ class ShellMagics(magic.Magics):
 
             if not args.quiet:
                 up_next = arm.get_next_instruction()
-                self.shell.write("%4s>> %08x  %-11s %-10s %-32s\n" %
-                    (state, up_next.address,
+                self.shell.write("%8d  [%4s] >%08x  %-11s %-10s %-32s\n" %
+                    (arm.step_count, state, up_next.address,
                     ('arm', 'thumb')[arm.thumb],
                     up_next.op, up_next.args))
 

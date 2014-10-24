@@ -232,7 +232,7 @@ void bitbang_backdoor()
 
             case 0xC3:      // Poke byte
                 address = bitbang_read32();
-                data = bitbang_read32();
+                data = bitbang_read();
                 *(uint32_t*)address = data;
                 break;
 
