@@ -172,7 +172,7 @@ def disassemble_string(data, address = 0, thumb = True):
 
         text = subprocess.check_output([
             OBJDUMP, '-D', '-w', '-z',
-            '-b', 'binary', '-m', 'arm7tdmi', 
+            '-b', 'binary', '-m', 'armv5t', 
             '--prefix-addresses',
             '--adjust-vma', '0x%08x' % address,
             '-M', ('force-thumb', 'no-force-thumb')[not thumb],

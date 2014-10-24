@@ -50,6 +50,22 @@ class SimARMMemory:
         self._fill_address = None
         self._fill_count = None
 
+
+    def log_store(self, address, data, size='word', message=''):
+        print "STORE %4s[%08x] <- %08x %s" % (size, address, data, message)
+
+    def log_fill(self, address, pattern, count, size='word'):
+        print "FILL  %4s[%08x] <- %08x * %04x" % (size, address, pattern, count)
+
+    def log_load(self, address, data, size='word'):
+        print "LOAD  %4s[%08x] -> %08x" % (size, address, data)
+
+    def check_address(self, address):
+        # Called before write (crash less) and after read (curiosity)
+        if address >= 0x05000000:
+            raise IndexError("Address %08x doesn't look valid. Simulator bug?" % address)
+
+
     def flush(self):
         # If there's a cached fill, make it happen
         if self._fill_count:
@@ -59,9 +75,12 @@ class SimARMMemory:
             self._fill_pattern = None
             self._fill_address = None
             self._fill_count = None
-
-            print "FILL  [%08x]x%04x <- %08x" % (address, count, pattern)
-            self.device.fill_words(address, pattern, count)
+            if count == 1:
+                self.log_store(address, pattern)
+                self.device.poke(address, pattern)
+            else:
+                self.log_fill(address, pattern, count)
+                self.device.fill_words(address, pattern, count)
 
     def load(self, address):
         # Cached
@@ -78,12 +97,27 @@ class SimARMMemory:
         # Non-cached device address
         self.flush()
         data = self.device.peek(address)
-        print "LOAD  [%08x] -> %08x" % (address, data)
+        self.log_load(address, data)
+        self.check_address(address)
+        return data
+
+    def load_half(self, address):
+        # Doesn't seem to be architecturally necessary; emulate with bytes
+        data = self.device.peek_byte(address) | (self.device.peek_byte(address + 1) << 8)
+        self.log_load(address, data, 'half')
+        self.check_address(address)
+        return data
+
+    def load_byte(self, address):
+        data = self.device.peek_byte(address)
+        self.log_load(address, data, 'byte')
+        self.check_address(address)
         return data
 
     def store(self, address, data):
         if address in self.skip_stores:
-            print "STORE [%08x] <- %08x (skipped: %s)" % (address, data, self.skip_stores[address])
+            self.log_store(address, data,
+                message='(skipped: %s)"'% self.skip_stores[address])
             return
 
         if data == self._fill_pattern and address == self._fill_address:
@@ -102,21 +136,35 @@ class SimARMMemory:
             self._fill_address = address + 4
             self._fill_count = 0
 
-        print "STORE [%08x] <- %08x" % (address, data)
+        self.log_store(address, data)
+        self.check_address(address)
         self.device.poke(address, data)
 
-    def fetch(self, addr, thumb):
-        try:
-            return self.instructions[addr]
-        except KeyError:
-            self._load_instruction(addr, thumb)
-            return self.instructions[addr]
+    def store_half(self, address, data):
+        # Doesn't seem to be architecturally necessary; emulate with bytes
+        self.log_store(address, data, 'half')
+        self.check_address(address)
+        self.device.poke_byte(address, data & 0xff)
+        self.device.poke_byte(address + 1, data >> 8)
 
-    def _load_instruction(self, addr, thumb, fetch_size = 32):
-        lines = disassembly_lines(disassemble(self.device, addr, fetch_size, thumb=thumb))
+    def store_byte(self, address, data):
+        self.log_store(address, data, 'byte')
+        self.check_address(address)
+        self.device.poke_byte(address, data)
+
+    def fetch(self, address, thumb):
+        try:
+            return self.instructions[thumb | (address & ~1)]
+        except KeyError:
+            self.check_address(address)
+            self._load_instruction(address, thumb)
+            return self.instructions[thumb | (address & ~1)]
+
+    def _load_instruction(self, address, thumb, fetch_size = 32):
+        lines = disassembly_lines(disassemble(self.device, address, fetch_size, thumb=thumb))
         for i in range(len(lines) - 1):
             lines[i].next_address = lines[i+1].address
-            self.instructions[lines[i].address] = lines[i]
+            self.instructions[thumb | (lines[i].address & ~1)] = lines[i]
 
 
 class SimARM:
@@ -127,14 +175,7 @@ class SimARM:
     """
     def __init__(self, memory):
         self.memory = memory
-
-        # State
-        self.regs = [0] * 16
-        self.thumb = False
-        self.cpsrV = False
-        self.cpsrC = False
-        self.cpsrZ = False
-        self.cpsrN = False
+        self.reset(0)
 
         # Register lookup
         self.reg_names = ('r0', 'r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7', 
@@ -155,14 +196,30 @@ class SimARM:
             if name.startswith('op_'):
                 self._generate_condition_codes(getattr(self, name), name + '%s')
 
+        # Near branches
+        self.__dict__['op_b.n'] = self.op_b
+        self._generate_condition_codes(self.op_b, 'op_b%s.n')
+
+    def reset(self, vector):
+        self.regs = [0] * 16
+        self.thumb = False
+        self.cpsrV = False
+        self.cpsrC = False
+        self.cpsrZ = False
+        self.cpsrN = False
+        self.regs[15] = vector
+
     def step(self):
         """Step the simulated ARM by one instruction"""
         regs = self.regs
         instr = self.memory.fetch(regs[15], self.thumb)
         self._branch = None
 
-        # Inside the instruction, PC reads as PC+8
-        regs[15] += 8
+        if self.thumb:
+            regs[15] = (instr.next_address + 3) & ~3
+        else:
+            regs[15] += 8
+
         try:
             getattr(self, 'op_' + instr.op)(instr)
             regs[15] = self._branch or instr.next_address
@@ -229,6 +286,14 @@ class SimARM:
         else:
             return int(s, 0)
 
+    def _reladdr(self, right):
+        assert right[0] == '['
+        addrs = right.strip('[]').split(', ')
+        v = self.regs[self.reg_numbers[addrs[0]]]
+        if len(addrs) > 1:
+            v += self._reg_or_literal(addrs[1])
+        return v
+
     @staticmethod
     def _3arg(i):
         l = i.args.split(', ')
@@ -239,29 +304,34 @@ class SimARM:
 
     def _dstpc(self, dst, r):
         if dst == 'pc':
-            self._branch = r
+            self._branch = r & ~1
+            self.thumb = r & 1
         else:
             self.regs[self.reg_numbers[dst]] = r
 
     def op_ldr(self, i):
         left, right = i.args.split(', ', 1)
-        assert right[0] == '['
-        addrs = right.strip('[]').split(', ')
-        v = self.regs[self.reg_numbers[addrs[0]]]
-        if len(addrs) > 1:
-            assert addrs[1][0] == '#'
-            v = (v & ~3) + int(addrs[1][1:], 0)
-        self._dstpc(left, self.memory.load(v))
+        self._dstpc(left, self.memory.load(self._reladdr(right)))
+
+    def op_ldrh(self, i):
+        left, right = i.args.split(', ', 1)
+        self._dstpc(left, self.memory.load_half(self._reladdr(right)))
+
+    def op_ldrb(self, i):
+        left, right = i.args.split(', ', 1)
+        self._dstpc(left, self.memory.load_byte(self._reladdr(right)))
 
     def op_str(self, i):
         left, right = i.args.split(', ', 1)
-        assert right[0] == '['
-        addrs = right.strip('[]').split(', ')
-        v = self.regs[self.reg_numbers[addrs[0]]]
-        if len(addrs) > 1:
-            assert addrs[1][0] == '#'
-            v = (v & ~3) + int(addrs[1][1:], 0)
-        self.memory.store(v, self.regs[self.reg_numbers[left]])
+        self.memory.store(self._reladdr(right), self.regs[self.reg_numbers[left]])
+
+    def op_strh(self, i):
+        left, right = i.args.split(', ', 1)
+        self.memory.store_half(self._reladdr(right), self.regs[self.reg_numbers[left]])
+
+    def op_strb(self, i):
+        left, right = i.args.split(', ', 1)
+        self.memory.store_byte(self._reladdr(right), self.regs[self.reg_numbers[left]])
 
     def op_push(self, i):
         reglist = i.args.strip('{}').split(', ')
@@ -278,19 +348,29 @@ class SimARM:
         self.regs[13] = sp + 4 * len(reglist)
 
     def op_bx(self, i):
-        r = self._reg_or_target(i.args)
-        self._branch = r & ~1
-        self.thumb = r & 1
+        if i.args in self.reg_numbers:
+            r = self.regs[self.reg_numbers[i.args]]
+            self._branch = r & ~1
+            self.thumb = r & 1
+        else:
+            r = int(i.args, 0)
+            self._branch = r & ~1
+            self.thumb = not self.thumb
 
     def op_bl(self, i):
-        self.regs[14] = i.next_address
+        self.regs[14] = i.next_address | self.thumb
         self._branch = self._reg_or_target(i.args)
 
     def op_blx(self, i):
-        self.regs[14] = i.next_address
-        r = self._reg_or_target(i.args)
-        self._branch = r & ~1
-        self.thumb = r & 1
+        self.regs[14] = i.next_address | self.thumb
+        if i.args in self.reg_numbers:
+            r = self.regs[self.reg_numbers[i.args]]
+            self._branch = r & ~1
+            self.thumb = r & 1
+        else:
+            r = int(i.args, 0)
+            self._branch = r & ~1
+            self.thumb = not self.thumb
 
     def op_b(self, i):
         self._branch = int(i.args, 0)
@@ -301,6 +381,13 @@ class SimARM:
     def op_mov(self, i):
         dst, src = i.args.split(', ', 1)
         self._dstpc(dst, self._reg_or_literal(src))
+
+    def op_movs(self, i):
+        dst, src = i.args.split(', ', 1)
+        r = self._reg_or_literal(src)
+        self.cpsrZ = r == 0
+        self.cpsrN = r >> 31
+        self._dstpc(dst, r)
 
     def op_mvn(self, i):
         dst, src = i.args.split(', ', 1)
@@ -356,6 +443,17 @@ class SimARM:
     def op_add(self, i):
         dst, src0, src1 = self._3arg(i)
         r = self.regs[self.reg_numbers[src0]] + self._reg_or_literal(src1)
+        self._dstpc(dst, r & 0xffffffff)
+
+    def op_adds(self, i):
+        dst, src0, src1 = self._3arg(i)
+        a = self.regs[self.reg_numbers[src0]]
+        b = self._reg_or_literal(src1)
+        r = a + b
+        self.cpsrN = r >> 31
+        self.cpsrZ = not (r & 0xffffffff)
+        self.cpsrC = r > 0xffffffff
+        self.cpsrV = (a >> 31) == (b >> 31) and (a >> 31) != (r >> 31) and (b >> 31) != (r >> 31)
         self._dstpc(dst, r & 0xffffffff)
 
     def op_sub(self, i):
