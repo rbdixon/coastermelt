@@ -284,17 +284,25 @@ class SimARM:
         return self.regs[self.reg_numbers[s]]
 
     def _shifter(self, s):
+        # Returns (result, carry)
         l = s.split(', ', 1)
         if len(l) == 2:
             op, arg = l[1].split(' ')
             assert arg[0] == '#'
-            if op == 'lsl':  return 0xffffffff & (self._reg_or_literal(l[0]) << int(arg[1:], 0))
-            if op == 'lsr':  return 0xffffffff & (self._reg_or_literal(l[0]) >> int(arg[1:], 0))
+            if op == 'lsl':
+                r = self._reg_or_literal(l[0]) << int(arg[1:], 0)
+                c = r >> 32
+            elif op == 'lsr':
+                r = self._reg_or_literal(l[0]) >> int(arg[1:], 0)
+                c = r >> 32
             if op == 'asr':
                 r = self._reg_or_literal(l[0])
                 if r & 0x80000000: r |= 0xffffffff00000000
-                return 0xffffffff & (r >> int(arg[0], 0))
-        return self._reg_or_literal(s)
+                s = int(arg[0], 0)
+                r = r >> s
+                c = r >> (s-1)
+            return (r & 0xffffffff, c & 1)
+        return (self._reg_or_literal(s), 0)
 
     def _reg_or_target(self, s):
         if s in self.reg_numbers:
@@ -343,11 +351,11 @@ class SimARM:
 
     def op_strh(self, i):
         left, right = i.args.split(', ', 1)
-        self.memory.store_half(self._reladdr(right), self.regs[self.reg_numbers[left]])
+        self.memory.store_half(self._reladdr(right), 0xffff & self.regs[self.reg_numbers[left]])
 
     def op_strb(self, i):
         left, right = i.args.split(', ', 1)
-        self.memory.store_byte(self._reladdr(right), self.regs[self.reg_numbers[left]])
+        self.memory.store_byte(self._reladdr(right), 0xff & self.regs[self.reg_numbers[left]])
 
     def op_push(self, i):
         reglist = i.args.strip('{}').split(', ')
@@ -396,82 +404,102 @@ class SimARM:
 
     def op_mov(self, i):
         dst, src = i.args.split(', ', 1)
-        self._dstpc(dst, self._shifter(src))
+        s, _ = self._shifter(src)
+        self._dstpc(dst, s)
 
     def op_movs(self, i):
         dst, src = i.args.split(', ', 1)
-        r = self._reg_or_literal(src)
+        r, self.cpsrC = self._shifter(src)
         self.cpsrZ = r == 0
         self.cpsrN = r >> 31
         self._dstpc(dst, r)
 
     def op_mvn(self, i):
         dst, src = i.args.split(', ', 1)
-        self._dstpc(dst, 0xffffffff ^ self._shifter(src))
+        r, _ = self._shifter(src)
+        self._dstpc(dst, r ^ 0xffffffff)
+
+    def op_mvns(self, i):
+        dst, src = i.args.split(', ', 1)
+        r, self.csprC = self._shifter(src)
+        r = r ^ 0xffffffff
+        self.cpsrZ = r == 0
+        self.cpsrN = r >> 31
+        self._dstpc(dst, r)
 
     def op_bic(self, i):
         dst, src0, src1 = self._3arg(i)
-        r = self.regs[self.reg_numbers[src0]] & ~self._shifter(src1)
+        s, _ = self._shifter(src1)
+        r = self.regs[self.reg_numbers[src0]] & ~s
         self._dstpc(dst, r)
 
     def op_bics(self, i):
         dst, src0, src1 = self._3arg(i)
-        r = self.regs[self.reg_numbers[src0]] & ~self._shifter(src1)
+        s, _ = self._shifter(src1)
+        r = self.regs[self.reg_numbers[src0]] & ~s
         self.cpsrZ = r == 0
         self.cpsrN = r >> 31
         self._dstpc(dst, r)
 
     def op_orr(self, i):
         dst, src0, src1 = self._3arg(i)
-        r = self.regs[self.reg_numbers[src0]] | self._shifter(src1)
+        s, _ = self._shifter(src1)
+        r = self.regs[self.reg_numbers[src0]] | s
         self._dstpc(dst, r)
 
     def op_orrs(self, i):
         dst, src0, src1 = self._3arg(i)
-        r = self.regs[self.reg_numbers[src0]] | self._shifter(src1)
+        s, self.cpsrC = self._shifter(src1)
+        r = self.regs[self.reg_numbers[src0]] | s
         self.cpsrZ = r == 0
         self.cpsrN = r >> 31
         self._dstpc(dst, r)
 
     def op_and(self, i):
         dst, src0, src1 = self._3arg(i)
-        r = self.regs[self.reg_numbers[src0]] & self._shifter(src1)
+        s, _ = self._shifter(src1)
+        r = self.regs[self.reg_numbers[src0]] & s
         self._dstpc(dst, r)
 
     def op_ands(self, i):
         dst, src0, src1 = self._3arg(i)
-        r = self.regs[self.reg_numbers[src0]] & self._shifter(src1)
+        s, self.cpsrC = self._shifter(src1)
+        r = self.regs[self.reg_numbers[src0]] & s
         self.cpsrZ = r == 0
         self.cpsrN = r >> 31
         self._dstpc(dst, r)
 
     def op_tst(self, i):
         dst, src0, src1 = self._3arg(i)
-        r = self.regs[self.reg_numbers[src0]] & self._shifter(src1)
+        s, self.cpsrC = self._shifter(src1)
+        r = self.regs[self.reg_numbers[src0]] & s
         self.cpsrZ = r == 0
         self.cpsrN = r >> 31
 
     def op_eor(self, i):
         dst, src0, src1 = self._3arg(i)
-        r = self.regs[self.reg_numbers[src0]] ^ self._shifter(src1)
+        s, _ = self._shifter(src1)
+        r = self.regs[self.reg_numbers[src0]] ^ s
         self._dstpc(dst, r)
 
     def op_eors(self, i):
         dst, src0, src1 = self._3arg(i)
-        r = self.regs[self.reg_numbers[src0]] ^ self._shifter(src1)
+        s, self.cpsrC = self._shifter(src1)
+        r = self.regs[self.reg_numbers[src0]] ^ s
         self.cpsrZ = r == 0
         self.cpsrN = r >> 31
         self._dstpc(dst, r)
         
     def op_add(self, i):
         dst, src0, src1 = self._3arg(i)
-        r = self.regs[self.reg_numbers[src0]] + self._shifter(src1)
+        s, _ = self._shifter(src1)
+        r = self.regs[self.reg_numbers[src0]] + s
         self._dstpc(dst, r & 0xffffffff)
 
     def op_adds(self, i):
         dst, src0, src1 = self._3arg(i)
         a = self.regs[self.reg_numbers[src0]]
-        b = self._reg_or_literal(src1)
+        b, _ = self._shifter(src1)
         r = a + b
         self.cpsrN = r >> 31
         self.cpsrZ = not (r & 0xffffffff)
@@ -481,13 +509,14 @@ class SimARM:
 
     def op_sub(self, i):
         dst, src0, src1 = self._3arg(i)
-        r = self.regs[self.reg_numbers[src0]] - self._shifter(src1)
+        s, _ = self._shifter(src1)
+        r = self.regs[self.reg_numbers[src0]] - s
         self._dstpc(dst, r & 0xffffffff)
 
     def op_subs(self, i):
         dst, src0, src1 = self._3arg(i)
         a = self.regs[self.reg_numbers[src0]]
-        b = self._reg_or_literal(src1)
+        b, _ = self._shifter(src1)
         r = a - b
         self.cpsrN = r >> 31
         self.cpsrZ = not (r & 0xffffffff)
@@ -498,7 +527,7 @@ class SimARM:
     def op_cmp(self, i):
         dst, src0, src1 = self._3arg(i)
         a = self.regs[self.reg_numbers[src0]]
-        b = self._reg_or_literal(src1)
+        b, _ = self._shifter(src1)
         r = a - b
         self.cpsrN = r >> 31
         self.cpsrZ = not (r & 0xffffffff)
