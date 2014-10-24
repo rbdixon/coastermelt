@@ -100,7 +100,6 @@ uint8_t bitbang_read()
     uint32_t shift = 0, bitcount, t;
 
     while (1) {
-    
         // Wait for a start bit, then use that as a timing reference for
         // more bits: 9 of them, with an offset calibrated so we sample mid-bit.
 
@@ -195,111 +194,96 @@ void bitbang_backdoor()
      * padding/framing scheme implemented in bitbang_read. Next,
      * we have some packet formats processed by a tiny state machine:
      *
-     * Peek         55 ff F0 word(address)                                -> word(data) word(data ^ address)
-     * Poke         55 ff E1 word(address) word(data)                     -> word(data ^ address)
-     * Peek byte    55 ff D2 word(address)                                -> byte(data) word(data ^ address)
-     * Poke byte    55 ff C3 word(address) byte(data)                     -> word(data ^ address)
-     * BLX          55 ff B4 word(address) word(r0)                       -> word(r0) word(r1) word(address ^ r0)
-     * Read block   55 ff A5 word(address) word(wordcount)                -> word(data) * wordcount word(last_data ^ (4+last_address))
-     * Fill words   55 ff 96 word(address) word(pattern) word(wordcount)  -> word(pattern ^ (4+last_address)
-     * Exit         55 ff 87                                              -> 55
+     * Peek         F0 word(address)                                -> word(data) word(data ^ address)
+     * Poke         E1 word(address) word(data)                     -> word(data ^ address)
+     * Peek byte    D2 word(address)                                -> byte(data) word(data ^ address)
+     * Poke byte    C3 word(address) byte(data)                     -> word(data ^ address)
+     * BLX          B4 word(address) word(r0)                       -> word(r0) word(r1) word(address ^ r0)
+     * Read block   A5 word(address) word(wordcount)                -> word(data) * wordcount word(last_data ^ (4+last_address))
+     * Fill words   96 word(address) word(pattern) word(wordcount)  -> word(pattern ^ (4+last_address)
+     * Exit         87                                              -> 55
      * Signature    (other)                                               -> (text line)
      */
 
     critical_section crit;
     uint32_t address, data, aux;
 
-    // Header states
-    s_sig:
-        bitbang("~MeS`14 [bitbang]\r\n");
-
-    s_55:
+    while (1) {
+        // Opcode
         switch (bitbang_read()) {
-            case 0x55:  break;
-            default:    goto s_sig;
-        }
 
-    s_00:
-        switch (bitbang_read()) {
-            case 0xff:  break;
-            case 0x55:  goto s_55;
-            default:    goto s_sig;
-        }
-
-    // Opcode
-    switch (bitbang_read()) {
-
-        case 0xF0:      // Peek
-            address = bitbang_read32();
-            data = *(uint32_t*) address;
-            bitbang32(data);
-            goto s_check;
-
-        case 0xE1:      // Poke
-            address = bitbang_read32();
-            data = bitbang_read32();
-            *(uint32_t*)address = data;
-            goto s_check;
-
-        case 0xD2:      // Peek byte
-            address = bitbang_read32();
-            data = *(uint8_t*) address;
-            bitbang(data);
-            goto s_check;
-
-        case 0xC3:      // Poke byte
-            address = bitbang_read32();
-            data = bitbang_read32();
-            *(uint32_t*)address = data;
-            goto s_check;
-
-        case 0xB4:      // BLX (call)
-            address = bitbang_read32();
-            data = bitbang_read32();
-            asm ("  mov r0, %0; "
-                 "  mov r3, %2; "
-                 "  .word 0x4798; "  // blx r3
-                 "  mov %0, r0; "
-                 "  mov %1, r1; "
-                : "+r"(data), "=r"(aux)
-                : "r"(address)
-                : "memory", "r0", "r1", "r2", "r3" );
-            bitbang32(data);
-            bitbang32(aux);
-            goto s_check;
-
-        case 0xA5:      // Read block
-            address = bitbang_read32();
-            aux = bitbang_read32();
-            while (aux) {
-                data = *(uint32_t*)address;
+            case 0xF0:      // Peek
+                address = bitbang_read32();
+                data = *(uint32_t*) address;
                 bitbang32(data);
-                address += 4;
-                aux--;
-            }
-            goto s_check;
+                break;
 
-        case 0x96:      // Fill words
-            address = bitbang_read32();
-            data = bitbang_read32();
-            aux = bitbang_read32();
-            while (aux) {
+            case 0xE1:      // Poke
+                address = bitbang_read32();
+                data = bitbang_read32();
                 *(uint32_t*)address = data;
-                address += 4;
-                aux--;
-            }
-            goto s_check;
+                break;
 
-        case 0x87:      // Exit
-            bitbang(0x55);
-            return;
+            case 0xD2:      // Peek byte
+                address = bitbang_read32();
+                data = *(uint8_t*) address;
+                bitbang(data);
+                break;
 
-        default:
-            goto s_sig;
-    }
+            case 0xC3:      // Poke byte
+                address = bitbang_read32();
+                data = bitbang_read32();
+                *(uint32_t*)address = data;
+                break;
 
-    // Common data ^ address
-    s_check:
+            case 0xB4:      // BLX (call)
+                address = bitbang_read32();
+                data = bitbang_read32();
+                asm ("  mov r0, %0; "
+                     "  mov r3, %2; "
+                     "  .word 0x4798; "  // blx r3
+                     "  mov %0, r0; "
+                     "  mov %1, r1; "
+                    : "+r"(data), "=r"(aux)
+                    : "r"(address)
+                    : "memory", "r0", "r1", "r2", "r3" );
+                bitbang32(data);
+                bitbang32(aux);
+                break;
+
+            case 0xA5:      // Read block
+                address = bitbang_read32();
+                aux = bitbang_read32();
+                while (aux) {
+                    data = *(uint32_t*)address;
+                    bitbang32(data);
+                    address += 4;
+                    aux--;
+                }
+                break;
+
+            case 0x96:      // Fill words
+                address = bitbang_read32();
+                data = bitbang_read32();
+                aux = bitbang_read32();
+                while (aux) {
+                    *(uint32_t*)address = data;
+                    address += 4;
+                    aux--;
+                }
+                break;
+
+            case 0x87:      // Exit
+                bitbang(0x55);
+                return;
+
+            default:
+            bitbang_read32();
+                bitbang("~MeS`14 [bitbang]\r\n");
+                continue;
+        }
+
+        // Common data ^ address check
         bitbang32(data ^ address);
-        goto s_55;
+    }
 }
