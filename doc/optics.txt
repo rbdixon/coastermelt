@@ -1,0 +1,12 @@
+====================
+Blu-Ray Optics Notes
+====================
+
+Info on other blu-ray optical pickups:
+
+http://repairfaq.cis.upenn.edu/Misc/Blu-ray/site1/optics.html
+
+The one we're dealing with is very miniaturized in comparison, and seems to
+generally have fewer components. It's possible that some of the advanced
+optics were eventually replaced with better quality lenses or more DSP processing?
+
