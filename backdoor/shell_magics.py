@@ -699,7 +699,7 @@ class ShellMagics(magic.Magics):
         d = ns['d']
         arm = ns.get('arm')
         steps = args.steps
-        state = ''
+        state = 'idle'
 
         if arm:
             # Update existing ARM object, default to 1 step

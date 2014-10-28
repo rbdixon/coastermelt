@@ -51,7 +51,6 @@ class SimARMMemory:
         self._fill_address = None
         self._fill_count = None
 
-
     def log_store(self, address, data, size='word', message=''):
         print "STORE %4s[%08x] <- %08x %s" % (size, address, data, message)
 
@@ -104,12 +103,14 @@ class SimARMMemory:
 
     def load_half(self, address):
         # Doesn't seem to be architecturally necessary; emulate with bytes
+        self.flush()
         data = self.device.peek_byte(address) | (self.device.peek_byte(address + 1) << 8)
         self.log_load(address, data, 'half')
         self.check_address(address)
         return data
 
     def load_byte(self, address):
+        self.flush()
         data = self.device.peek_byte(address)
         self.log_load(address, data, 'byte')
         self.check_address(address)
@@ -143,12 +144,14 @@ class SimARMMemory:
 
     def store_half(self, address, data):
         # Doesn't seem to be architecturally necessary; emulate with bytes
+        self.flush()
         self.log_store(address, data, 'half')
         self.check_address(address)
         self.device.poke_byte(address, data & 0xff)
         self.device.poke_byte(address + 1, data >> 8)
 
     def store_byte(self, address, data):
+        self.flush()
         self.log_store(address, data, 'byte')
         self.check_address(address)
         self.device.poke_byte(address, data)
@@ -189,7 +192,7 @@ class SimARM:
 
         # Initialize ldm/stm variants
         for memop in ('ld', 'st'):
-            for mode in ('', 'ia', 'ib', 'da', 'db'):
+            for mode in ('', 'ia', 'ib', 'da', 'db', 'fd', 'fa', 'ed', 'ea'):
                 self._generate_ldstm(memop, mode)
 
         # Initialize condition codes
@@ -235,6 +238,17 @@ class SimARM:
 
     def _generate_ldstm(self, memop, mode):
         impl = mode or 'ia'
+
+        # Stack mnemonics
+        if memop == 'st' and mode =='fd': impl = 'db'
+        if memop == 'st' and mode =='fa': impl = 'ib'
+        if memop == 'st' and mode =='ed': impl = 'da'
+        if memop == 'st' and mode =='ea': impl = 'ia'
+        if memop == 'ld' and mode =='fd': impl = 'ia'
+        if memop == 'ld' and mode =='fa': impl = 'da'
+        if memop == 'ld' and mode =='ed': impl = 'ib'
+        if memop == 'ld' and mode =='ea': impl = 'db'
+
         def fn(i):
             left, right = i.args.split(', ', 1)
             assert right[0] == '{'
@@ -312,11 +326,18 @@ class SimARM:
 
     def _reladdr(self, right):
         assert right[0] == '['
-        addrs = right.strip('[]').split(', ')
-        v = self.regs[self.reg_numbers[addrs[0]]]
-        if len(addrs) > 1:
-            v += self._reg_or_literal(addrs[1])
-        return v
+        if right[-1] == ']':
+            # [a, b]
+            addrs = right.strip('[]').split(', ')
+            v = self.regs[self.reg_numbers[addrs[0]]]
+            if len(addrs) > 1:
+                v += self._reg_or_literal(addrs[1])
+            return v
+        else:
+            # [a], b
+            addrs = right.split(', ')
+            v = self.regs[self.reg_numbers[addrs[0].strip('[]')]]
+            return v + self._reg_or_literal(addrs[1])
 
     @staticmethod
     def _3arg(i):
@@ -507,6 +528,23 @@ class SimARM:
         self.cpsrV = (a >> 31) == (b >> 31) and (a >> 31) != (r >> 31) and (b >> 31) != (r >> 31)
         self._dstpc(dst, r & 0xffffffff)
 
+    def op_adc(self, i):
+        dst, src0, src1 = self._3arg(i)
+        s, _ = self._shifter(src1)
+        r = self.regs[self.reg_numbers[src0]] + s + (self.cpsrC & 1)
+        self._dstpc(dst, r & 0xffffffff)
+
+    def op_adcs(self, i):
+        dst, src0, src1 = self._3arg(i)
+        a = self.regs[self.reg_numbers[src0]]
+        b, _ = self._shifter(src1)
+        r = a + b + (self.cpsrC & 1)
+        self.cpsrN = r >> 31
+        self.cpsrZ = not (r & 0xffffffff)
+        self.cpsrC = r > 0xffffffff
+        self.cpsrV = (a >> 31) == (b >> 31) and (a >> 31) != (r >> 31) and (b >> 31) != (r >> 31)
+        self._dstpc(dst, r & 0xffffffff)
+
     def op_sub(self, i):
         dst, src0, src1 = self._3arg(i)
         s, _ = self._shifter(src1)
@@ -517,6 +555,23 @@ class SimARM:
         dst, src0, src1 = self._3arg(i)
         a = self.regs[self.reg_numbers[src0]]
         b, _ = self._shifter(src1)
+        r = a - b
+        self.cpsrN = r >> 31
+        self.cpsrZ = not (r & 0xffffffff)
+        self.cpsrC = (a & 0xffffffff) >= (b & 0xffffffff)
+        self.cpsrV = (a >> 31) != (b >> 31) and (a >> 31) != (r >> 31)
+        self._dstpc(dst, r & 0xffffffff)
+
+    def op_rsb(self, i):
+        dst, src0, src1 = self._3arg(i)
+        s, _ = self._shifter(src1)
+        r = s - self.regs[self.reg_numbers[src0]]
+        self._dstpc(dst, r & 0xffffffff)
+
+    def op_rsbs(self, i):
+        dst, src0, src1 = self._3arg(i)
+        b = self.regs[self.reg_numbers[src0]]
+        a, _ = self._shifter(src1)
         r = a - b
         self.cpsrN = r >> 31
         self.cpsrZ = not (r & 0xffffffff)
@@ -577,6 +632,22 @@ class SimARM:
         self.cpsrC = (r >> 32) & 1
         self._dstpc(dst, r & 0xffffffff)
 
+    def op_mul(self, i):
+        dst, src0, src1 = self._3arg(i)
+        a = self.regs[self.reg_numbers[src0]]
+        b, _ = self._shifter(src1)
+        r = a * b
+        self.cpsrN = r >> 31
+        self.cpsrZ = not (r & 0xffffffff)
+        self._dstpc(dst, r & 0xffffffff)
+
+    def op_muls(self, i):
+        dst, src0, src1 = self._3arg(i)
+        a = self.regs[self.reg_numbers[src0]]
+        b, _ = self._shifter(src1)
+        r = a * b
+        self._dstpc(dst, r & 0xffffffff)
+
     def op_msr(self, i):
         """Stub"""
         dst, src = i.args.split(', ')
@@ -585,3 +656,4 @@ class SimARM:
         """Stub"""
         dst, src = i.args.split(', ')
         self.regs[self.reg_numbers[dst]] = 0x5d5d5d5d
+
