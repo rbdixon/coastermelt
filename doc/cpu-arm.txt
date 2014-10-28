@@ -4,10 +4,12 @@ ARM CPU Core
 
 - Probably some type of ARM7
 - Supports 32-bit ARM and 16-bit Thumb
-- No Thumb-2
-- Seems to have a flash icache, but I'm not totally sure
+- Might have a flash icache, not sure yet
+- Not Thumb-2
 - No cp15 (not sure how to control cache, get CPU ID)
 - Not fast. About 2 MIPS running Thumb NOPs from DRAM.
+- Has blx
+- Has muls
 
 
 Vector Table
