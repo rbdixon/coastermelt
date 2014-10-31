@@ -683,9 +683,9 @@ class ShellMagics(magic.Magics):
 
     @magic.line_magic
     @magic_arguments()
-    @argument('-t', '--trace', action='store_true', help='Show full register state after every step, not just when done')
-    @argument('-q', '--quiet', action='store_true', help='Avoid logging trace state, just log I/O')
+    @argument('-l', '--log', type=argparse.FileType('a'), default='trace.log', metavar='FILE', help='Append logs to a file')
     @argument('-r', '--reset', type=hexint, help='Reset the processor, sending it to the indicated vector')
+    @argument('-c', '--continuous', action='store_true', help='Keep taking steps until interrupted')
     @argument('steps', nargs='?', type=int, help='Number of steps to take (decimal int)')
     def sim(self, line):
         """Take a step in a simulated ARM processor.
@@ -700,6 +700,8 @@ class ShellMagics(magic.Magics):
         arm = ns.get('arm')
         steps = args.steps
         state = 'idle'
+        if args.continuous:
+            steps = 1e100
 
         if arm:
             # Update existing ARM object, default to 1 step
@@ -710,7 +712,7 @@ class ShellMagics(magic.Magics):
         else:
             # New simulator object, default to 0 steps
             if steps is None: steps = 0
-            arm = simulate_arm(d)
+            arm = simulate_arm(d, args.log)
             ns['arm'] = arm
             self.shell.write('- initialized simulation state\n')
             state = 'INIT'
@@ -732,21 +734,9 @@ class ShellMagics(magic.Magics):
                 for i, name in enumerate(arm.reg_names):
                     ns[name] = arm.regs[i]
 
-            if not args.quiet:
-                up_next = arm.get_next_instruction()
-                self.shell.write("%8d  [%4s] >%08x  %-11s %-10s %-32s\n" %
-                    (arm.step_count, state, up_next.address,
-                    ('arm', 'thumb')[arm.thumb],
-                    up_next.op, up_next.args))
-
-            # Trace, either once at the end or each step
-            if steps == 0 or args.trace:
-                for y in range(4):
-                    self.shell.write('  ')
-                    for x in range(4):
-                        i = y + x*4
-                        self.shell.write('%4s=%08x' % (arm.reg_names[i], arm.regs[i]))
-                    self.shell.write('\n')
+            self.shell.write('[%4s] %s\n' % (state, arm.summary_line()))
+            args.log.write('# %s\n%s' % (arm.summary_line(), arm.register_trace()))
 
             if steps == 0:
+                self.shell.write(arm.register_trace())
                 break

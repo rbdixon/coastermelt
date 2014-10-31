@@ -18,11 +18,11 @@ from code import *
 from dump import *
 
 
-def simulate_arm(device):
+def simulate_arm(device, logfile):
     """Create a new ARM simulator, backed by the provided remote device
     Returns a SimARM object with regs[], memory, and step().
     """
-    return SimARM(SimARMMemory(device))
+    return SimARM(SimARMMemory(device, logfile))
 
 
 class SimARMMemory:
@@ -31,8 +31,9 @@ class SimARMMemory:
     This manages a tiny bit of caching and write consolidation, to conserve
     bandwidth on the bitbang debug pipe.
     """
-    def __init__(self, device):
+    def __init__(self, device, logfile):
         self.device = device
+        self.logfile = logfile
 
         # Caches, read-only data and instructions from program memory
         self.rodata = {}
@@ -52,13 +53,13 @@ class SimARMMemory:
         self._fill_count = None
 
     def log_store(self, address, data, size='word', message=''):
-        print "STORE %4s[%08x] <- %08x %s" % (size, address, data, message)
+        self.logfile.write("arm-mem-STORE %4s[%08x] <- %08x %s\n" % (size, address, data, message))
 
     def log_fill(self, address, pattern, count, size='word'):
-        print "FILL  %4s[%08x] <- %08x * %04x" % (size, address, pattern, count)
+        self.logfile.write("arm-mem-FILL  %4s[%08x] <- %08x * %04x\n" % (size, address, pattern, count))
 
     def log_load(self, address, data, size='word'):
-        print "LOAD  %4s[%08x] -> %08x" % (size, address, data)
+        self.logfile.write("arm-mem-LOAD  %4s[%08x] -> %08x\n" % (size, address, data))
 
     def check_address(self, address):
         # Called before write (crash less) and after read (curiosity)
@@ -235,6 +236,33 @@ class SimARM:
 
     def get_next_instruction(self):
         return self.memory.fetch(self.regs[15], self.thumb)
+
+    def flags_string(self):
+        return ''.join([
+            '-N'[self.cpsrN],
+            '-Z'[self.cpsrZ],
+            '-C'[self.cpsrC],
+            '-V'[self.cpsrV],
+            '-T'[self.thumb],
+        ])       
+
+    def summary_line(self):
+        up_next = self.get_next_instruction()
+        return "%s %s >%08x    %-8s %s" % (
+            str(self.step_count).rjust(8, '.'),
+            self.flags_string(),
+            up_next.address,
+            up_next.op,
+            up_next.args)
+
+    def register_trace(self):
+        parts = []
+        for y in range(4):
+            for x in range(4):
+                i = y + x*4
+                parts.append('%4s=%08x' % (self.reg_names[i], self.regs[i]))
+            parts.append('\n')
+        return ''.join(parts)
 
     def _generate_ldstm(self, memop, mode):
         impl = mode or 'ia'
@@ -432,7 +460,7 @@ class SimARM:
         dst, src = i.args.split(', ', 1)
         r, self.cpsrC = self._shifter(src)
         self.cpsrZ = r == 0
-        self.cpsrN = r >> 31
+        self.cpsrN = (r >> 31) & 1
         self._dstpc(dst, r)
 
     def op_mvn(self, i):
@@ -445,7 +473,7 @@ class SimARM:
         r, self.csprC = self._shifter(src)
         r = r ^ 0xffffffff
         self.cpsrZ = r == 0
-        self.cpsrN = r >> 31
+        self.cpsrN = (r >> 31) & 1
         self._dstpc(dst, r)
 
     def op_bic(self, i):
@@ -459,7 +487,7 @@ class SimARM:
         s, _ = self._shifter(src1)
         r = self.regs[self.reg_numbers[src0]] & ~s
         self.cpsrZ = r == 0
-        self.cpsrN = r >> 31
+        self.cpsrN = (r >> 31) & 1
         self._dstpc(dst, r)
 
     def op_orr(self, i):
@@ -473,7 +501,7 @@ class SimARM:
         s, self.cpsrC = self._shifter(src1)
         r = self.regs[self.reg_numbers[src0]] | s
         self.cpsrZ = r == 0
-        self.cpsrN = r >> 31
+        self.cpsrN = (r >> 31) & 1
         self._dstpc(dst, r)
 
     def op_and(self, i):
@@ -487,7 +515,7 @@ class SimARM:
         s, self.cpsrC = self._shifter(src1)
         r = self.regs[self.reg_numbers[src0]] & s
         self.cpsrZ = r == 0
-        self.cpsrN = r >> 31
+        self.cpsrN = (r >> 31) & 1
         self._dstpc(dst, r)
 
     def op_tst(self, i):
@@ -495,7 +523,7 @@ class SimARM:
         s, self.cpsrC = self._shifter(src1)
         r = self.regs[self.reg_numbers[src0]] & s
         self.cpsrZ = r == 0
-        self.cpsrN = r >> 31
+        self.cpsrN = (r >> 31) & 1
 
     def op_eor(self, i):
         dst, src0, src1 = self._3arg(i)
@@ -508,7 +536,7 @@ class SimARM:
         s, self.cpsrC = self._shifter(src1)
         r = self.regs[self.reg_numbers[src0]] ^ s
         self.cpsrZ = r == 0
-        self.cpsrN = r >> 31
+        self.cpsrN = (r >> 31) & 1
         self._dstpc(dst, r)
         
     def op_add(self, i):
@@ -522,10 +550,10 @@ class SimARM:
         a = self.regs[self.reg_numbers[src0]]
         b, _ = self._shifter(src1)
         r = a + b
-        self.cpsrN = r >> 31
+        self.cpsrN = (r >> 31) & 1
         self.cpsrZ = not (r & 0xffffffff)
         self.cpsrC = r > 0xffffffff
-        self.cpsrV = (a >> 31) == (b >> 31) and (a >> 31) != (r >> 31) and (b >> 31) != (r >> 31)
+        self.cpsrV = ((a >> 31) & 1) == ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1) and ((b >> 31) & 1) != ((r >> 31) & 1)
         self._dstpc(dst, r & 0xffffffff)
 
     def op_adc(self, i):
@@ -539,10 +567,10 @@ class SimARM:
         a = self.regs[self.reg_numbers[src0]]
         b, _ = self._shifter(src1)
         r = a + b + (self.cpsrC & 1)
-        self.cpsrN = r >> 31
+        self.cpsrN = (r >> 31) & 1
         self.cpsrZ = not (r & 0xffffffff)
         self.cpsrC = r > 0xffffffff
-        self.cpsrV = (a >> 31) == (b >> 31) and (a >> 31) != (r >> 31) and (b >> 31) != (r >> 31)
+        self.cpsrV = ((a >> 31) & 1) == ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1) and ((b >> 31) & 1) != ((r >> 31) & 1)
         self._dstpc(dst, r & 0xffffffff)
 
     def op_sub(self, i):
@@ -556,10 +584,10 @@ class SimARM:
         a = self.regs[self.reg_numbers[src0]]
         b, _ = self._shifter(src1)
         r = a - b
-        self.cpsrN = r >> 31
+        self.cpsrN = (r >> 31) & 1
         self.cpsrZ = not (r & 0xffffffff)
         self.cpsrC = (a & 0xffffffff) >= (b & 0xffffffff)
-        self.cpsrV = (a >> 31) != (b >> 31) and (a >> 31) != (r >> 31)
+        self.cpsrV = ((a >> 31) & 1) != ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1)
         self._dstpc(dst, r & 0xffffffff)
 
     def op_rsb(self, i):
@@ -573,10 +601,10 @@ class SimARM:
         b = self.regs[self.reg_numbers[src0]]
         a, _ = self._shifter(src1)
         r = a - b
-        self.cpsrN = r >> 31
+        self.cpsrN = (r >> 31) & 1
         self.cpsrZ = not (r & 0xffffffff)
         self.cpsrC = (a & 0xffffffff) >= (b & 0xffffffff)
-        self.cpsrV = (a >> 31) != (b >> 31) and (a >> 31) != (r >> 31)
+        self.cpsrV = ((a >> 31) & 1) != ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1)
         self._dstpc(dst, r & 0xffffffff)
 
     def op_cmp(self, i):
@@ -584,10 +612,10 @@ class SimARM:
         a = self.regs[self.reg_numbers[src0]]
         b, _ = self._shifter(src1)
         r = a - b
-        self.cpsrN = r >> 31
+        self.cpsrN = (r >> 31) & 1
         self.cpsrZ = not (r & 0xffffffff)
         self.cpsrC = (a & 0xffffffff) >= (b & 0xffffffff)
-        self.cpsrV = (a >> 31) != (b >> 31) and (a >> 31) != (r >> 31)
+        self.cpsrV = ((a >> 31) & 1) != ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1)
 
     def op_lsl(self, i):
         dst, src0, src1 = self._3arg(i)
@@ -637,7 +665,7 @@ class SimARM:
         a = self.regs[self.reg_numbers[src0]]
         b, _ = self._shifter(src1)
         r = a * b
-        self.cpsrN = r >> 31
+        self.cpsrN = (r >> 31) & 1
         self.cpsrZ = not (r & 0xffffffff)
         self._dstpc(dst, r & 0xffffffff)
 
