@@ -18,7 +18,7 @@ from code import *
 from dump import *
 
 
-def simulate_arm(device, logfile):
+def simulate_arm(device, logfile=None):
     """Create a new ARM simulator, backed by the provided remote device
     Returns a SimARM object with regs[], memory, and step().
     """
@@ -31,7 +31,7 @@ class SimARMMemory:
     This manages a tiny bit of caching and write consolidation, to conserve
     bandwidth on the bitbang debug pipe.
     """
-    def __init__(self, device, logfile):
+    def __init__(self, device, logfile=None):
         self.device = device
         self.logfile = logfile
 
@@ -53,13 +53,16 @@ class SimARMMemory:
         self._fill_count = None
 
     def log_store(self, address, data, size='word', message=''):
-        self.logfile.write("arm-mem-STORE %4s[%08x] <- %08x %s\n" % (size, address, data, message))
+        if self.logfile:
+            self.logfile.write("arm-mem-STORE %4s[%08x] <- %08x %s\n" % (size, address, data, message))
 
     def log_fill(self, address, pattern, count, size='word'):
-        self.logfile.write("arm-mem-FILL  %4s[%08x] <- %08x * %04x\n" % (size, address, pattern, count))
+        if self.logfile:
+            self.logfile.write("arm-mem-FILL  %4s[%08x] <- %08x * %04x\n" % (size, address, pattern, count))
 
     def log_load(self, address, data, size='word'):
-        self.logfile.write("arm-mem-LOAD  %4s[%08x] -> %08x\n" % (size, address, data))
+        if self.logfile:
+            self.logfile.write("arm-mem-LOAD  %4s[%08x] -> %08x\n" % (size, address, data))
 
     def check_address(self, address):
         # Called before write (crash less) and after read (curiosity)

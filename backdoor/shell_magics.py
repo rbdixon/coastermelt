@@ -686,6 +686,7 @@ class ShellMagics(magic.Magics):
     @argument('-l', '--log', type=argparse.FileType('a'), default='trace.log', metavar='FILE', help='Append logs to a file')
     @argument('-r', '--reset', type=hexint, help='Reset the processor, sending it to the indicated vector')
     @argument('-c', '--continuous', action='store_true', help='Keep taking steps until interrupted')
+    @argument('-b', '--breakpoint', type=hexint, help='Run until the program counter matches')
     @argument('steps', nargs='?', type=int, help='Number of steps to take (decimal int)')
     def sim(self, line):
         """Take a step in a simulated ARM processor.
@@ -700,22 +701,28 @@ class ShellMagics(magic.Magics):
         arm = ns.get('arm')
         steps = args.steps
         state = 'idle'
-        if args.continuous:
+        logfile = args.log
+        if args.continuous or args.breakpoint:
             steps = 1e100
+        if args.breakpoint:
+            pc_break = args.breakpoint & ~1
+        else:
+            pc_break = 1   # Impossible value
 
         if arm:
             # Update existing ARM object, default to 1 step
             if steps is None: steps = 1
             arm.regs = [ns.get(n, 0) for n in arm.reg_names]
             arm.device = d
-
         else:
             # New simulator object, default to 0 steps
             if steps is None: steps = 0
-            arm = simulate_arm(d, args.log)
+            arm = simulate_arm(d)
             ns['arm'] = arm
             self.shell.write('- initialized simulation state\n')
             state = 'INIT'
+
+        arm.memory.logfile = logfile
 
         if args.reset is not None:
             state = 'RST'
@@ -735,7 +742,12 @@ class ShellMagics(magic.Magics):
                     ns[name] = arm.regs[i]
 
             self.shell.write('[%4s] %s\n' % (state, arm.summary_line()))
-            args.log.write('# %s\n%s' % (arm.summary_line(), arm.register_trace()))
+            logfile.write('# %s\n%s' % (arm.summary_line(), arm.register_trace()))
+            assert logfile == arm.memory.logfile
+
+            if (arm.regs[15] & ~1) == pc_break:
+                self.shell.write('- breakpoint reached\n%s' % arm.register_trace())
+                break
 
             if steps == 0:
                 self.shell.write(arm.register_trace())
