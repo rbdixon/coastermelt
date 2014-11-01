@@ -39,10 +39,37 @@ def simulate_arm(device):
     m.patch(0x00011080, 'mov r0, #0; bx lr', thumb=False)
 
     # Try keeping some of the RAM local (performance)
+    m.local_ram(0x1c00000, 0x1c1ffff)
+    m.local_ram(0x1f57000, 0x1ffffff)
     m.local_ram(0x2000600, 0x2000fff)
-    m.local_ram(0x1ff8000, 0x1ffffff)
 
     return SimARM(m)
+
+
+class RunEncoder:
+    """Find runs that write the same pattern to consecutive addresses.
+    Both 'write' and 'flush' return a (count, address, pattern, size) tuple,
+    where 'count' might be zero if no work needs to be done.
+    """
+    def __init__(self):
+        self.count = 0
+        self.key = (None, None, None)
+
+    def write(self, address, pattern, size):
+        if self.key == (address - self.count * size, pattern, size):
+            self.count += 1
+            return (0, None, None, None)
+        else:
+            r = self.flush()
+            self.key = (address, pattern, size)
+            self.count = 1
+            return r
+
+    def flush(self):
+        r = (self.count,) + self.key
+        self.count = 0
+        self.key = (None, None, None)
+        return r
 
 
 class SimARMMemory:
@@ -55,25 +82,19 @@ class SimARMMemory:
         self.device = device
         self.logfile = logfile
 
-        # Caches, read-only data and instructions from program memory
-        self.rodata = {}
+        # Instruction cache
         self.instructions = {}
 
         # Special addresses
         self.skip_stores = {}
         self.patch_notes = {}
 
-        # Local RAM, reads and writes don't go to hardware
+        # Local RAM and cached flash, reads and writes don't go to hardware
         self.local_addresses = {}
         self.local_data = cStringIO.StringIO()
 
-        # Detect fills. Bytes and words are each specialized
-        self._fill_pattern = None
-        self._fill_address = None
-        self._fill_count = None
-        self._bytefill_pattern = None
-        self._bytefill_address = None
-        self._bytefill_count = None
+        # Detect fills
+        self.rle = RunEncoder()
 
     def skip(self, address, reason):
         self.skip_stores[address] = reason
@@ -109,96 +130,107 @@ class SimARMMemory:
         if self.logfile:
             self.logfile.write("arm-mem-LOAD  %4s[%08x] -> %08x\n" % (size, address, data))
 
+    def log_prefetch(self, address):
+        if self.logfile:
+            self.logfile.write("arm-prefetch [%08x]\n" % address)
+
     def check_address(self, address):
         # Called before write (crash less) and after read (curiosity)
         if address >= 0x05000000:
             raise IndexError("Address %08x doesn't look valid. Simulator bug?" % address)
 
-    def flush(self):
-        # If there's a cached fill, make it happen
-        if self._fill_count:
-            count = self._fill_count
-            address = self._fill_address - count * 4
-            pattern = self._fill_pattern
-            self._fill_pattern = None
-            self._fill_address = None
-            self._fill_count = None
-            if count == 1:
+    def post_rle_store(self, count, address, pattern, size):
+        """Process stores after RLE consolidation has happened"""
+
+        if count > 1 and size == 4:
+            self.check_address(address)
+            self.log_fill(address, pattern, count)
+            self.device.fill_words(address, pattern, count)
+            return
+
+        if count > 1 and size == 1:
+            self.check_address(address)
+            self.log_fill(address, pattern, count, 'byte')
+            self.device.fill_bytes(address, pattern, count)
+            return
+
+        while count > 0:
+            self.check_address(address)
+
+            if size == 4:
                 self.log_store(address, pattern)
                 self.device.poke(address, pattern)
-            else:
-                self.log_fill(address, pattern, count)
-                self.device.fill_words(address, pattern, count)
 
-        if self._bytefill_count:
-            count = self._bytefill_count
-            address = self._bytefill_address - count
-            pattern = self._bytefill_pattern
-            self._bytefill_pattern = None
-            self._bytefill_address = None
-            self._bytefill_count = None
-            if count == 1:
+            elif size == 2:
+                self.log_store(address, data, 'half')
+                self.device.poke_byte(address, data & 0xff)
+                self.device.poke_byte(address + 1, data >> 8)
+
+            else:
+                assert size == 1
                 self.log_store(address, pattern, 'byte')
                 self.device.poke_byte(address, pattern)
-            else:
-                self.log_fill(address, pattern, count, 'byte')
-                self.device.fill_bytes(address, pattern, count)
 
-    def flash_prefetch(self, address, size = 0x20, max_round_trips = 1):
+            count -= 1
+            address += size
+
+    def flush(self):
+        # If there's a cached fill, make it happen
+        self.post_rle_store(*self.rle.flush())
+
+    def flash_prefetch(self, address, size, max_round_trips = None):
+        self.log_prefetch(address)
         block = read_block(self.device, address, size, max_round_trips=max_round_trips)
-        for i, w in enumerate(words_from_string(block)):
-            self.rodata[address + 4*i] = w
+        self.local_ram(address, address + len(block) - 1)
+        self.local_data.seek(address)
+        self.local_data.write(block)
+
+    def flash_prefetch_hint(self, address):
+        """We're accessing an address, if it's flash maybe prefetch around it"""
+        # Flash prefetch, whatever we can get in one packet
+        if address < 0x200000 and address not in self.local_addresses:
+            self.flush()
+            self.flash_prefetch(address, size=0x100, max_round_trips=1)        
 
     def load(self, address):
-        self.flush()
-
-        if address in self.rodata:
-            return self.rodata[address]
-
+        self.flash_prefetch_hint(address)
         if address in self.local_addresses:
             self.local_data.seek(address)
             return struct.unpack('<I', self.local_data.read(4))[0]
 
-        # Flash prefetch
-        if address < 0x200000:
-            self.flash_prefetch(address)
-            return self.rodata[address]
-
         # Non-cached device address
+        self.flush()
         data = self.device.peek(address)
         self.log_load(address, data)
         self.check_address(address)
         return data
 
     def load_half(self, address):
-        self.flush()
-
+        self.flash_prefetch_hint(address)
         if address in self.local_addresses:
             self.local_data.seek(address)
             return struct.unpack('<H', self.local_data.read(2))[0]
 
         # Doesn't seem to be architecturally necessary; emulate with bytes
+        self.flush()
         data = self.device.peek_byte(address) | (self.device.peek_byte(address + 1) << 8)
         self.log_load(address, data, 'half')
         self.check_address(address)
         return data
 
     def load_byte(self, address):
-        self.flush()
-
+        self.flash_prefetch_hint(address)
         if address in self.local_addresses:
             self.local_data.seek(address)
             return ord(self.local_data.read(1))
 
+        self.flush()
         data = self.device.peek_byte(address)
         self.log_load(address, data, 'byte')
         self.check_address(address)
         return data
 
     def store(self, address, data):
-        if self._bytefill_count:
-            self.flush()
-
         if address in self.local_addresses:
             self.local_data.seek(address)
             self.local_data.write(struct.pack('<I', data))
@@ -209,73 +241,33 @@ class SimARMMemory:
                 message='(skipped: %s)'% self.skip_stores[address])
             return
 
-        if data == self._fill_pattern and address == self._fill_address:
-            # Extend an existing fill
-            self._fill_count += 1
-            self._fill_address += 4
-            return
-
-        elif self._fill_count:
-            # End a fill
-            self.flush()
-
-        else:
-            # Look for a fill starting at the next word
-            self._fill_pattern = data
-            self._fill_address = address + 4
-            self._fill_count = 0
-
-        self.log_store(address, data)
-        self.check_address(address)
-        self.device.poke(address, data)
+        self.post_rle_store(*self.rle.write(address, data, 4))
 
     def store_half(self, address, data):
-        self.flush()
-
         if address in self.local_addresses:
             self.local_data.seek(address)
             self.local_data.write(struct.pack('<H', data))
             return
 
-        # Doesn't seem to be architecturally necessary; emulate with bytes
-        self.log_store(address, data, 'half')
-        self.check_address(address)
-        self.device.poke_byte(address, data & 0xff)
-        self.device.poke_byte(address + 1, data >> 8)
+        if address in self.skip_stores:
+            self.log_store(address, data,
+                message='(skipped: %s)'% self.skip_stores[address])
+            return
+
+        self.post_rle_store(*self.rle.write(address, data, 2))
 
     def store_byte(self, address, data):
-        if self._fill_count:
-            self.flush()
-
         if address in self.local_addresses:
             self.local_data.seek(address)
             self.local_data.write(chr(data))
             return
 
         if address in self.skip_stores:
-            self.log_store(address, data, 'byte',
+            self.log_store(address, data,
                 message='(skipped: %s)'% self.skip_stores[address])
             return
 
-        if data == self._bytefill_pattern and address == self._bytefill_address:
-            # Extend an existing fill
-            self._bytefill_count += 1
-            self._bytefill_address += 1
-            return
-
-        elif self._bytefill_count:
-            # End a fill
-            self.flush()
-
-        else:
-            # Look for a fill starting at the next byte
-            self._bytefill_pattern = data
-            self._bytefill_address = address + 1
-            self._bytefill_count = 0
-
-        self.log_store(address, data, 'byte')
-        self.check_address(address)
-        self.device.poke_byte(address, data)
+        self.post_rle_store(*self.rle.write(address, data, 1))
 
     def fetch(self, address, thumb):
         try:

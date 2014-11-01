@@ -234,7 +234,7 @@ void bitbang_backdoor()
             case 0xC3:      // Poke byte
                 address = bitbang_read32();
                 data = bitbang_read();
-                *(uint32_t*)address = data;
+                *(uint8_t*)address = data;
                 break;
 
             case 0xB4:      // BLX (call)

@@ -359,7 +359,9 @@ Very rough notes, may be wildly wrong.
 
 41f4b00
 41f4d00
+            41f4d50   uint32      Byte FIFO, used for writing 8051 firmware image
 41f4f00
+
 41f5c00
 41f5f00
 
