@@ -115,15 +115,6 @@ sc a ac
 	it gives two hook messages per SCSI command.
 
 
-bitbang -R /dev/tty.usbserial-A400378p
-sim -cr 1000
-
-	In booting the application firmware with the simulator, I'm hitting
-	trouble with an encrypted function. As an alternative, this starts running
-	at the earliest entry point I can reach in the bootloader. Perhaps this
-	will initialize less hardware before giving me some more clues.
-
-
 ------------
 Eject Button
 ------------
@@ -306,4 +297,85 @@ cat result.log
 	See what was last in the console buffer, without the bother of reading it
 	as a FIFO. This is useful if the buffer overflowed or otherwise got
 	trashed and there's still data you want in it.
+
+
+------------
+Cryptography
+------------
+
+
+dis -a 11000 c0
+rd 13720 200
+
+	There's an encrypted function at 11000 which handles something that's
+	necessary to initialize hardware. There's an unencrypted leader at 11000
+	including a msr which forces us into supervisor mode with interrupts off,
+	and a small nop sled. The encrypted code starts at 11080. At 13820 you can
+	see the end of the portion they're using, and the telltale repeating
+	blocks that would indicate ECB-mode encryption.
+
+
+asmf 11080 .arm; ldr r1, =0x11100; ldr r0, [r1]; bx lr
+ec invoke_encrypted_11000()
+
+asmf 11080 .arm; ldr r1, =0x13820; ldr r0, [r1]; bx lr
+ec invoke_encrypted_11000()
+
+	Fortunately we can still patch code that's being transparently decrypted.
+	The RAM overlays seem to sit above the decryption hardware in the memory
+	region arbitration scheme. Some of these addresses work, some don't- it
+	seems like they're doing something tricky to keep you from reading the
+	decrypted code remotely, but of course code still needs to read its own
+	literals.
+
+
+with open('plaintext.bin', 'wb') as f:
+	for i in range(0, 0x1000, 4):
+		overlay_assemble(d, 0x11080, '.arm; ldr r0, [pc, %d]; bx lr' % i)
+		r = evalc(d, 'invoke_encrypted_11000()', includes=dict(_='#include "science_experiments.h"'))
+		print "%08x %08x" % (i, r)
+		f.write(struct.pack('<I', r))
+
+	We can compactly scout out the area and read anything we want from the
+	encrypted function except the first 8 bytes, reading one word at a time.
+
+
+with open('plaintext.bin', 'wb') as f:
+	for i in range(0, 0x1000, 4):
+		overlay_assemble(d, 0x11080, '.arm; ldr r0, [pc, %d]; bx lr' % i)
+		f.write(struct.pack('<I', blx(d, 0xf5025, 0)[0]))
+
+	A simpler version, using the firmware's existing invocation instead of
+	setting up the call ourselves.
+
+
+with open('plaintext.bin', 'wb') as f:
+	for i in range(0, 0x1000/4):
+		overlay_assemble(d, 0x11080, '.arm; .rept %d; nop; .endr; ldr r0, [pc, 0]; bx lr' % i)
+		r, _ = blx(d, 0xf5025, 0)
+		print "%08x %08x" % (i, r)
+		f.write(struct.pack('<I', r))
+
+	A different version that slides the location we read from, instead of
+	reading farther and farther from the PC. I'm curious if the crypto
+	hardware makes a distinction.
+
+	This reads 7 words then crashes. Not sure why. Words read so far are
+	consistent with the earlier method.
+
+
+for i in range(0, 0x40, 4):
+	overlay_assemble(d, 0x11080, '.arm; ldr r0, [pc, %d]; bx lr' % i)
+	r, _ = blx(d, 0xf5025, 0)
+	print "%08x %08x" % (i, r)
+
+for i in range(0, 0x40, 4):
+	overlay_assemble(d, 0x11078, '.arm; nop; nop; ldr r0, [pc, %d]; bx lr' % i)
+	r, _ = blx(d, 0xf5025, 0)
+	print "%08x %08x" % (i, r)
+
+	Different results; the first shows our plaintext starting at offset 8, as
+	before. The second should be the same except that we replace the last two
+	nops in flash with nops in the overlay. This breaks the decryption, and
+	instead we read ciphertext!
 

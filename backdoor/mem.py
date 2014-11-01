@@ -4,10 +4,12 @@
 __all__ = [
     'poke_orr', 'poke_bic', 'poke_bit',
     'ivt_find_target', 'ivt_set', 'ivt_get',
-    'overlay_set', 'overlay_get', 'reset_arm',
+    'overlay_set', 'overlay_get', 'overlay_assemble',
+    'reset_arm',
 ]
 
-import code
+from code import *
+from dump import *
 
 
 def poke_orr(d, address, word):
@@ -33,8 +35,8 @@ def ivt_find_target(d, address):
     """Disassemble an instruction in the IVT to locate the jump target.
     Returns None if there's no corresponding IVT target
     """
-    text = code.disassemble(d, address, 4, thumb=False)
-    return code.ldrpc_source_address(code.disassembly_lines(text)[0])
+    text = disassemble(d, address, 4, thumb=False)
+    return ldrpc_source_address(disassembly_lines(text)[0])
 
 
 def ivt_get(d, address):
@@ -80,6 +82,22 @@ def overlay_get(d):
     address = d.peek(control + 0x0c)
     limit = d.peek(control + 0x10)
     return (address, (limit - address + 3) / 4)
+
+
+def overlay_assemble(d, address, code, defines=defines, va=0x500000):
+    """Assemble some code and patch it into memory using an overlay.
+    Returns the length of the assembled code, in bytes.
+    """
+
+    data = assemble_string(address, code, defines=defines)
+
+    # Write assembled code to the virtual apping
+    words = words_from_string(data)
+    overlay_set(d, va, len(words))
+    poke_words(d, va, words)
+    overlay_set(d, address, len(words))
+
+    return len(words)
 
 
 def reset_arm(d):

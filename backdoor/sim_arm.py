@@ -41,15 +41,16 @@ class SimARMMemory:
 
         # Special addresses to ignore
         self.skip_stores = {
-            # For entry at 0 (application reset)
-            0x04020f24: "Power or GPIO init? Breaks bitbang backdoor.",
-            0x04030f04: "Power or GPIO init? Breaks bitbang backdoor.",
-            0x04030f44: "Power or GPIO init? Breaks bitbang backdoor.",
+
+            0x04001000: "Reset control?",
+
             0x04002088: "LED / Solenoid GPIOs, breaks bitbang backdoor",
 
-            # For entry at 0x1000 (bootloader reset?)
-            0x04001000: "Reset control?",
-            0x04030f20: "Power or GPIO init? Breaks bitbang backdoor.",
+            0x04030f04: "Memory region control flags",
+            0x04030f20: "DRAM memory region, contains backdoor code",
+            0x04030f24: "DRAM memory region, contains backdoor code",
+            0x04030f40: "Stack memory region",
+            0x04030f44: "Stack memory region",
         }
 
         # Detect fills

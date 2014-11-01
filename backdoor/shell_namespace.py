@@ -32,3 +32,6 @@ from binascii import a2b_hex, b2a_hex
 
 import random
 from random import randint
+
+# Avoid conflicting with %time
+from time import sleep

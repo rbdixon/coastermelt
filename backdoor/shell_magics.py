@@ -289,7 +289,7 @@ class ShellMagics(magic.Magics):
         d = self.shell.user_ns['d']
         code = ' '.join(args.code) + '\n' + cell
         try:
-            assemble(d, args.address, code, defines=all_defines(), includes=all_includes())
+            assemble(d, args.address, code, defines=all_defines())
         except CodeError, e:
             raise UsageError(str(e))
 
@@ -304,13 +304,7 @@ class ShellMagics(magic.Magics):
         args = parse_argstring(self.asmf, line)
         d = self.shell.user_ns['d']
         code = ' '.join(args.code) + '\n' + cell
-        data = assemble_string(args.address, code, defines=all_defines(), includes=all_includes())
-
-        # Write assembled code to the virtual apping
-        words = words_from_string(data)
-        overlay_set(d, va, len(words))
-        poke_words(d, va, words)
-        overlay_set(d, args.address, len(words))
+        overlay_assemble(d, args.address, code, defines=all_defines(), va=va)
 
     @magic.line_magic
     @magic_arguments()
