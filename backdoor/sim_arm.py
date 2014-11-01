@@ -267,6 +267,9 @@ class SimARM:
             parts.append('\n')
         return ''.join(parts)
 
+    def register_trace_line(self, count=15):
+        return ' '.join('%s=%08x' % (self.reg_names[i], self.regs[i]) for i in range(count))
+
     def _generate_ldstm(self, memop, mode):
         impl = mode or 'ia'
 
@@ -628,7 +631,7 @@ class SimARM:
     def op_lsls(self, i):
         dst, src0, src1 = self._3arg(i)
         r = self.regs[self.reg_numbers[src0]] << self._reg_or_literal(src1)
-        self.cpsrZ = r == 0
+        self.cpsrZ = not (r & 0xffffffff)
         self.cpsrN = (r >> 31) & 1
         self.cpsrC = (r >> 32) & 1
         self._dstpc(dst, r & 0xffffffff)
@@ -641,7 +644,7 @@ class SimARM:
     def op_lsrs(self, i):
         dst, src0, src1 = self._3arg(i)
         r = self.regs[self.reg_numbers[src0]] >> self._reg_or_literal(src1)
-        self.cpsrZ = r == 0
+        self.cpsrZ = not (r & 0xffffffff)
         self.cpsrN = (r >> 31) & 1
         self.cpsrC = (r >> 32) & 1
         self._dstpc(dst, r & 0xffffffff)
@@ -658,7 +661,7 @@ class SimARM:
         r = self.regs[self.reg_numbers[src0]]
         if r & 0x80000000: r |= 0xffffffff00000000
         r = r >> self._reg_or_literal(src1)
-        self.cpsrZ = r == 0
+        self.cpsrZ = not (r & 0xffffffff)
         self.cpsrN = (r >> 31) & 1
         self.cpsrC = (r >> 32) & 1
         self._dstpc(dst, r & 0xffffffff)

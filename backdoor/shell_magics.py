@@ -741,8 +741,9 @@ class ShellMagics(magic.Magics):
                 for i, name in enumerate(arm.reg_names):
                     ns[name] = arm.regs[i]
 
-            self.shell.write('[%4s] %s\n' % (state, arm.summary_line()))
-            logfile.write('# %s\n%s' % (arm.summary_line(), arm.register_trace()))
+            # Super wide log lines, good for scanning vertically
+            self.shell.write('[%4s] %-70s %s\n' % (state, arm.summary_line(), arm.register_trace_line(8)))
+            logfile.write('# %-70s %s\n' % (arm.summary_line(), arm.register_trace_line()))
             assert logfile == arm.memory.logfile
 
             if (arm.regs[15] & ~1) == pc_break:
