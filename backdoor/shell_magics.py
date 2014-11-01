@@ -380,7 +380,7 @@ class ShellMagics(magic.Magics):
         r0 = int(self.shell.user_ns.get('r0') or 0)
 
         try:
-            r0, r1 = evalasm(d, line, r0, defines=all_defines(), includes=all_includes(), address=address, thumb=thumb)
+            r0, r1 = evalasm(d, line, r0, defines=all_defines(), address=address, thumb=thumb)
         except CodeError, e:
             raise UsageError(str(e))
 
