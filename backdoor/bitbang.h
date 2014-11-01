@@ -200,8 +200,9 @@ void bitbang_backdoor()
      * Poke byte    C3 word(address) byte(data)                     -> word(data ^ address)
      * BLX          B4 word(address) word(r0)                       -> word(r0) word(r1) word(address ^ r0)
      * Read block   A5 word(address) word(wordcount)                -> word(data) * wordcount word(last_data ^ (4+last_address))
-     * Fill words   96 word(address) word(pattern) word(wordcount)  -> word(pattern ^ (4+last_address)
+     * Fill words   96 word(address) word(pattern) word(wordcount)  -> word(pattern ^ (4+last_address))
      * Exit         87                                              -> 55
+     * Fill bytes   78 word(address) byte(pattern) word(bytecount)  -> word(pattern ^ (1+last_address))
      * Signature    (other)                                               -> (text line)
      */
 
@@ -276,6 +277,17 @@ void bitbang_backdoor()
             case 0x87:      // Exit
                 bitbang(0x55);
                 return;
+
+            case 0x78:      // Fill bytes
+                address = bitbang_read32();
+                data = bitbang_read();
+                aux = bitbang_read32();
+                while (aux) {
+                    *(uint8_t*)address = data;
+                    address++;
+                    aux--;
+                }
+                break;
 
             default:
             bitbang_read32();

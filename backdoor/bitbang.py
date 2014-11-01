@@ -178,6 +178,13 @@ class BitbangDevice:
 
     @_auto_retry
     @_maintain_sync
+    def fill_bytes(self, address, byte, bytecount):
+        self._write(struct.pack('<BIBI', 0x78, address, byte, bytecount))
+        check = struct.unpack('<I', self.port.read(4))[0]
+        self._check(check, byte, address + bytecount)
+
+    @_auto_retry
+    @_maintain_sync
     def exit(self):
         self._write(chr(0x87))
         if self.port.read() != chr(0x55):

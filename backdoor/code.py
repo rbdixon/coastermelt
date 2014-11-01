@@ -22,7 +22,7 @@ __all__ = [
     'side_by_side_disassembly',
 
     # Instruction set
-    'ldrpc_source_word',
+    'ldrpc_source_address', 'ldrpc_source_word',
 ]
 
 import os, random, re, struct, collections, subprocess

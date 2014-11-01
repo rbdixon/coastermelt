@@ -13,16 +13,36 @@
 
 __all__ = [ 'simulate_arm' ]
 
-import cStringIO
+import cStringIO, struct
 from code import *
 from dump import *
 
 
-def simulate_arm(device, logfile=None):
+def simulate_arm(device):
     """Create a new ARM simulator, backed by the provided remote device
     Returns a SimARM object with regs[], memory, and step().
     """
-    return SimARM(SimARMMemory(device, logfile))
+    m = SimARMMemory(device)
+
+    m.skip(0x04001000, "Reset control?")
+    m.skip(0x04002088, "LED / Solenoid GPIOs, breaks bitbang backdoor")
+    m.skip(0x04030f04, "Memory region control flags")
+    m.skip(0x04030f20, "DRAM memory region, contains backdoor code")
+    m.skip(0x04030f24, "DRAM memory region, contains backdoor code")
+    m.skip(0x04030f40, "Stack memory region")
+    m.skip(0x04030f44, "Stack memory region")
+    
+    # Stub out a loop during init that seems to be spinning with a register read inside (performance)
+    m.patch(0x0007bc3c, 'nop; nop')
+
+    # Stub out encrypted functions related to DRM. Hopefully we don't need to bother supporting them.
+    m.patch(0x00011080, 'mov r0, #0; bx lr', thumb=False)
+
+    # Try keeping some of the RAM local (performance)
+    m.local_ram(0x2000600, 0x2000fff)
+    m.local_ram(0x1ff8000, 0x1ffffff)
+
+    return SimARM(m)
 
 
 class SimARMMemory:
@@ -39,24 +59,43 @@ class SimARMMemory:
         self.rodata = {}
         self.instructions = {}
 
-        # Special addresses to ignore
-        self.skip_stores = {
+        # Special addresses
+        self.skip_stores = {}
+        self.patch_notes = {}
 
-            0x04001000: "Reset control?",
+        # Local RAM, reads and writes don't go to hardware
+        self.local_addresses = {}
+        self.local_data = cStringIO.StringIO()
 
-            0x04002088: "LED / Solenoid GPIOs, breaks bitbang backdoor",
-
-            0x04030f04: "Memory region control flags",
-            0x04030f20: "DRAM memory region, contains backdoor code",
-            0x04030f24: "DRAM memory region, contains backdoor code",
-            0x04030f40: "Stack memory region",
-            0x04030f44: "Stack memory region",
-        }
-
-        # Detect fills
+        # Detect fills. Bytes and words are each specialized
         self._fill_pattern = None
         self._fill_address = None
         self._fill_count = None
+        self._bytefill_pattern = None
+        self._bytefill_address = None
+        self._bytefill_count = None
+
+    def skip(self, address, reason):
+        self.skip_stores[address] = reason
+
+    def patch(self, address, code, thumb = True):
+        # Note the extra nop to facilitate the way load_assembly sizes instructions
+        s = assemble_string(address, code + '\nnop', thumb=thumb)
+        lines = disassembly_lines(disassemble_string(s, address=address, thumb=thumb))
+        self._load_assembly(address, lines, thumb=thumb)
+        for l in lines[:1]:
+            self.patch_notes[l.address] = True
+
+    def local_ram(self, begin, end):
+        i = begin
+        while i <= end:
+            self.local_addresses[i] = True
+            i += 1
+
+    def note(self, address):
+        if self.patch_notes.get(address):
+            return 'PATCH'
+        return ''
 
     def log_store(self, address, data, size='word', message=''):
         if self.logfile:
@@ -75,7 +114,6 @@ class SimARMMemory:
         if address >= 0x05000000:
             raise IndexError("Address %08x doesn't look valid. Simulator bug?" % address)
 
-
     def flush(self):
         # If there's a cached fill, make it happen
         if self._fill_count:
@@ -92,28 +130,54 @@ class SimARMMemory:
                 self.log_fill(address, pattern, count)
                 self.device.fill_words(address, pattern, count)
 
+        if self._bytefill_count:
+            count = self._bytefill_count
+            address = self._bytefill_address - count
+            pattern = self._bytefill_pattern
+            self._bytefill_pattern = None
+            self._bytefill_address = None
+            self._bytefill_count = None
+            if count == 1:
+                self.log_store(address, pattern, 'byte')
+                self.device.poke_byte(address, pattern)
+            else:
+                self.log_fill(address, pattern, count, 'byte')
+                self.device.fill_bytes(address, pattern, count)
+
+    def flash_prefetch(self, address, size = 0x20, max_round_trips = 1):
+        block = read_block(self.device, address, size, max_round_trips=max_round_trips)
+        for i, w in enumerate(words_from_string(block)):
+            self.rodata[address + 4*i] = w
+
     def load(self, address):
-        # Cached
+        self.flush()
+
         if address in self.rodata:
             return self.rodata[address]
 
+        if address in self.local_addresses:
+            self.local_data.seek(address)
+            return struct.unpack('<I', self.local_data.read(4))[0]
+
         # Flash prefetch
         if address < 0x200000:
-            block = read_block(self.device, address, 0x20, max_round_trips=1)
-            for i, w in enumerate(words_from_string(block)):
-                self.rodata[address + 4*i] = w
+            self.flash_prefetch(address)
             return self.rodata[address]
 
         # Non-cached device address
-        self.flush()
         data = self.device.peek(address)
         self.log_load(address, data)
         self.check_address(address)
         return data
 
     def load_half(self, address):
-        # Doesn't seem to be architecturally necessary; emulate with bytes
         self.flush()
+
+        if address in self.local_addresses:
+            self.local_data.seek(address)
+            return struct.unpack('<H', self.local_data.read(2))[0]
+
+        # Doesn't seem to be architecturally necessary; emulate with bytes
         data = self.device.peek_byte(address) | (self.device.peek_byte(address + 1) << 8)
         self.log_load(address, data, 'half')
         self.check_address(address)
@@ -121,12 +185,25 @@ class SimARMMemory:
 
     def load_byte(self, address):
         self.flush()
+
+        if address in self.local_addresses:
+            self.local_data.seek(address)
+            return ord(self.local_data.read(1))
+
         data = self.device.peek_byte(address)
         self.log_load(address, data, 'byte')
         self.check_address(address)
         return data
 
     def store(self, address, data):
+        if self._bytefill_count:
+            self.flush()
+
+        if address in self.local_addresses:
+            self.local_data.seek(address)
+            self.local_data.write(struct.pack('<I', data))
+            return
+
         if address in self.skip_stores:
             self.log_store(address, data,
                 message='(skipped: %s)'% self.skip_stores[address])
@@ -153,15 +230,49 @@ class SimARMMemory:
         self.device.poke(address, data)
 
     def store_half(self, address, data):
-        # Doesn't seem to be architecturally necessary; emulate with bytes
         self.flush()
+
+        if address in self.local_addresses:
+            self.local_data.seek(address)
+            self.local_data.write(struct.pack('<H', data))
+            return
+
+        # Doesn't seem to be architecturally necessary; emulate with bytes
         self.log_store(address, data, 'half')
         self.check_address(address)
         self.device.poke_byte(address, data & 0xff)
         self.device.poke_byte(address + 1, data >> 8)
 
     def store_byte(self, address, data):
-        self.flush()
+        if self._fill_count:
+            self.flush()
+
+        if address in self.local_addresses:
+            self.local_data.seek(address)
+            self.local_data.write(chr(data))
+            return
+
+        if address in self.skip_stores:
+            self.log_store(address, data, 'byte',
+                message='(skipped: %s)'% self.skip_stores[address])
+            return
+
+        if data == self._bytefill_pattern and address == self._bytefill_address:
+            # Extend an existing fill
+            self._bytefill_count += 1
+            self._bytefill_address += 1
+            return
+
+        elif self._bytefill_count:
+            # End a fill
+            self.flush()
+
+        else:
+            # Look for a fill starting at the next byte
+            self._bytefill_pattern = data
+            self._bytefill_address = address + 1
+            self._bytefill_count = 0
+
         self.log_store(address, data, 'byte')
         self.check_address(address)
         self.device.poke_byte(address, data)
@@ -176,9 +287,14 @@ class SimARMMemory:
 
     def _load_instruction(self, address, thumb, fetch_size = 32):
         lines = disassembly_lines(disassemble(self.device, address, fetch_size, thumb=thumb))
+        self._load_assembly(address, lines, thumb=thumb)
+
+    def _load_assembly(self, address, lines, thumb):
         for i in range(len(lines) - 1):
             lines[i].next_address = lines[i+1].address
-            self.instructions[thumb | (lines[i].address & ~1)] = lines[i]
+            addr = thumb | (lines[i].address & ~1)
+            if addr not in self.instructions:
+                self.instructions[addr] = lines[i]
 
 
 class SimARM:
@@ -258,10 +374,11 @@ class SimARM:
 
     def summary_line(self):
         up_next = self.get_next_instruction()
-        return "%s %s >%08x    %-8s %s" % (
+        return "%s %s >%08x %5s %-8s %s" % (
             str(self.step_count).rjust(8, '.'),
             self.flags_string(),
             up_next.address,
+            self.memory.note(up_next.address),
             up_next.op,
             up_next.args)
 
