@@ -222,15 +222,17 @@ Very rough notes, may be wildly wrong.
             4011050   uint32      Flags
                                       1    Cleared after polling [4011088]
 
-            4011088   uint32      Flags
-                                      1    Poll for bit=1 after setting [4011000] |= 80
-
             - Transparent 128-bit code decryption, possibly AES-ECB mode
 
             4011064   uint32      Flags
                                       4    Transparent encryption enabled
             4011068   uint32      First address of transparent encryption region
             401106c   uint32      Last address in transparent encryption region
+
+            - Status?
+
+            4011088   uint32      Flags
+                                      1    Poll for bit=1 after setting [4011000] |= 80
 
             - Movable memory regions
 
