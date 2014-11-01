@@ -115,6 +115,15 @@ sc a ac
 	it gives two hook messages per SCSI command.
 
 
+bitbang -R /dev/tty.usbserial-A400378p
+sim -cr 1000
+
+	In booting the application firmware with the simulator, I'm hitting
+	trouble with an encrypted function. As an alternative, this starts running
+	at the earliest entry point I can reach in the bootloader. Perhaps this
+	will initialize less hardware before giving me some more clues.
+
+
 ------------
 Eject Button
 ------------

@@ -125,3 +125,25 @@ void speed_test()
 		SysTime::wait_ms(1);
 	}
 }
+
+
+void crypto_hexdump(uint32_t address, uint32_t wordcount)
+{
+	// These registers are used to set up decryption overlay regions for running
+	// encrypted functions. Trying to see if we can hexdump plaintext.
+
+	critical_section c;
+
+	auto& reg_control = *(volatile uint32_t*) 0x4011064;
+	auto& reg_begin = *(volatile uint32_t*) 0x4011068;
+	auto& reg_end = *(volatile uint32_t*) 0x401106c;
+
+	reg_control &= ~4;
+	reg_begin = address;
+	reg_end = address + (wordcount * 4) - 1;
+	reg_control |= 4;
+
+	console_array((const uint32_t*) address, wordcount);
+
+	reg_control &= ~4;
+}

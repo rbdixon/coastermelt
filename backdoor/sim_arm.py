@@ -39,12 +39,17 @@ class SimARMMemory:
         self.rodata = {}
         self.instructions = {}
 
-        # Special addresses
+        # Special addresses to ignore
         self.skip_stores = {
+            # For entry at 0 (application reset)
             0x04020f24: "Power or GPIO init? Breaks bitbang backdoor.",
             0x04030f04: "Power or GPIO init? Breaks bitbang backdoor.",
             0x04030f44: "Power or GPIO init? Breaks bitbang backdoor.",
             0x04002088: "LED / Solenoid GPIOs, breaks bitbang backdoor",
+
+            # For entry at 0x1000 (bootloader reset?)
+            0x04001000: "Reset control?",
+            0x04030f20: "Power or GPIO init? Breaks bitbang backdoor.",
         }
 
         # Detect fills
@@ -210,12 +215,13 @@ class SimARM:
 
     def reset(self, vector):
         self.regs = [0] * 16
-        self.thumb = False
+        self.thumb = vector & 1
         self.cpsrV = False
         self.cpsrC = False
         self.cpsrZ = False
         self.cpsrN = False
-        self.regs[15] = vector
+        self.regs[15] = vector & 0xfffffffe
+        self.lr = 0xffffffff
         self.step_count = 0
 
     def step(self):
@@ -269,6 +275,13 @@ class SimARM:
 
     def register_trace_line(self, count=15):
         return ' '.join('%s=%08x' % (self.reg_names[i], self.regs[i]) for i in range(count))
+
+    def copy_registers_from(self, ns):
+        self.regs = [ns.get(n, 0) for n in self.reg_names]
+
+    def copy_registers_to(self, ns):
+        for i, name in enumerate(self.reg_names):
+            ns[name] = self.regs[i]
 
     def _generate_ldstm(self, memop, mode):
         impl = mode or 'ia'
@@ -328,7 +341,7 @@ class SimARM:
 
     def _reg_or_literal(self, s):
         if s[0] == '#':
-            return int(s[1:], 0)
+            return int(s[1:], 0) & 0xffffffff
         return self.regs[self.reg_numbers[s]]
 
     def _shifter(self, s):
@@ -338,15 +351,15 @@ class SimARM:
             op, arg = l[1].split(' ')
             assert arg[0] == '#'
             if op == 'lsl':
-                r = self._reg_or_literal(l[0]) << int(arg[1:], 0)
+                r = self._reg_or_literal(l[0]) << (int(arg[1:], 0) & 0xffffffff)
                 c = r >> 32
             elif op == 'lsr':
-                r = self._reg_or_literal(l[0]) >> int(arg[1:], 0)
+                r = self._reg_or_literal(l[0]) >> (int(arg[1:], 0) & 0xffffffff)
                 c = r >> 32
             if op == 'asr':
                 r = self._reg_or_literal(l[0])
                 if r & 0x80000000: r |= 0xffffffff00000000
-                s = int(arg[0], 0)
+                s = int(arg[1:], 0) & 0xffffffff
                 r = r >> s
                 c = r >> (s-1)
             return (r & 0xffffffff, c & 1)
@@ -365,13 +378,13 @@ class SimARM:
             addrs = right.strip('[]').split(', ')
             v = self.regs[self.reg_numbers[addrs[0]]]
             if len(addrs) > 1:
-                v += self._reg_or_literal(addrs[1])
+                v = (v + self._reg_or_literal(addrs[1])) & 0xffffffff
             return v
         else:
             # [a], b
             addrs = right.split(', ')
             v = self.regs[self.reg_numbers[addrs[0].strip('[]')]]
-            return v + self._reg_or_literal(addrs[1])
+            return (v + self._reg_or_literal(addrs[1])) & 0xffffffff
 
     @staticmethod
     def _3arg(i):
@@ -444,11 +457,11 @@ class SimARM:
         self.regs[14] = i.next_address | self.thumb
         if i.args in self.reg_numbers:
             r = self.regs[self.reg_numbers[i.args]]
-            self._branch = r & ~1
+            self._branch = r & 0xfffffffe
             self.thumb = r & 1
         else:
             r = int(i.args, 0)
-            self._branch = r & ~1
+            self._branch = r & 0xfffffffe
             self.thumb = not self.thumb
 
     def op_b(self, i):

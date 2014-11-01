@@ -704,15 +704,12 @@ class ShellMagics(magic.Magics):
         logfile = args.log
         if args.continuous or args.breakpoint:
             steps = 1e100
-        if args.breakpoint:
-            pc_break = args.breakpoint & ~1
-        else:
-            pc_break = 1   # Impossible value
+        pc_break = (args.breakpoint or -1) & 0xfffffffe
 
         if arm:
             # Update existing ARM object, default to 1 step
             if steps is None: steps = 1
-            arm.regs = [ns.get(n, 0) for n in arm.reg_names]
+            arm.copy_registers_from(ns)
             arm.device = d
         else:
             # New simulator object, default to 0 steps
@@ -721,6 +718,7 @@ class ShellMagics(magic.Magics):
             ns['arm'] = arm
             self.shell.write('- initialized simulation state\n')
             state = 'INIT'
+            arm.copy_registers_to(ns)
 
         arm.memory.logfile = logfile
 
@@ -733,13 +731,7 @@ class ShellMagics(magic.Magics):
                 state = 'step'
                 arm.step()
                 steps -= 1
-
-                # Bridge updated register state back to shell
-                # after every successful step; helps recover from
-                # errors during development. If this is a performance
-                # bottleneck it can easily move to the end of this function.
-                for i, name in enumerate(arm.reg_names):
-                    ns[name] = arm.regs[i]
+                arm.copy_registers_to(ns)
 
             # Super wide log lines, good for scanning vertically
             self.shell.write('[%4s] %-70s %s\n' % (state, arm.summary_line(), arm.register_trace_line(8)))
