@@ -60,7 +60,12 @@ import shell_namespace
 
 # Make a global device, but only give it to the user namespace.
 # Make it default by assigning it to 'd', our current device.
-shell_namespace.d = shell_namespace.d_remote = Device()
+try:
+    shell_namespace.d = shell_namespace.d_remote = Device()
+except IOError, e:
+    print e
+    print "There is no default device available!"
+    shell_namespace.d = shell_namespace.d_remote = None
 
 # Make a shell that feels like a debugger
 ipy = InteractiveShellEmbed(user_ns = shell_namespace.__dict__)

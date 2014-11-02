@@ -655,8 +655,10 @@ class ShellMagics(magic.Magics):
             d_remote.reset()
 
         else:
-            if d == d_bitbang:
+            if not args.attach and d == d_bitbang:
                 raise UsageError("Already using the bitbang device")
+            if not args.attach and not d_remote:
+                raise UsageError("No way in; if the target is already in bitbang mode, try -a")
             if not args.serial_port:
                 raise UsageError("Need a hardware serial port; see 'bitbang?' for more info")
 
