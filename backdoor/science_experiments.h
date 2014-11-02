@@ -5,7 +5,7 @@
 #include "console.h"
 #include "ts01_defs.h"
 #include "tiniest_stdlib.h"
-#include "/mt1939_arm.h"
+#include "mt1939_arm.h"
 
 
 int ipc_send_4206000(unsigned op0, unsigned op1)
@@ -174,75 +174,6 @@ uint32_t invoke_encrypted_11000(uint32_t x = 0)
 
 	reg_begin = 0x11080;
 	reg_end = 0x13720;
-	reg_control |= 4;
-
-	uint32_t result = fn(op, arg);
-
-	// If we leave this on, something hangs later!?
-	reg_control &= ~4;
-
-	return result;
-}
-
-
-void crypto_poison(uint32_t begin, uint32_t end)
-{
-	// This is an experiment designed to help figure out the conditions under which
-	// the transparent decryption hardware is active, and how the addressing works.
-	// Sets the address range to [begin, end), then invokes a nullsub at 0x4d37a.
-	// If the decryption region tramples that "bx lr" instruction, this crashes.
-	// Otherwise it returns.
-
-	// Seems this experiment is unsuccessful
-	// - cnsistent with the "unlock sequence" theory
-
-	auto& reg_sys = *(volatile uint32_t*) 0x4000000;
-	auto& reg_control = *(volatile uint32_t*) 0x4011064;
-	auto& reg_begin = *(volatile uint32_t*) 0x4011068;
-	auto& reg_end = *(volatile uint32_t*) 0x401106c;
-	auto fn = (void(*)()) 0x4d37b;
-
-	// What is this? Disabling cache? It's the very first register.
-	reg_sys &= ~0x10;
-
-	reg_begin = begin;
-	reg_end = end;
-
-	reg_control |= 4;
-
-	fn();
-
-	reg_control &= ~4;
-}
-
-
-uint32_t invoke_encrypted_11000_dram(uint32_t at = pad)
-{
-	// Try to call a copy of function 11000 from DRAM. Admittedly a long shot.
-	// Trying to figure out whether the crypto hardware works from DRAM too.
-	// If so, I can experiment much faster.
-
-	// Not successful
-
-	uint32_t op = 0;
-	uint32_t arg = 0;
-
-	//critical_section c;
-
-	memcpy((void*)at, 0x11000, 0x3fff);
-
-	auto& reg_sys = *(volatile uint32_t*) 0x4000000;
-	auto& reg_control = *(volatile uint32_t*) 0x4011064;
-	auto& reg_begin = *(volatile uint32_t*) 0x4011068;
-	auto& reg_end = *(volatile uint32_t*) 0x401106c;
-	auto fn = (uint32_t(*)(uint32_t, uint32_t)) at;
-
-	// What is this? Disabling cache? It's the very first register.
-	reg_sys &= ~0x10;
-
-	reg_begin = at + 0x80;
-	reg_end = at + 0x3fff;
-	// reg_end = 0x13720 - 0x11000 + at;
 	reg_control |= 4;
 
 	uint32_t result = fn(op, arg);

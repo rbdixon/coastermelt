@@ -57,6 +57,16 @@ void console(uint32_t number)
 	}
 }
 
+// (uint8_t) -> %02x
+void console(uint8_t number)
+{
+	uint32_t reg = number << 24;
+	for (int digit = 0; digit < 2; digit++) {
+		console("0123456789abcdef"[reg >> 28]);
+		reg <<= 4;
+	}
+}
+
 // One decimal digit; part of console_dec()
 void console_dec_digit(uint32_t number, char &leading, uint32_t place)
 {

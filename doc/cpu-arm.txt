@@ -362,8 +362,12 @@ Very rough notes, may be wildly wrong.
             This looks like it might be an in-package serial bus.
 
             41f4d50   uint8       FIFO, used for writing 8051 firmware image
+
             41f4dcc   uint8       Command?
-            41f5c0c   uint8       Read one byte, write 0 to acknowledge
+            41f5c0c   uint8       Flags
+                                      8   Busy #1,  wait for 0
+                                      4   Busy #1,  wait for 0
+                                      1   Busy #2,  wait for 1
 
 4200000
 4201000    <--- waaay out there. Visible on memsquare, in the area that didn't

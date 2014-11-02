@@ -8,8 +8,6 @@ from code import *
 from dump import *
 from console import *
 
-includes = dict(local = '#include "sim_arm.h"')
-
 
 class RunEncoder(object):
     """Find runs that write the same pattern to consecutive addresses.
@@ -83,6 +81,15 @@ def rol(a, b):
     else:
         return (a, 0)
 
+def rrx(a, b, carry):
+    """Rotate right with extend (Use carry as a 33rd bit)
+    Returns (result, carry)
+    """
+    b &= 31
+    a = (a & 0xffffffff) | ((carry & 1) << 32)
+    a = (a >> b) | (a << (33 - b))
+    return (a & 0xffffffff, 1 & (a >> 32))
+
 
 class SimARMMemory(object):
     """Memory manager for a simulated ARM core, backed by a remote device.
@@ -113,7 +120,7 @@ class SimARMMemory(object):
     def skip(self, address, reason):
         self.skip_stores[address] = reason
 
-    def patch(self, address, code, hle = None, thumb = True):
+    def patch(self, address, code = None, hle = None, thumb = True):
         """Replace simulated code with new assembly, optionally adding a high level emulation call
         The 'code' will be assembled and then disassembled to normalize its format and validate it.
         The resulting patch will affect instructions as they enter the icache.
@@ -121,22 +128,35 @@ class SimARMMemory(object):
         HLE markers will propagage to the icache, and they instruct us to invoke C++ code from sim_arm.h
         HLE markers run after the patched code, they're blocks of C++ that can optionally modify r0.
         """
-        # Note the extra nop to facilitate the way load_assembly sizes instructions
-        s = assemble_string(address, code + '\nnop', thumb=thumb)
-        lines = disassembly_lines(disassemble_string(s, address=address, thumb=thumb))
+        if code:
+            # Note the extra nop to facilitate the way load_assembly sizes instructions
+            s = assemble_string(address, code + '\nnop', thumb=thumb)
+            lines = disassembly_lines(disassemble_string(s, address=address, thumb=thumb))
 
-        for l in lines[:1]:
-            self.patch_notes[l.address] = 'PATCH'
+            for l in lines[:-1]:
+                assert (l.address & 1) == 0
+                self.patch_notes[l.address] = 'PATCH'
+
+            # HLE patch goes on the last instruction
+            hle_addr = thumb | (lines[-2].address & ~1)
+        else:
+            # HLE patch goes at the given address, normalized
+            hle_addr = thumb | (address & ~1)
 
         # HLE marker, if we have one, will go on the last instruction in the patch.
         # The handler is a block of code that can optionally modify r0
         if hle:
             name = 'hle_%08x' % address
             self.hle_handlers[name] = '{uint32_t r0 = arg; %s; r0;}' % hle
-            self.patch_hle[thumb | (lines[-2].address & ~1)] = name
+            self.patch_hle[hle_addr] = name
 
-        # Populates icache
-        self._load_assembly(address, lines, thumb=thumb)
+        if code:
+            # Populates icache with patch
+            self._load_assembly(address, lines, thumb=thumb)
+        else:
+            # Remove cached instructions, so when they're reloaded our HLE patch will be applied
+            if hle_addr in self.instructions:
+                del self.instructions[hle_addr]
 
     def save_state(self, filebase):
         """Save state to disk, using files beginning with 'filebase'"""
@@ -159,7 +179,7 @@ class SimARMMemory(object):
         self.local_addresses.write('\xff' * (end - begin + 1))
 
     def note(self, address):
-        return self.patch_notes.get(address, '')
+        return self.patch_notes.get(address & ~1, '')
 
     def log_store(self, address, data, size='word', message=''):
         if self.logfile:
@@ -352,6 +372,7 @@ class SimARMMemory(object):
         self._load_assembly(address, lines, thumb=thumb)
 
     def _load_assembly(self, address, lines, thumb):
+        # NOTE: Requires an extra instruction of padding at the end
         for i in range(len(lines) - 1):
             instr = lines[i]
             instr.next_address = lines[i+1].address
@@ -363,7 +384,7 @@ class SimARMMemory(object):
     def hle_init(self, code_address = pad):
         """Install a C++ library to handle high-level emulation operations
         """
-        self.hle_symbols = compile_library(self.device, code_address, self.hle_handlers, includes=includes)
+        self.hle_symbols = compile_library(self.device, code_address, self.hle_handlers)
         print "* Installed High Level Emulation handlers at %08x" % code_address
 
     def hle_invoke(self, instruction, r0):
@@ -415,13 +436,6 @@ class SimARM(object):
         for name in self.__class__.__dict__.keys():
             if name.startswith('op_'):
                 self._generate_condition_codes(getattr(self, name), name + '%s')
-
-        # Near branches
-        self.__dict__['op_b.n'] = self.op_b
-        self._generate_condition_codes(self.op_b, 'op_b%s.n')
-
-        # Ignorable width specifiers
-        self.__dict__['op_mov.w'] = self.op_mov
 
         self.memory.hle_init()
 
@@ -475,7 +489,7 @@ class SimARM(object):
             regs[15] += 8
 
         try:
-            getattr(self, 'op_' + instr.op)(instr)
+            getattr(self, 'op_' + instr.op.split('.', 1)[0])(instr)
             regs[15] = self._branch or instr.next_address
         except:
             regs[15] = instr.address
@@ -971,6 +985,18 @@ class SimARM(object):
     def op_rols(self, i):
         dst, src0, src1 = self._3arg(i)
         r, self.cpsrC = rol(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
+        self.cpsrZ = r == 0
+        self.cpsrN = (r >> 31) & 1
+        self._dstpc(dst, r)
+
+    def op_rrx(self, i):
+        dst, src0, src1 = self._3arg(i)
+        r, _ = rrx(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1), self.cpsrC)
+        self._dstpc(dst, r)
+
+    def op_rrxs(self, i):
+        dst, src0, src1 = self._3arg(i)
+        r, self.cpsrC = rrx(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1), self.cpsrC)
         self.cpsrZ = r == 0
         self.cpsrN = (r >> 31) & 1
         self._dstpc(dst, r)

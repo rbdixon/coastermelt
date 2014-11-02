@@ -13,7 +13,10 @@
 
 __all__ = [ 'simulate_arm' ]
 
+from code import *
 from sim_arm_core import *
+
+includes['sim_arm'] = '#include "sim_arm.h"'
 
 
 def simulate_arm(device):
@@ -30,6 +33,10 @@ def simulate_arm(device):
     m.skip(0x04030f40, "Stack memory region")
     m.skip(0x04030f44, "Stack memory region")
 
+    # Try keeping the RAM local (performance)
+    # We can split this up once we know what RAM needs to be shared
+    m.local_ram(0x1c00000, 0x200ffff)
+
     # Test the HLE subsystem early    
     m.patch(0x168530, 'nop', thumb=False, hle='println("----==== W H O A ====----")')
 
@@ -37,18 +44,53 @@ def simulate_arm(device):
     m.patch(0x0007bc3c, 'nop; nop')
 
     # Stub out encrypted functions related to DRM. Hopefully we don't need to bother supporting them.
-    m.patch(0x00011080, 'mov r0, #0; bx lr', thumb=False, hle='println("Stubbed DRM functions at 0x11000")')
+    m.patch(0x11080, '''
+        mov     r0, #0
+        bx      lr
+    ''', thumb=False, hle='''
+        println("Stubbed DRM functions at 0x11000");
+    ''')
 
-    # Try stubbing out the whole 8051 firmware download, assume it's already loaded (performance)
-    m.patch(0xd764c, 'nop; nop', hle='println("Skipping 8051 firmware install")')
-    m.patch(0xd7658, 'mov r0, #0; nop', hle='println("Skipping 8051 firmware checksum")')
+    # Low level read from 8051
+    m.patch(0x4b6a8, '''
+        bx      lr
+    ''', hle='''
+        console("cpu8051_sync_read_from", r0);
+        r0 = cpu8051_sync_read_from(r0);
+        println(" ->", r0);
+    ''')
 
-    # Try keeping some of the RAM local (performance)
-    m.local_ram(0x1c00000, 0x1c1ffff)
-    m.local_ram(0x1f57000, 0x1ffffff)
-    m.local_ram(0x2000600, 0x2000fff)
+    # Low level write to 8051. Pack args into r0 to keep this down to one round-trip
+    m.patch(0x4b6d4, '''
+        lsls    r0, #8
+        lsrs    r0, #8
+        lsls    r1, #24
+        eors    r0, r1
+        pop     {r4-r6, pc}
+    ''', hle='''
+        uint32_t reg = 0x04000000 | ((r0 << 8) >> 8);
+        uint8_t value = r0 >> 24;
+        println("cpu8051_sync_write_to", reg, value);
+        cpu8051_sync_write_to(reg, value);
+    ''')
 
-    # Example of patching r0
-    #m.patch(0xcfd30, 'adds r2, r2, #4', hle='r0++; println(r0);')
+    # Install 8051 firmware directly from the TS01 image in flash memory
+    # The original function here calculates a checksum along the way.
+    m.patch(0xd764c, '''
+        nop
+        nop
+    ''', hle='''
+        println("Installing 8051 firmware");
+        cpu8051_install_firmware(0x17f800, 0x2000);
+    ''')
+
+    # This function checksums the 8051 firmware, verifies it (and starts it?)
+    m.patch(0x4cfc0, '''
+        pop     {r3-r7, pc}
+    ''', hle='''
+        println("Firmware checksum = ", cpu8051_checksum_firmware());
+        cpu8051_sync_write_to(0x41f4d51, 6);
+        r0 = 0;  // success
+    ''')
 
     return SimARM(m)

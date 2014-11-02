@@ -57,12 +57,17 @@ class ConsoleBuffer:
 
     def discard(self):
         """Throw away pending data until the console is synchronized"""
-        try:
-            self.read(max_round_trips = None)
-        except ConsoleOverflowError:
-            pass
-        finally:
-            self.next_write = None
+
+        # Update cached FIFO pointer if needed
+        if self.next_write is None:
+            self.next_write = self.d.peek(self.buffer + 0x10000)
+
+        # Skip to the end
+        self.next_read = self.next_write
+        self.flush()
+
+        # Reload this next time, to look for new data immediately
+        self.next_write = None
 
     def read(self, max_round_trips = 1, fast = True):
         """Read all the data we can get from the console quickly.

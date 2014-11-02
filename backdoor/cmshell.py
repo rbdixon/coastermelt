@@ -65,8 +65,9 @@ try:
     shell_namespace.d = shell_namespace.d_remote = Device()
 except IOError, e:
     messages += "\n-------- There is NO DEVICE available! --------\n"
-    messages += "\n%s\n" % e
-    messages += "--> You can try again to open the device with %reset\n"
+    messages += "\n%s\n\n" % e
+    messages += "--> Try again to attach via USB:   %reset\n"
+    messages += "--> Reattach over bitbang serial:  %bitbang -a /dev/tty.usb<tab>\n"
     shell_namespace.d = shell_namespace.d_remote = None
 
 # Make a shell that feels like a debugger
