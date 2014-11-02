@@ -9,7 +9,7 @@ ARM CPU Core
 - No cp15 (not sure how to control cache, get CPU ID)
 - Not fast. About 2 MIPS running Thumb NOPs from DRAM.
 - Has blx
-- Has muls
+- Has muls, mla, umull
 
 
 Vector Table
