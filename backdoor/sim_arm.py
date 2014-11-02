@@ -754,6 +754,13 @@ class SimARM(object):
         self.cpsrZ = r == 0
         self.cpsrN = (r >> 31) & 1
 
+    def op_teq(self, i):
+        dst, src0, src1 = self._3arg(i)
+        s, self.cpsrC = self._shifter(src1)
+        r = self.regs[self.reg_numbers[src0]] ^ s
+        self.cpsrZ = r == 0
+        self.cpsrN = (r >> 31) & 1
+
     def op_eor(self, i):
         dst, src0, src1 = self._3arg(i)
         s, _ = self._shifter(src1)
