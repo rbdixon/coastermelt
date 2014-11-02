@@ -81,24 +81,51 @@ class RunEncoder(object):
         return r
 
 
+def lsl(a, b):
+    b &= 31
+    if b:
+        return (a << b, 1 & ((a << b) >> 32))
+    else:
+        return (a, 0)
+
+def lsr(a, b):
+    b &= 31
+    if b:
+        return (a >> b, 1 & (a >> (b-1)))
+    else:
+        return (a, 0)
+
 def asr(a, b):
     """Arithmetic shift right
     Returns (result, carry)
     """
-    if a & 0x80000000: a |= 0xffffffff00000000
-    return (a >> b, 1 & (a >> (b-1)))
+    b &= 31
+    if b:
+        if a & 0x80000000:
+            a |= 0xffffffff00000000
+        return (a >> b, 1 & (a >> (b-1)))
+    else:
+        return (a, 0)
 
 def ror(a, b):
     """Rotate right
     Returns (result, carry)
     """
-    return ( (a >> b) | ((a << (32 - b)) & 0xffffffff), 1 & (a >> (b-1)) )
+    b &= 31
+    if b:
+        return ( (a >> b) | ((a << (32 - b)) & 0xffffffff), 1 & (a >> (b-1)) )
+    else:
+        return (a, 0)
 
 def rol(a, b):
     """Rotate left
     Returns (result, carry)
     """
-    return ( (a >> (32 - b)) | ((a << b) & 0xffffffff), 1 & (a >> (31 - b)) )
+    b &= 31
+    if b:
+        return ( (a >> (32 - b)) | ((a << b) & 0xffffffff), 1 & (a >> (31 - b)) )
+    else:
+        return (a, 0)
 
 
 class SimARMMemory(object):
@@ -625,23 +652,11 @@ class SimARM(object):
                 # Assumed ror, to match the encoding for 32-bit literals
                 r, c = ror(self._reg_or_literal(l[0]), (int(t[0], 0) & 0xffffffff))
 
-            else:
-                assert t[1][0] == '#'
-                op = t[0]
-                arg = int(t[1][1:], 0) & 0xffffffff
-                
-                if op == 'lsl':
-                    r = self._reg_or_literal(l[0]) << arg
-                    c = 1 & (r >> 32)
-                elif op == 'lsr':
-                    r = self._reg_or_literal(l[0]) >> arg
-                    c = 1 & (r >> 32)
-                elif op == 'asr':
-                    r, c = asr(self._reg_or_literal(l[0]), arg)
-                elif op == 'rol':
-                    r, c = rol(self._reg_or_literal(l[0]), arg)
-                elif op == 'ror':
-                    r, c = ror(self._reg_or_literal(l[0]), arg)
+            elif t[0] == 'lsl': r, c = lsl(self._reg_or_literal(l[0]), self._reg_or_literal(t[1]))
+            elif t[0] == 'lsr': r, c = lsr(self._reg_or_literal(l[0]), self._reg_or_literal(t[1]))
+            elif t[0] == 'asr': r, c = asr(self._reg_or_literal(l[0]), self._reg_or_literal(t[1]))
+            elif t[0] == 'rol': r, c = rol(self._reg_or_literal(l[0]), self._reg_or_literal(t[1]))
+            elif t[0] == 'ror': r, c = ror(self._reg_or_literal(l[0]), self._reg_or_literal(t[1]))
 
             return (r & 0xffffffff, c)
         return (self._reg_or_literal(s), 0)
@@ -824,14 +839,14 @@ class SimARM(object):
         self._dstpc(dst, r)
 
     def op_tst(self, i):
-        dst, src0, src1 = self._3arg(i)
+        src0, src1 = i.args.split(', ', 1)
         s, self.cpsrC = self._shifter(src1)
         r = self.regs[self.reg_numbers[src0]] & s
         self.cpsrZ = r == 0
         self.cpsrN = (r >> 31) & 1
 
     def op_teq(self, i):
-        dst, src0, src1 = self._3arg(i)
+        src0, src1 = i.args.split(', ', 1)
         s, self.cpsrC = self._shifter(src1)
         r = self.regs[self.reg_numbers[src0]] ^ s
         self.cpsrZ = r == 0
@@ -902,6 +917,23 @@ class SimARM(object):
         self.cpsrV = ((a >> 31) & 1) != ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1)
         self._dstpc(dst, r)
 
+    def op_sbc(self, i):
+        dst, src0, src1 = self._3arg(i)
+        s, _ = self._shifter(src1)
+        r = self.regs[self.reg_numbers[src0]] - s + self.cpsrC - 1
+        self._dstpc(dst, r)
+
+    def op_sbcs(self, i):
+        dst, src0, src1 = self._3arg(i)
+        a = self.regs[self.reg_numbers[src0]]
+        b, _ = self._shifter(src1)
+        r = a - b + self.cpsrC - 1
+        self.cpsrN = (r >> 31) & 1
+        self.cpsrZ = not (r & 0xffffffff)
+        self.cpsrC = (a & 0xffffffff) >= (b & 0xffffffff)
+        self.cpsrV = ((a >> 31) & 1) != ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1)
+        self._dstpc(dst, r)
+
     def op_rsb(self, i):
         dst, src0, src1 = self._3arg(i)
         s, _ = self._shifter(src1)
@@ -941,28 +973,26 @@ class SimARM(object):
 
     def op_lsl(self, i):
         dst, src0, src1 = self._3arg(i)
-        r = self.regs[self.reg_numbers[src0]] << self._reg_or_literal(src1)
+        r, _ = lsl(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
         self._dstpc(dst, r)
 
     def op_lsls(self, i):
         dst, src0, src1 = self._3arg(i)
-        r = self.regs[self.reg_numbers[src0]] << self._reg_or_literal(src1)
+        r, self.cpsrC = lsl(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
         self.cpsrZ = not (r & 0xffffffff)
         self.cpsrN = (r >> 31) & 1
-        self.cpsrC = (r >> 32) & 1
         self._dstpc(dst, r)
 
     def op_lsr(self, i):
         dst, src0, src1 = self._3arg(i)
-        r = self.regs[self.reg_numbers[src0]] >> self._reg_or_literal(src1)
+        r, _ = lsr(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
         self._dstpc(dst, r)
 
     def op_lsrs(self, i):
         dst, src0, src1 = self._3arg(i)
-        r = self.regs[self.reg_numbers[src0]] >> self._reg_or_literal(src1)
+        r, self.cpsrC = lsr(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
         self.cpsrZ = not (r & 0xffffffff)
         self.cpsrN = (r >> 31) & 1
-        self.cpsrC = (r >> 32) & 1
         self._dstpc(dst, r)
 
     def op_asr(self, i):
@@ -1028,6 +1058,20 @@ class SimARM(object):
         self.cpsrN = (r >> 31) & 1
         self.cpsrZ = not (r & 0xffffffff)
         self._dstpc(dst, r)
+
+    def op_umull(self, i):
+        dstLo, dstHi, Rm, Rs = i.args.split(', ')
+        r = self.regs[self.reg_numbers[Rm]] * self.regs[self.reg_numbers[Rs]]
+        self._dstpc(dstLo, r)
+        self._dstpc(dstHi, r >> 32)
+
+    def op_umulls(self, i):
+        dstLo, dstHi, Rm, Rs = i.args.split(', ')
+        r = self.regs[self.reg_numbers[Rm]] * self.regs[self.reg_numbers[Rs]]
+        self.cpsrN = (r >> 64) & 1
+        self.cpsrZ = not r
+        self._dstpc(dstLo, r)
+        self._dstpc(dstHi, r >> 32)
 
     def op_msr(self, i):
         """Stub"""

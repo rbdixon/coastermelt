@@ -10,7 +10,7 @@ from IPython.core.magic_arguments import magic_arguments, argument, parse_argstr
 from IPython.core.display import display
 from IPython.core.error import UsageError
 
-import struct, sys, json, argparse
+import struct, sys, json, argparse, time
 from hilbert import hilbert
 
 from shell_functions import *
@@ -733,6 +733,8 @@ class ShellMagics(magic.Magics):
             arm.save_state(args.save)
             steps = 0
 
+        min_timestamp = 0
+
         while True:
             if steps > 0:
                 state = 'step'
@@ -740,8 +742,13 @@ class ShellMagics(magic.Magics):
                 steps -= 1
                 arm.copy_registers_to(ns)
 
-            # Super wide log lines, good for scanning vertically
-            self.shell.write('[%4s] %-70s %s\n' % (state, arm.summary_line(), arm.register_trace_line(8)))
+            # Throttled summary output to shell
+            now = time.time()
+            if now >= min_timestamp:
+                self.shell.write('[%4s] %-70s %s\n' % (state, arm.summary_line(), arm.register_trace_line(8)))
+                min_timestamp = now + 0.25
+           
+            # Write detailed output to log file
             logfile.write('# %-70s %s\n' % (arm.summary_line(), arm.register_trace_line()))
             assert logfile == arm.memory.logfile
 
