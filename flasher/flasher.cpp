@@ -21,7 +21,7 @@
  */
 
 #include <algorithm>
-#include "mt1939.h"
+#include "mt1939_scsi.h"
 
 int main(int argc, char** argv)
 {

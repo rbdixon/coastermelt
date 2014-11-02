@@ -21,7 +21,7 @@
 
 #pragma once
 #include <stdint.h>
-#include "../lib/mt1939_regs.h"		// For printing chipset datatypes
+#include "mt1939_arm.h"
 
 
 struct console_buffer_t {

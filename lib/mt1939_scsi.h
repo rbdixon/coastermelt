@@ -1,5 +1,6 @@
 /*
- * Interface to the undocumented commands for the Mediatek MT1939 Blu-Ray SoC.
+ * Interface to the undocumented SCSI commands for the bootloader and stock
+ * firmware on the Mediatek MT1939 Blu-Ray SoC.
  *
  * Copyright (c) 2014 Micah Elizabeth Scott
  * 

@@ -4,4 +4,4 @@
 
 #pragma once
 #include "console.h"
-#include "../lib/mt1939_regs.h"
+#include "mt1939_arm.h"

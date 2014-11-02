@@ -23,7 +23,7 @@
 
 #include <Python.h>
 #include <algorithm>
-#include "mt1939.h"
+#include "mt1939_scsi.h"
 #include "tinyscsi.h"
 #include "hexdump.h"
 

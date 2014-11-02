@@ -13,7 +13,7 @@
 
 #pragma once
 #include "console.h"
-#include "../lib/mt1939_regs.h"
+#include "mt1939_arm.h"
 
 void default_hook(uint32_t regs[16], const char *message = "default_hook()")
 {

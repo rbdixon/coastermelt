@@ -4,8 +4,8 @@
 #include <stdint.h>
 #include "console.h"
 #include "ts01_defs.h"
-#include "../lib/tiniest_stdlib.h"
-#include "../lib/mt1939_regs.h"
+#include "tiniest_stdlib.h"
+#include "/mt1939_arm.h"
 
 
 int ipc_send_4206000(unsigned op0, unsigned op1)

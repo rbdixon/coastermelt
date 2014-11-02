@@ -52,8 +52,8 @@ defines['pad'] = pad
 includes = collections.OrderedDict()
 
 # Low-level includes
-includes['stdlib'] = '#include "../lib/tiniest_stdlib.h"'
-includes['mt1939'] = '#include "../lib/mt1939_regs.h"'
+includes['stdlib'] = '#include "tiniest_stdlib.h"'
+includes['mt1939'] = '#include "mt1939_arm.h"'
 includes['firmware'] = '#include "ts01_defs.h"'
 
 
@@ -289,6 +289,7 @@ def compile_objfile(temp, thumb):
 
     compiler = subprocess.Popen([
         CC,
+        '-I', '../lib',                           # Project-wide includes
         '-o', temp.o, temp.cpp, '-T', temp.ld,    # Ins and outs
         '-Os', '-fwhole-program', '-nostdlib',    # Important to keep this as tiny as possible
         '-fpermissive', '-Wno-multichar',         # Relax, this is a debugger.            
