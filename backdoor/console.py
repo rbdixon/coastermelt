@@ -55,6 +55,15 @@ class ConsoleBuffer:
         if self.next_read is not None:
             self.d.poke(self.buffer + 0x10004, self.next_read)
 
+    def discard(self):
+        """Throw away pending data until the console is synchronized"""
+        try:
+            self.read(max_round_trips = None)
+        except ConsoleOverflowError:
+            pass
+        finally:
+            self.next_write = None
+
     def read(self, max_round_trips = 1, fast = True):
         """Read all the data we can get from the console quickly.
         If a buffer overflow occurred, raises a ConsoleOverflowError.
@@ -91,7 +100,7 @@ class ConsoleBuffer:
             max_round_trips=max_round_trips, fast=fast)
 
         # Acknowledge the amount we actually read
-        self.next_read = (self.next_read + len(data)) & 0xffffffff;
+        self.next_read = (self.next_read + len(data)) & 0xffffffff
         return data
 
 

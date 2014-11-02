@@ -13,9 +13,12 @@
 
 __all__ = [ 'simulate_arm' ]
 
-import cStringIO, struct, json
+import cStringIO, struct, json, sys
 from code import *
 from dump import *
+from console import *
+
+includes = dict(local = '#include "sim_arm.h"')
 
 
 def simulate_arm(device):
@@ -36,7 +39,13 @@ def simulate_arm(device):
     m.patch(0x0007bc3c, 'nop; nop')
 
     # Stub out encrypted functions related to DRM. Hopefully we don't need to bother supporting them.
-    m.patch(0x00011080, 'mov r0, #0; bx lr', thumb=False)
+    m.patch(0x00011080, 'mov r0, #0; bx lr', thumb=False, hle='println("Stubbed DRM functions at 0x11000")')
+
+    m.patch(0x168530, 'nop', thumb=False, hle='println("----==== W H O A ====----")')
+
+    # Try stubbing out the whole 8051 firmware download, assume it's already loaded (performance)
+    m.patch(0xd764c, 'nop; nop', hle='println("Skipping 8051 firmware install")')
+    m.patch(0xd7658, 'mov r0, #0; nop', hle='println("Skipping 8051 firmware checksum")')
 
     # Try keeping some of the RAM local (performance)
     m.local_ram(0x1c00000, 0x1c1ffff)
@@ -108,6 +117,8 @@ class SimARMMemory(object):
         # Special addresses
         self.skip_stores = {}
         self.patch_notes = {}
+        self.patch_hle = {}
+        self.hle_handlers = [ 'break;' ]
 
         # Local RAM and cached flash, reads and writes don't go to hardware
         self.local_addresses = cStringIO.StringIO()
@@ -119,13 +130,26 @@ class SimARMMemory(object):
     def skip(self, address, reason):
         self.skip_stores[address] = reason
 
-    def patch(self, address, code, thumb = True):
+    def patch(self, address, code, hle = None, thumb = True):
+        """Replace simulated code with new assembly, optionally adding a high level emulation call
+        The 'code' will be assembled and then disassembled to normalize its format and validate it.
+        The resulting patch will affect instructions as they enter the icache.
+        HLE markers will propagage to the icache, and they instruct us to invoke C++ code from sim_arm.h
+        """
         # Note the extra nop to facilitate the way load_assembly sizes instructions
         s = assemble_string(address, code + '\nnop', thumb=thumb)
         lines = disassembly_lines(disassemble_string(s, address=address, thumb=thumb))
-        self._load_assembly(address, lines, thumb=thumb)
+
         for l in lines[:1]:
-            self.patch_notes[l.address] = True
+            self.patch_notes[l.address] = 'PATCH'
+
+        # HLE marker, if we have one, will go on the last instruction in the patch.
+        if hle:
+            self.patch_hle[thumb | (lines[-2].address & ~1)] = len(self.hle_handlers)
+            self.hle_handlers.append(hle)
+
+        # Populates icache
+        self._load_assembly(address, lines, thumb=thumb)
 
     def save_state(self, filebase):
         """Save state to disk, using files beginning with 'filebase'"""
@@ -148,9 +172,7 @@ class SimARMMemory(object):
         self.local_addresses.write('\xff' * (end - begin + 1))
 
     def note(self, address):
-        if self.patch_notes.get(address):
-            return 'PATCH'
-        return ''
+        return self.patch_notes.get(address, '')
 
     def log_store(self, address, data, size='word', message=''):
         if self.logfile:
@@ -344,10 +366,51 @@ class SimARMMemory(object):
 
     def _load_assembly(self, address, lines, thumb):
         for i in range(len(lines) - 1):
-            lines[i].next_address = lines[i+1].address
+            instr = lines[i]
+            instr.next_address = lines[i+1].address
             addr = thumb | (lines[i].address & ~1)
+            instr.hle = self.patch_hle.get(addr)
             if addr not in self.instructions:
-                self.instructions[addr] = lines[i]
+                self.instructions[addr] = instr
+
+    def hle_init(self, code_address = pad):
+        """Install a C++ function to handle high-level emulation operations"""
+
+        compile(self.device, code_address, "hle_invoke(arg)", includes = dict(
+
+            sim_arm = '#include "sim_arm.h"',
+
+            hle_invoke = """
+                int hle_invoke(int arg) {
+                    switch (arg) {
+                        %s
+                    }
+                    return -1;
+                }
+            """ % '\n'.join([
+                'case %d: { %s; break; }' % v
+                for v in enumerate(self.hle_handlers)
+            ])
+
+        ))
+        print "* Installed High Level Emulation handlers at %08x" % code_address
+
+    def hle_invoke(self, instruction, code_address = pad):
+        """Invoke the high-level emulation operation for an instruction
+        Captures console output to the log.
+        """
+
+        cb = ConsoleBuffer(self.device)
+        cb.discard()
+        self.device.blx(code_address | 1, instruction.hle)
+        logdata = cb.read(max_round_trips = None)
+
+        # Prefix log lines, normalize trailing newline
+        logdata = '\n'.join([ 'HLE: ' + l for l in logdata.rstrip().split('\n') ]) + '\n'
+
+        sys.stdout.write(logdata)
+        if self.logfile:
+            self.logfile.write(logdata)
 
 
 class SimARM(object):
@@ -385,6 +448,11 @@ class SimARM(object):
         # Near branches
         self.__dict__['op_b.n'] = self.op_b
         self._generate_condition_codes(self.op_b, 'op_b%s.n')
+
+        # Ignorable width specifiers
+        self.__dict__['op_mov.w'] = self.op_mov
+
+        self.memory.hle_init()
 
     def reset(self, vector):
         self.regs = [0] * 16
@@ -441,6 +509,9 @@ class SimARM(object):
         except:
             regs[15] = instr.address
             raise
+
+        if instr.hle:
+            self.memory.hle_invoke(instr)
 
     def get_next_instruction(self):
         return self.memory.fetch(self.regs[15], self.thumb)
@@ -585,10 +656,15 @@ class SimARM(object):
         assert right[0] == '['
         if right[-1] == ']':
             # [a, b]
-            addrs = right.strip('[]').split(', ')
+            addrs = right.strip('[]').split(', ', 1)
             v = self.regs[self.reg_numbers[addrs[0]]]
             if len(addrs) > 1:
-                v = (v + self._reg_or_literal(addrs[1])) & 0xffffffff
+                if addrs[1][0] == '-':
+                    s, _ = self._shifter(addrs[1][1:])
+                    v = (v - s) & 0xffffffff
+                else:
+                    s, _ = self._shifter(addrs[1])
+                    v = (v + s) & 0xffffffff
             return v
         else:
             # [a], b
@@ -844,7 +920,7 @@ class SimARM(object):
         self._dstpc(dst, r)
 
     def op_cmp(self, i):
-        dst, src0, src1 = self._3arg(i)
+        src0, src1 = i.args.split(', ', 1)
         a = self.regs[self.reg_numbers[src0]]
         b, _ = self._shifter(src1)
         r = a - b
@@ -852,6 +928,16 @@ class SimARM(object):
         self.cpsrZ = not (r & 0xffffffff)
         self.cpsrC = (a & 0xffffffff) >= (b & 0xffffffff)
         self.cpsrV = ((a >> 31) & 1) != ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1)
+
+    def op_cmn(self, i):
+        src0, src1 = i.args.split(', ', 1)
+        a = self.regs[self.reg_numbers[src0]]
+        b, _ = self._shifter(src1)
+        r = a + b
+        self.cpsrN = (r >> 31) & 1
+        self.cpsrZ = not (r & 0xffffffff)
+        self.cpsrC = r > 0xffffffff
+        self.cpsrV = ((a >> 31) & 1) == ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1) and ((b >> 31) & 1) != ((r >> 31) & 1)
 
     def op_lsl(self, i):
         dst, src0, src1 = self._3arg(i)
@@ -929,6 +1015,18 @@ class SimARM(object):
         a = self.regs[self.reg_numbers[src0]]
         b, _ = self._shifter(src1)
         r = a * b
+        self._dstpc(dst, r)
+
+    def op_mla(self, i):
+        dst, Rm, Rs, Rn = i.args.split(', ')
+        r = self.regs[self.reg_numbers[Rm]] * self.regs[self.reg_numbers[Rs]] + self.regs[self.reg_numbers[Rn]]
+        self._dstpc(dst, r)
+
+    def op_mlas(self, i):
+        dst, Rm, Rs, Rn = i.args.split(', ')
+        r = self.regs[self.reg_numbers[Rm]] * self.regs[self.reg_numbers[Rs]] + self.regs[self.reg_numbers[Rn]]
+        self.cpsrN = (r >> 31) & 1
+        self.cpsrZ = not (r & 0xffffffff)
         self._dstpc(dst, r)
 
     def op_msr(self, i):

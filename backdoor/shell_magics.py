@@ -722,6 +722,8 @@ class ShellMagics(magic.Magics):
 
         if args.load:
             arm.load_state(args.load)
+            arm.copy_registers_to(ns)
+            steps = 0
 
         if args.reset is not None:
             state = 'RST'
