@@ -72,6 +72,28 @@ class RunEncoder:
         return r
 
 
+
+def asr(a, b):
+    """Arithmetic shift right
+    Returns (result, carry)
+    """
+    if a & 0x80000000: a |= 0xffffffff00000000
+    return (a >> b, 1 & (a >> (b-1)))
+
+def ror(a, b):
+    """Rotate right
+    Returns (result, carry)
+    """
+    return ( (a >> b) | ((a << (32 - b)) & 0xffffffff), 1 & (a >> (b-1)) )
+
+def rol(a, b):
+    """Rotate left
+    Returns (result, carry)
+    """
+    return ( (a >> (32 - b)) | ((a << b) & 0xffffffff), 1 & (a >> (31 - b)) )
+
+
+
 class SimARMMemory:
     """Memory manager for a simulated ARM core, backed by a remote device.
     
@@ -90,7 +112,7 @@ class SimARMMemory:
         self.patch_notes = {}
 
         # Local RAM and cached flash, reads and writes don't go to hardware
-        self.local_addresses = {}
+        self.local_addresses = cStringIO.StringIO()
         self.local_data = cStringIO.StringIO()
 
         # Detect fills
@@ -107,11 +129,13 @@ class SimARMMemory:
         for l in lines[:1]:
             self.patch_notes[l.address] = True
 
+    def freeze(self):
+        """Perpare serializable information about the locally stored memory state"""
+
+
     def local_ram(self, begin, end):
-        i = begin
-        while i <= end:
-            self.local_addresses[i] = True
-            i += 1
+        self.local_addresses.seek(begin)
+        self.local_addresses.write('\xff' * (end - begin + 1))
 
     def note(self, address):
         if self.patch_notes.get(address):
@@ -178,19 +202,36 @@ class SimARMMemory:
         # If there's a cached fill, make it happen
         self.post_rle_store(*self.rle.flush())
 
-    def flash_prefetch(self, address, size, max_round_trips = None):
-        self.log_prefetch(address)
+    def fetch_local_data(self, address, size, max_round_trips = None):
+        """Immediately read a block of data from the remote device into the local cache.
+        All cached bytes will stay in the cache permanently, and writes will no longer go to hardware.
+        Returns the length of the block we actually read, in bytes.
+        """
         block = read_block(self.device, address, size, max_round_trips=max_round_trips)
         self.local_ram(address, address + len(block) - 1)
         self.local_data.seek(address)
         self.local_data.write(block)
+        return len(block)
+
+    def local_data_available(self, address, limit = 0x100):
+        """How many bytes of local data are available at an address?"""
+        self.local_addresses.seek(address)
+        flags = self.local_addresses.read(limit)
+        return len(flags[:flags.find('\x00')])
 
     def flash_prefetch_hint(self, address):
-        """We're accessing an address, if it's flash maybe prefetch around it"""
-        # Flash prefetch, whatever we can get in one packet
-        if address < 0x200000 and address not in self.local_addresses:
+        """We're accessing an address, if it's flash maybe prefetch around it.
+        Returns the number of bytes prefetched or the number of bytes already available.
+        Guaranteed to have at least 8 bytes available for flash addresses.
+        """
+        # Flash prefetch, whatever we can get quickly
+        avail = local_data_available(address)
+        if address < 0x200000 and avail < 8:
             self.flush()
-            self.flash_prefetch(address, size=0x100, max_round_trips=1)        
+            self.log_prefetch(address)
+            avail = self.fetch_local_data(address, size=0x100, max_round_trips=1)        
+        assert avail >= 8
+        return avail
 
     def load(self, address):
         self.flash_prefetch_hint(address)
@@ -277,8 +318,13 @@ class SimARMMemory:
             self._load_instruction(address, thumb)
             return self.instructions[thumb | (address & ~1)]
 
-    def _load_instruction(self, address, thumb, fetch_size = 32):
-        lines = disassembly_lines(disassemble(self.device, address, fetch_size, thumb=thumb))
+    def _load_instruction(self, address, thumb):
+        self.flush()
+        block_size = self.flash_prefetch(address, size=0x100, max_round_trips=1)
+        assert block_size >= 8
+        self.local_data.seek(address)
+        data = self.local_data.read(block_size)
+        lines = disassembly_lines(disassemble_string(data, address, thumb=thumb))
         self._load_assembly(address, lines, thumb=thumb)
 
     def _load_assembly(self, address, lines, thumb):
@@ -458,21 +504,31 @@ class SimARM:
         # Returns (result, carry)
         l = s.split(', ', 1)
         if len(l) == 2:
-            op, arg = l[1].split(' ')
-            assert arg[0] == '#'
-            if op == 'lsl':
-                r = self._reg_or_literal(l[0]) << (int(arg[1:], 0) & 0xffffffff)
-                c = r >> 32
-            elif op == 'lsr':
-                r = self._reg_or_literal(l[0]) >> (int(arg[1:], 0) & 0xffffffff)
-                c = r >> 32
-            if op == 'asr':
-                r = self._reg_or_literal(l[0])
-                if r & 0x80000000: r |= 0xffffffff00000000
-                s = int(arg[1:], 0) & 0xffffffff
-                r = r >> s
-                c = r >> (s-1)
-            return (r & 0xffffffff, c & 1)
+
+            t = l[1].split(' ')
+            if len(t) == 1:
+                # Assumed ror, to match the encoding for 32-bit literals
+                r, c = ror(self._reg_or_literal(l[0]), (int(t[0], 0) & 0xffffffff))
+
+            else:
+                assert t[1][0] == '#'
+                op = t[0]
+                arg = int(t[1][1:], 0) & 0xffffffff
+                
+                if op == 'lsl':
+                    r = self._reg_or_literal(l[0]) << arg
+                    c = 1 & (r >> 32)
+                elif op == 'lsr':
+                    r = self._reg_or_literal(l[0]) >> arg
+                    c = 1 & (r >> 32)
+                elif op == 'asr':
+                    r, c = asr(self._reg_or_literal(l[0]), arg)
+                elif op == 'rol':
+                    r, c = rol(self._reg_or_literal(l[0]), arg)
+                elif op == 'ror':
+                    r, c = ror(self._reg_or_literal(l[0]), arg)
+
+            return (r & 0xffffffff, c)
         return (self._reg_or_literal(s), 0)
 
     def _reg_or_target(self, s):
@@ -506,10 +562,10 @@ class SimARM:
 
     def _dstpc(self, dst, r):
         if dst == 'pc':
-            self._branch = r & ~1
+            self._branch = r & 0xfffffffe
             self.thumb = r & 1
         else:
-            self.regs[self.reg_numbers[dst]] = r
+            self.regs[self.reg_numbers[dst]] = r & 0xffffffff
 
     def op_ldr(self, i):
         left, right = i.args.split(', ', 1)
@@ -672,7 +728,7 @@ class SimARM:
         dst, src0, src1 = self._3arg(i)
         s, _ = self._shifter(src1)
         r = self.regs[self.reg_numbers[src0]] + s
-        self._dstpc(dst, r & 0xffffffff)
+        self._dstpc(dst, r)
 
     def op_adds(self, i):
         dst, src0, src1 = self._3arg(i)
@@ -683,13 +739,13 @@ class SimARM:
         self.cpsrZ = not (r & 0xffffffff)
         self.cpsrC = r > 0xffffffff
         self.cpsrV = ((a >> 31) & 1) == ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1) and ((b >> 31) & 1) != ((r >> 31) & 1)
-        self._dstpc(dst, r & 0xffffffff)
+        self._dstpc(dst, r)
 
     def op_adc(self, i):
         dst, src0, src1 = self._3arg(i)
         s, _ = self._shifter(src1)
         r = self.regs[self.reg_numbers[src0]] + s + (self.cpsrC & 1)
-        self._dstpc(dst, r & 0xffffffff)
+        self._dstpc(dst, r)
 
     def op_adcs(self, i):
         dst, src0, src1 = self._3arg(i)
@@ -700,13 +756,13 @@ class SimARM:
         self.cpsrZ = not (r & 0xffffffff)
         self.cpsrC = r > 0xffffffff
         self.cpsrV = ((a >> 31) & 1) == ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1) and ((b >> 31) & 1) != ((r >> 31) & 1)
-        self._dstpc(dst, r & 0xffffffff)
+        self._dstpc(dst, r)
 
     def op_sub(self, i):
         dst, src0, src1 = self._3arg(i)
         s, _ = self._shifter(src1)
         r = self.regs[self.reg_numbers[src0]] - s
-        self._dstpc(dst, r & 0xffffffff)
+        self._dstpc(dst, r)
 
     def op_subs(self, i):
         dst, src0, src1 = self._3arg(i)
@@ -717,13 +773,13 @@ class SimARM:
         self.cpsrZ = not (r & 0xffffffff)
         self.cpsrC = (a & 0xffffffff) >= (b & 0xffffffff)
         self.cpsrV = ((a >> 31) & 1) != ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1)
-        self._dstpc(dst, r & 0xffffffff)
+        self._dstpc(dst, r)
 
     def op_rsb(self, i):
         dst, src0, src1 = self._3arg(i)
         s, _ = self._shifter(src1)
         r = s - self.regs[self.reg_numbers[src0]]
-        self._dstpc(dst, r & 0xffffffff)
+        self._dstpc(dst, r)
 
     def op_rsbs(self, i):
         dst, src0, src1 = self._3arg(i)
@@ -734,7 +790,7 @@ class SimARM:
         self.cpsrZ = not (r & 0xffffffff)
         self.cpsrC = (a & 0xffffffff) >= (b & 0xffffffff)
         self.cpsrV = ((a >> 31) & 1) != ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1)
-        self._dstpc(dst, r & 0xffffffff)
+        self._dstpc(dst, r)
 
     def op_cmp(self, i):
         dst, src0, src1 = self._3arg(i)
@@ -749,7 +805,7 @@ class SimARM:
     def op_lsl(self, i):
         dst, src0, src1 = self._3arg(i)
         r = self.regs[self.reg_numbers[src0]] << self._reg_or_literal(src1)
-        self._dstpc(dst, r & 0xffffffff)
+        self._dstpc(dst, r)
 
     def op_lsls(self, i):
         dst, src0, src1 = self._3arg(i)
@@ -757,12 +813,12 @@ class SimARM:
         self.cpsrZ = not (r & 0xffffffff)
         self.cpsrN = (r >> 31) & 1
         self.cpsrC = (r >> 32) & 1
-        self._dstpc(dst, r & 0xffffffff)
+        self._dstpc(dst, r)
 
     def op_lsr(self, i):
         dst, src0, src1 = self._3arg(i)
         r = self.regs[self.reg_numbers[src0]] >> self._reg_or_literal(src1)
-        self._dstpc(dst, r & 0xffffffff)
+        self._dstpc(dst, r)
 
     def op_lsrs(self, i):
         dst, src0, src1 = self._3arg(i)
@@ -770,24 +826,43 @@ class SimARM:
         self.cpsrZ = not (r & 0xffffffff)
         self.cpsrN = (r >> 31) & 1
         self.cpsrC = (r >> 32) & 1
-        self._dstpc(dst, r & 0xffffffff)
+        self._dstpc(dst, r)
 
     def op_asr(self, i):
         dst, src0, src1 = self._3arg(i)
-        r = self.regs[self.reg_numbers[src0]]
-        if r & 0x80000000: r |= 0xffffffff00000000
-        r = r >> self._reg_or_literal(src1)
-        self._dstpc(dst, r & 0xffffffff)
+        r, _ = asr(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
+        self._dstpc(dst, r)
 
     def op_asrs(self, i):
         dst, src0, src1 = self._3arg(i)
-        r = self.regs[self.reg_numbers[src0]]
-        if r & 0x80000000: r |= 0xffffffff00000000
-        r = r >> self._reg_or_literal(src1)
-        self.cpsrZ = not (r & 0xffffffff)
+        r, self.cpsrC = asr(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
+        self.cpsrZ = r == 0
         self.cpsrN = (r >> 31) & 1
-        self.cpsrC = (r >> 32) & 1
-        self._dstpc(dst, r & 0xffffffff)
+        self._dstpc(dst, r)
+
+    def op_ror(self, i):
+        dst, src0, src1 = self._3arg(i)
+        r, _ = ror(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
+        self._dstpc(dst, r)
+
+    def op_rors(self, i):
+        dst, src0, src1 = self._3arg(i)
+        r, self.csprC = ror(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
+        self.cpsrZ = r == 0
+        self.cpsrN = (r >> 31) & 1
+        self._dstpc(dst, r)
+
+    def op_rol(self, i):
+        dst, src0, src1 = self._3arg(i)
+        r, _ = rol(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
+        self._dstpc(dst, r)
+
+    def op_rols(self, i):
+        dst, src0, src1 = self._3arg(i)
+        r, self.cpsrC = rol(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
+        self.cpsrZ = r == 0
+        self.cpsrN = (r >> 31) & 1
+        self._dstpc(dst, r)
 
     def op_mul(self, i):
         dst, src0, src1 = self._3arg(i)
@@ -796,14 +871,14 @@ class SimARM:
         r = a * b
         self.cpsrN = (r >> 31) & 1
         self.cpsrZ = not (r & 0xffffffff)
-        self._dstpc(dst, r & 0xffffffff)
+        self._dstpc(dst, r)
 
     def op_muls(self, i):
         dst, src0, src1 = self._3arg(i)
         a = self.regs[self.reg_numbers[src0]]
         b, _ = self._shifter(src1)
         r = a * b
-        self._dstpc(dst, r & 0xffffffff)
+        self._dstpc(dst, r)
 
     def op_msr(self, i):
         """Stub"""
