@@ -1,4 +1,8 @@
 *.pyc
 *.log
+*.hex
+*.data
+*.core
+*.addr
 patch.s
 build
