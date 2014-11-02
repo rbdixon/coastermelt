@@ -681,6 +681,8 @@ class ShellMagics(magic.Magics):
     @argument('-r', '--reset', type=hexint, help='Reset the processor, sending it to the indicated vector')
     @argument('-c', '--continuous', action='store_true', help='Keep taking steps until interrupted')
     @argument('-b', '--breakpoint', type=hexint, help='Run until the program counter matches')
+    @argument('-S', '--save', type=str, metavar='FILE', help='Save local simulation state to files')
+    @argument('-L', '--load', type=str, metavar='FILE', help='Load local simulation state from files')
     @argument('steps', nargs='?', type=int, help='Number of steps to take (decimal int)')
     def sim(self, line):
         """Take a step in a simulated ARM processor.
@@ -716,9 +718,16 @@ class ShellMagics(magic.Magics):
 
         arm.memory.logfile = logfile
 
+        if args.load:
+            arm.load_state(args.load)
+
         if args.reset is not None:
             state = 'RST'
             arm.reset(args.reset)
+
+        if args.save:
+            arm.save_state(args.save)
+            steps = 0
 
         while True:
             if steps > 0:

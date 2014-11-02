@@ -13,7 +13,7 @@
 
 __all__ = [ 'simulate_arm' ]
 
-import cStringIO, struct
+import cStringIO, struct, json
 from code import *
 from dump import *
 
@@ -46,7 +46,7 @@ def simulate_arm(device):
     return SimARM(m)
 
 
-class RunEncoder:
+class RunEncoder(object):
     """Find runs that write the same pattern to consecutive addresses.
     Both 'write' and 'flush' return a (count, address, pattern, size) tuple,
     where 'count' might be zero if no work needs to be done.
@@ -72,7 +72,6 @@ class RunEncoder:
         return r
 
 
-
 def asr(a, b):
     """Arithmetic shift right
     Returns (result, carry)
@@ -93,8 +92,7 @@ def rol(a, b):
     return ( (a >> (32 - b)) | ((a << b) & 0xffffffff), 1 & (a >> (31 - b)) )
 
 
-
-class SimARMMemory:
+class SimARMMemory(object):
     """Memory manager for a simulated ARM core, backed by a remote device.
     
     This manages a tiny bit of caching and write consolidation, to conserve
@@ -129,9 +127,21 @@ class SimARMMemory:
         for l in lines[:1]:
             self.patch_notes[l.address] = True
 
-    def freeze(self):
-        """Perpare serializable information about the locally stored memory state"""
+    def save_state(self, filebase):
+        """Save state to disk, using files beginning with 'filebase'"""
+        with open(filebase + '.addr', 'wb') as f:
+            f.write(self.local_addresses.getvalue())
+        with open(filebase + '.data', 'wb') as f:
+            f.write(self.local_data.getvalue())
 
+    def load_state(self, filebase):
+        """Load state from save_state()"""
+        with open(filebase + '.addr', 'rb') as f:
+           self.local_addresses = cStringIO.StringIO()
+           self.local_addresses.write(f.read())
+        with open(filebase + '.data', 'rb') as f:
+            self.local_data = cStringIO.StringIO()
+            self.local_data.write(f.read())
 
     def local_ram(self, begin, end):
         self.local_addresses.seek(begin)
@@ -225,17 +235,17 @@ class SimARMMemory:
         Guaranteed to have at least 8 bytes available for flash addresses.
         """
         # Flash prefetch, whatever we can get quickly
-        avail = local_data_available(address)
+        avail = self.local_data_available(address)
         if address < 0x200000 and avail < 8:
             self.flush()
             self.log_prefetch(address)
             avail = self.fetch_local_data(address, size=0x100, max_round_trips=1)        
-        assert avail >= 8
         return avail
 
     def load(self, address):
         self.flash_prefetch_hint(address)
-        if address in self.local_addresses:
+        self.local_addresses.seek(address)
+        if self.local_addresses.read(4) == '\xff\xff\xff\xff':
             self.local_data.seek(address)
             return struct.unpack('<I', self.local_data.read(4))[0]
 
@@ -248,7 +258,8 @@ class SimARMMemory:
 
     def load_half(self, address):
         self.flash_prefetch_hint(address)
-        if address in self.local_addresses:
+        self.local_addresses.seek(address)
+        if self.local_addresses.read(2) == '\xff\xff':
             self.local_data.seek(address)
             return struct.unpack('<H', self.local_data.read(2))[0]
 
@@ -261,7 +272,8 @@ class SimARMMemory:
 
     def load_byte(self, address):
         self.flash_prefetch_hint(address)
-        if address in self.local_addresses:
+        self.local_addresses.seek(address)
+        if self.local_addresses.read(1) == '\xff':
             self.local_data.seek(address)
             return ord(self.local_data.read(1))
 
@@ -272,7 +284,8 @@ class SimARMMemory:
         return data
 
     def store(self, address, data):
-        if address in self.local_addresses:
+        self.local_addresses.seek(address)
+        if self.local_addresses.read(4) == '\xff\xff\xff\xff':
             self.local_data.seek(address)
             self.local_data.write(struct.pack('<I', data))
             return
@@ -285,7 +298,8 @@ class SimARMMemory:
         self.post_rle_store(*self.rle.write(address, data, 4))
 
     def store_half(self, address, data):
-        if address in self.local_addresses:
+        self.local_addresses.seek(address)
+        if self.local_addresses.read(2) == '\xff\xff':
             self.local_data.seek(address)
             self.local_data.write(struct.pack('<H', data))
             return
@@ -298,7 +312,8 @@ class SimARMMemory:
         self.post_rle_store(*self.rle.write(address, data, 2))
 
     def store_byte(self, address, data):
-        if address in self.local_addresses:
+        self.local_addresses.seek(address)
+        if self.local_addresses.read(1) == '\xff':
             self.local_data.seek(address)
             self.local_data.write(chr(data))
             return
@@ -320,7 +335,7 @@ class SimARMMemory:
 
     def _load_instruction(self, address, thumb):
         self.flush()
-        block_size = self.flash_prefetch(address, size=0x100, max_round_trips=1)
+        block_size = self.flash_prefetch_hint(address)
         assert block_size >= 8
         self.local_data.seek(address)
         data = self.local_data.read(block_size)
@@ -335,11 +350,14 @@ class SimARMMemory:
                 self.instructions[addr] = lines[i]
 
 
-class SimARM:
+class SimARM(object):
     """Main simulator class for the ARM subset we support in %sim
 
     Registers are available at regs[], call step() to single-step. Uses the
     provided memory manager object to handle load(), store(), and fetch().
+
+    The lightweight CPU state is available as a dictionary property 'state'.
+    Full local state including local memory can be stored with save_state().
     """
     def __init__(self, memory):
         self.memory = memory
@@ -376,8 +394,34 @@ class SimARM:
         self.cpsrZ = False
         self.cpsrN = False
         self.regs[15] = vector & 0xfffffffe
-        self.lr = 0xffffffff
+        self.regs[14] = 0xffffffff
         self.step_count = 0
+
+    _state_fields = ('regs', 'thumb', 'cpsrV', 'cpsrC', 'cpsrZ', 'cpsrN', 'step_count')
+
+    @property
+    def state(self):
+        d = {}
+        for name in self._state_fields:
+            d[name] = getattr(self, name)
+        return d
+
+    @state.setter
+    def state(self, value):
+        for name in self._state_fields:
+            setattr(self, name, value[name])
+
+    def save_state(self, filebase):
+        """Save state to disk, using files beginning with 'filebase'"""
+        self.memory.save_state(filebase)
+        with open(filebase + '.core', 'w') as f:
+            json.dump(self.state, f)
+
+    def load_state(self, filebase):
+        """Load state from save_state()"""
+        self.memory.load_state(filebase)
+        with open(filebase + '.core', 'r') as f:
+            self.state = json.load(f)
 
     def step(self):
         """Step the simulated ARM by one instruction"""
