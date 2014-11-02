@@ -117,7 +117,9 @@ class SimARMMemory(object):
         """Replace simulated code with new assembly, optionally adding a high level emulation call
         The 'code' will be assembled and then disassembled to normalize its format and validate it.
         The resulting patch will affect instructions as they enter the icache.
+    
         HLE markers will propagage to the icache, and they instruct us to invoke C++ code from sim_arm.h
+        HLE markers run after the patched code, they're blocks of C++ that can optionally modify r0.
         """
         # Note the extra nop to facilitate the way load_assembly sizes instructions
         s = assemble_string(address, code + '\nnop', thumb=thumb)
@@ -127,9 +129,10 @@ class SimARMMemory(object):
             self.patch_notes[l.address] = 'PATCH'
 
         # HLE marker, if we have one, will go on the last instruction in the patch.
+        # The handler is a block of code that can optionally modify r0
         if hle:
             name = 'hle_%08x' % address
-            self.hle_handlers[name] = '{%s; 0;}' % hle
+            self.hle_handlers[name] = '{uint32_t r0 = arg; %s; r0;}' % hle
             self.patch_hle[thumb | (lines[-2].address & ~1)] = name
 
         # Populates icache
@@ -363,13 +366,13 @@ class SimARMMemory(object):
         self.hle_symbols = compile_library(self.device, code_address, self.hle_handlers, includes=includes)
         print "* Installed High Level Emulation handlers at %08x" % code_address
 
-    def hle_invoke(self, instruction):
+    def hle_invoke(self, instruction, r0):
         """Invoke the high-level emulation operation for an instruction
         Captures console output to the log.
         """
         cb = ConsoleBuffer(self.device)
         cb.discard()
-        self.device.blx(self.hle_symbols[instruction.hle], 0)
+        r0, _ = self.device.blx(self.hle_symbols[instruction.hle], r0)
         logdata = cb.read(max_round_trips = None)
 
         # Prefix log lines, normalize trailing newline
@@ -378,6 +381,7 @@ class SimARMMemory(object):
         sys.stdout.write(logdata)
         if self.logfile:
             self.logfile.write(logdata)
+        return r0
 
 
 class SimARM(object):
@@ -478,7 +482,7 @@ class SimARM(object):
             raise
 
         if instr.hle:
-            self.memory.hle_invoke(instr)
+            regs[0] = self.memory.hle_invoke(instr, regs[0])
 
     def get_next_instruction(self):
         return self.memory.fetch(self.regs[15], self.thumb)

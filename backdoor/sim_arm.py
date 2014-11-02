@@ -48,4 +48,7 @@ def simulate_arm(device):
     m.local_ram(0x1f57000, 0x1ffffff)
     m.local_ram(0x2000600, 0x2000fff)
 
+    # Example of patching r0
+    #m.patch(0xcfd30, 'adds r2, r2, #4', hle='r0++; println(r0);')
+
     return SimARM(m)
