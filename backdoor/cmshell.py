@@ -57,14 +57,16 @@ from IPython.terminal.embed import InteractiveShellEmbed
 from shell_magics import ShellMagics
 from remote import Device
 import shell_namespace
+messages = ''
 
 # Make a global device, but only give it to the user namespace.
 # Make it default by assigning it to 'd', our current device.
 try:
     shell_namespace.d = shell_namespace.d_remote = Device()
 except IOError, e:
-    print e
-    print "There is no default device available!"
+    messages += "\n-------- There is NO DEVICE available! --------\n"
+    messages += "\n%s\n" % e
+    messages += "--> You can try again to open the device with %reset\n"
     shell_namespace.d = shell_namespace.d_remote = None
 
 # Make a shell that feels like a debugger
@@ -76,4 +78,4 @@ ipy.alias_manager.define_alias('git', 'git')
 ipy.alias_manager.define_alias('make', 'make')
 
 # Hello, tiny world
-ipy.mainloop(display_banner = __doc__)
+ipy.mainloop(display_banner = __doc__ + messages)

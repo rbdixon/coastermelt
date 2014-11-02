@@ -12,6 +12,7 @@ from IPython.core.error import UsageError
 
 import struct, sys, json, argparse, time
 from hilbert import hilbert
+import remote
 
 from shell_functions import *
 from code import *
@@ -546,7 +547,14 @@ class ShellMagics(magic.Magics):
     def reset(self, line=''):
         """Reset and reopen the USB interface."""
         args = parse_argstring(self.reset, line)
-        d = self.shell.user_ns['d_remote']
+        d = self.shell.user_ns.get('d_remote')
+
+        if not d:
+            # Recover from starting up without a device
+            d = remote.Device()
+            self.shell.user_ns['d_remote'] = d
+            self.shell.user_ns['d'] = d
+
         d.reset()
         if args.arm:
             reset_arm(d)
