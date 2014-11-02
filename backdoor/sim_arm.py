@@ -814,3 +814,14 @@ class SimARM:
         dst, src = i.args.split(', ')
         self.regs[self.reg_numbers[dst]] = 0x5d5d5d5d
 
+    def op_clz(self, i):
+        dst, src = i.args.split(', ', 1)
+        r, _ = self._shifter(src)
+        i = 0
+        while i < 32:
+            if r & (1 << i):
+                break
+            else:
+                i += 1
+        self._dstpc(dst, i)
+
