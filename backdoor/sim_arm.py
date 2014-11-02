@@ -33,9 +33,7 @@ def simulate_arm(device):
     m.skip(0x04030f40, "Stack memory region")
     m.skip(0x04030f44, "Stack memory region")
 
-    # Try keeping the RAM local (performance)
-    # We can split this up once we know what RAM needs to be shared
-    m.local_ram(0x1c00000, 0x200ffff)
+    m.local_ram(0x1f00000, 0x200ffff)
 
     # Test the HLE subsystem early    
     m.patch(0x168530, 'nop', thumb=False, hle='println("----==== W H O A ====----")')
@@ -49,6 +47,15 @@ def simulate_arm(device):
         bx      lr
     ''', thumb=False, hle='''
         println("Stubbed DRM functions at 0x11000");
+    ''')
+
+    # This routine overlays another function from flash with a chunk of RAM, presumably for speed.
+    # It just makes things slower here; stub it out, and log that it's happening.
+    m.patch(0xcfce8, '''
+        bx      lr
+    ''', hle='''
+        console("overlay_flash_with_ram", r0);
+        println(" (stub)");
     ''')
 
     # Low level read from 8051
@@ -74,6 +81,13 @@ def simulate_arm(device):
         cpu8051_sync_write_to(reg, value);
     ''')
 
+    # Don't bother copying 8051 firmware to DRAM (performance)
+    m.patch(0xd7608, '''
+        pop     {r4,pc}
+    ''', hle='''
+        println("Skipped copying 8051 firmware to DRAM");
+    ''')
+
     # Install 8051 firmware directly from the TS01 image in flash memory
     # The original function here calculates a checksum along the way.
     m.patch(0xd764c, '''
@@ -84,7 +98,7 @@ def simulate_arm(device):
         cpu8051_install_firmware(0x17f800, 0x2000);
     ''')
 
-    # This function checksums the 8051 firmware, verifies it (and starts it?)
+    # This function checksums the 8051 firmware, verifies it, and writes to d51
     m.patch(0x4cfc0, '''
         pop     {r3-r7, pc}
     ''', hle='''
