@@ -14,6 +14,7 @@ __all__ = [
     # Compiler
     'assemble_string', 'assemble', 'evalasm',
     'compile_string', 'compile', 'evalc',
+    'compile_library_string', 'compile_library',
     'CodeError',
 
     # Disassembler
@@ -256,66 +257,79 @@ def assemble(d, address, text, defines = defines, thumb = True):
     return len(data)
 
 
-def compile_string(address, expression, includes = includes, defines = defines, thumb = True):
-    """Compile a C++ expression to a stand-alone patch installed starting at the supplied address.
-
-       The 'includes' list is a dictionary of C++ definitions and declarations
-       that go above the function containing our expression. (Key names are
-       ignored by the compiler)
-
-       The 'defines' dictionary can define uint32_t constants that are
-       available even prior to the includes. To seamlessly bridge with Python
-       namespaces, things that aren't integers are ignored here.
-       """
+def prepare_ldfile(temp, address):
+    """Create a linker script for C++ compilation"""
 
     if address & 3:
         raise ValueError("Address needs to be word aligned")
 
+    # Linker script
+    with open(temp.ld, 'w') as f: f.write('''\
+MEMORY { PATCH (rwx) : ORIGIN = 0x%(address)08x, LENGTH = 2M }
+SECTIONS { .text : { *(.first) *(.text) *(.rodata) *(.bss) } > PATCH }
+    ''' % locals())
+
+
+def prepare_cppfile(temp, includes, defines, body):
+    """Create a .cpp file for C++ compilation"""
+
     define_string = prepare_defines(defines, 'const uint32_t %s = 0x%08x;')
     include_string = '\n'.join(includes.values())
 
-    with temp_file_names('cpp o bin ld') as temp:
-
-        # Linker script
-        with open(temp.ld, 'w') as f: f.write('''\
-MEMORY { PATCH (rwx) : ORIGIN = 0x%(address)08x, LENGTH = 2M }
-SECTIONS { .text : { *(.first) *(.text) *(.rodata) *(.bss) } > PATCH }
-        ''' % locals())
-
-        # C+ source
-        with open(temp.cpp, 'w') as f: f.write('''\
+    with open(temp.cpp, 'w') as f: f.write('''\
 #include <stdint.h>
 %(define_string)s
 %(include_string)s
+%(body)s
+    ''' % locals())
+
+
+def compile_objfile(temp, thumb):
+    """Compile a C++ expression to an object file"""
+
+    compiler = subprocess.Popen([
+        CC,
+        '-o', temp.o, temp.cpp, '-T', temp.ld,    # Ins and outs
+        '-Os', '-fwhole-program', '-nostdlib',    # Important to keep this as tiny as possible
+        '-fpermissive', '-Wno-multichar',         # Relax, this is a debugger.            
+        '-fno-exceptions',                        # Lol, no
+        '-std=gnu++11',                           # But compile-time abstraction is awesome
+        '-lgcc',                                  # Runtime support for multiply, divide, switch...
+        ('-mthumb', '-mno-thumb')[not thumb]      # Thumb or not?
+        ],
+        stderr = subprocess.STDOUT,
+        stdout = subprocess.PIPE)
+
+    output = compiler.communicate()[0]
+    if compiler.returncode != 0:
+        raise CodeError(output, temp.collect_text())
+
+
+def compile_string(address, expression, includes = includes, defines = defines, thumb = True):
+    """Compile a C++ expression to a stand-alone patch installed starting at the supplied address.
+
+    The 'includes' list is a dictionary of C++ definitions and declarations
+    that go above the function containing our expression. (Key names are
+    ignored by the compiler)
+
+    The 'defines' dictionary can define uint32_t constants that are
+    available even prior to the includes. To seamlessly bridge with Python
+    namespaces, things that aren't integers are ignored here.
+    """
+    with temp_file_names('cpp o bin ld') as temp:
+
+        prepare_ldfile(temp, address)
+        prepare_cppfile(temp, includes, defines, '''\
+extern "C"
 unsigned __attribute__ ((externally_visible, section(".first")))
 start(unsigned arg)
 {
-    return ( %(expression)s );
+return ( %(expression)s );
 }
         ''' % locals())
 
-        compiler = subprocess.Popen([
-            CC,
-            '-o', temp.o, temp.cpp, '-T', temp.ld,    # Ins and outs
-            '-Os', '-fwhole-program', '-nostdlib',    # Important to keep this as tiny as possible
-            '-fpermissive', '-Wno-multichar',         # Relax, this is a debugger.            
-            '-fno-exceptions',                        # Lol, no
-            '-std=gnu++11',                           # But compile-time abstraction is awesome
-            '-lgcc',                                  # Runtime support for multiply, divide, switch...
-            ('-mthumb', '-mno-thumb')[not thumb]      # Thumb or not?
-            ],
-            stderr = subprocess.STDOUT,
-            stdout = subprocess.PIPE)
-
-        output = compiler.communicate()[0]
-        if compiler.returncode != 0:
-            raise CodeError(output, temp.collect_text())
-
-        os.system('cp ' + temp.o + ' foo.o')
-
-        subprocess.check_call([
-            OBJCOPY, temp.o, '-O', 'binary', temp.bin
-            ])
+        compile_objfile(temp, thumb)
+        subprocess.check_call([ OBJCOPY, temp.o, '-O', 'binary', temp.bin ])
         with open(temp.bin, 'rb') as f:
             return f.read()
 
@@ -337,6 +351,50 @@ def compile(d, address, expression, includes = includes, defines = defines, thum
     data = compile_string(address, expression, includes=includes, defines=defines, thumb=thumb)
     poke_words_from_string(d, address, data)
     return len(data)
+
+
+def compile_library_string(base_address, code_dict, includes = includes, defines = defines, thumb = True):
+    """Compile a dictionary of C++ expressions to a library starting at the supplied address
+
+    Returns a (string, dict) tuple, where the string is compiled code and the
+    tuple is an absolute symbol table.
+    """
+    with temp_file_names('cpp o bin ld') as temp:
+
+        prepare_ldfile(temp, base_address)
+        prepare_cppfile(temp, includes, defines, '\n'.join([
+            '''\
+extern "C"
+unsigned __attribute__ ((externally_visible))
+%s(unsigned arg)
+{
+return ( %s );
+}
+            ''' % (name, code)
+            for name, code in code_dict.iteritems()]))
+
+        compile_objfile(temp, thumb)
+
+        symbols = {}
+        sym_text = subprocess.check_output([ OBJDUMP, '-t', '-w', temp.o ])
+        for line in sym_text.split('\n'):
+            tokens = line.split()
+            if len(tokens) >= 6 and tokens[2] == 'F' and tokens[3] == '.text':
+                symbols[tokens[5]] = int(tokens[0], 16) | thumb
+
+        subprocess.check_call([ OBJCOPY, temp.o, '-O', 'binary', temp.bin ])
+        with open(temp.bin, 'rb') as f:
+            return (f.read(), symbols)
+
+
+def compile_library(d, base_address, code_dict, includes = includes, defines = defines, thumb = True):
+    """Compile and load a dictionary of C++ expressions to a library starting at the supplied address
+
+    Returns a symbol table dictionary.
+    """
+    data, syms = compile_library_string(base_address, code_dict, includes=includes, defines=defines, thumb=thumb)
+    poke_words_from_string(d, base_address, data)
+    return syms
 
 
 def compile_with_automatic_return_type(d, address, expression, includes = includes, defines = defines, thumb = True):

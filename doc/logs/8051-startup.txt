@@ -2,225 +2,204 @@
 arm-mem-LOAD  byte[041f5c0c] -> 00000002      Ready for a command?
 arm-mem-STORE byte[041f5c0c] <- 00000000 
 
-arm-mem-STORE byte[041f4dcc] <- 00000008      Begin command?
+arm-mem-STORE byte[041f4dcc] <- 00000008        Begin command
+  arm-mem-LOAD  byte[041f5c0c] -> 00000003
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+  arm-mem-LOAD  byte[041f5c0c] -> 00000002
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
 
-arm-mem-LOAD  byte[041f5c0c] -> 00000003      Acknowledge?
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-arm-mem-LOAD  byte[041f5c0c] -> 00000002      Ready?
-arm-mem-STORE byte[041f5c0c] <- 00000000 
+arm-mem-STORE byte[041f4d91] <- 00000000        Firmware memory?
+  arm-mem-LOAD  byte[041f5c0c] -> 00000003
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+  arm-mem-LOAD  byte[041f5c0c] -> 00000002
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
 
-arm-mem-STORE byte[041f4d91] <- 00000000      Point to firmware memory?
-
-arm-mem-LOAD  byte[041f5c0c] -> 00000003      Acknowledge
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-arm-mem-LOAD  byte[041f5c0c] -> 00000002
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-
-arm-mem-STORE byte[041f4d51] <- 00000001 
-
-arm-mem-LOAD  byte[041f5c0c] -> 00000003
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-arm-mem-LOAD  byte[041f5c0c] -> 00000002
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-
+arm-mem-STORE byte[041f4d51] <- 00000001        Command 01 00
+  arm-mem-LOAD  byte[041f5c0c] -> 00000003
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+  arm-mem-LOAD  byte[041f5c0c] -> 00000002
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
 arm-mem-STORE byte[041f4d51] <- 00000000 
-
-arm-mem-LOAD  byte[041f5c0c] -> 00000003
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-arm-mem-LOAD  byte[041f5c0c] -> 00000002
-arm-mem-STORE byte[041f5c0c] <- 00000000 
+  arm-mem-LOAD  byte[041f5c0c] -> 00000003
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+  arm-mem-LOAD  byte[041f5c0c] -> 00000002
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
 
 Write firmware {
   arm-mem-STORE byte[041f4d50] <- <payload byte> 
+    arm-mem-LOAD  byte[041f5c0c] -> 00000003
+    arm-mem-STORE byte[041f5c0c] <- 00000000 
+    arm-mem-LOAD  byte[041f5c0c] -> 00000002
+    arm-mem-STORE byte[041f5c0c] <- 00000000 
+}
+
+arm-mem-STORE byte[041f4dcc] <- 00000008        dcc :: 08
+  arm-mem-LOAD  byte[041f5c0c] -> 00000003     
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+  arm-mem-LOAD  byte[041f5c0c] -> 00000002
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+
+arm-mem-STORE byte[041f4d91] <- 00000000        d91 ::  00
+  arm-mem-LOAD  byte[041f5c0c] -> 00000003
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+  arm-mem-LOAD  byte[041f5c0c] -> 00000002
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+
+arm-mem-STORE byte[041f4d51] <- 00000001        d51 :: 01 00
+  arm-mem-LOAD  byte[041f5c0c] -> 00000003
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+  arm-mem-LOAD  byte[041f5c0c] -> 00000002
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+arm-mem-STORE byte[041f4d51] <- 00000000 
+  arm-mem-LOAD  byte[041f5c0c] -> 00000003
+  arm-mem-STORE byte[041f5c0c] <- 00000000
+  arm-mem-LOAD  byte[041f5c0c] -> 00000002
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+
+Read firmware {
+  arm-mem-LOAD  byte[041f4d52] -> 00000000     Trigger read
+
+    arm-mem-LOAD  byte[041f5c0c] -> 00000003     Acknowledge
+    arm-mem-STORE byte[041f5c0c] <- 00000000 
+
+    arm-mem-LOAD  byte[041f5c08] -> <payload byte>
+
+    arm-mem-LOAD  byte[041f5c0c] -> 00000002
+    arm-mem-STORE byte[041f5c0c] <- 00000000 
+}
+
+arm-mem-STORE byte[041f4d51] <- 00000006       d51 :: 06
+  arm-mem-LOAD  byte[041f5c0c] -> 00000003
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+  arm-mem-LOAD  byte[041f5c0c] -> 00000002
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+
+arm-mem-LOAD  byte[041f4dcc] -> 00000000       dcc :: 00
+  arm-mem-LOAD  byte[041f5c0c] -> 00000003
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+
+arm-mem-LOAD  byte[041f5c08] -> 00000008
+  arm-mem-LOAD  byte[041f5c0c] -> 00000002
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+
+arm-mem-STORE byte[041f4d51] <- 00000006 
+  arm-mem-LOAD  byte[041f5c0c] -> 00000003
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+  arm-mem-LOAD  byte[041f5c0c] -> 00000002
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+
+arm-mem-STORE byte[041f4dcc] <- 00000000 
+  arm-mem-LOAD  byte[041f5c0c] -> 00000003
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+
+
+-- (after some other things happen)
+
+arm-mem-LOAD  byte[041f5c0c] -> 00000002      Ready?
+arm-mem-STORE byte[041f5c0c] <- 00000000 
+
+arm-mem-LOAD  byte[041f4d91] -> 00000000
+  arm-mem-LOAD  byte[041f5c0c] -> 00000003
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+  arm-mem-LOAD  byte[041f5c08] -> [00000001]
+  arm-mem-LOAD  byte[041f5c0c] -> 00000002
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+
+arm-mem-LOAD  byte[041f4b06] -> 00000000
+  arm-mem-LOAD  byte[041f5c0c] -> 00000003
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+  arm-mem-LOAD  byte[041f5c0c] -> 00000002
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+
+arm-mem-STORE byte[041f4b06] <- 0000000d 
+  arm-mem-LOAD  byte[041f5c0c] -> 00000003
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+  arm-mem-LOAD  byte[041f5c0c] -> 00000002
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+
+arm-mem-LOAD  byte[041f4b08] -> 00000000
+  arm-mem-LOAD  byte[041f5c0c] -> 00000003
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+  arm-mem-LOAD  byte[041f5c08] -> [0000000e]
+  arm-mem-LOAD  byte[041f5c0c] -> 00000002
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+
+arm-mem-STORE byte[041f4b08] <- 0000000a 
+  arm-mem-LOAD  byte[041f5c0c] -> 00000003
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+  arm-mem-LOAD  byte[041f5c0c] -> 00000002
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+
+ 
+(Different pattern?)
+
+
+arm-mem-STORE byte[041f5c44] <- 00000001 
+
+  arm-mem-STORE byte[041f4b72] <- 00000000 
+  arm-mem-STORE byte[041f4b72] <- 00000048 
+  arm-mem-STORE byte[041f4b72] <- 00000048 
+  arm-mem-STORE byte[041f4b0e] <- 00000001 
+  arm-mem-STORE byte[041f4b32] <- 00000016 
+  arm-mem-STORE byte[041f4b34] <- 00000008 
+  arm-mem-STORE byte[041f4b35] <- 00000000 
+
+arm-mem-STORE byte[041f5c44] <- 00000003 
+
+  arm-mem-LOAD  byte[041f5c0c] -> 00000013
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+
+arm-mem-STORE byte[041f5c44] <- 00000001 
+
+  arm-mem-STORE byte[041f4b86] <- 00000000 
+  arm-mem-STORE byte[041f4b86] <- 00000090 
+  arm-mem-STORE byte[041f4b86] <- 00000090 
+  arm-mem-STORE byte[041f4b0e] <- 00000002 
+  arm-mem-STORE byte[041f4b33] <- 00000018 
+  arm-mem-STORE byte[041f4b36] <- 00000088 
+  arm-mem-STORE byte[041f4b37] <- 00000000 
+
+arm-mem-STORE byte[041f5c44] <- 00000003 
+
+  arm-mem-LOAD  byte[041f5c0c] -> 00000013
+  arm-mem-STORE byte[041f5c0c] <- 00000000
+  arm-mem-LOAD  byte[041f5c0c] -> 00000002
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+
+arm-mem-STORE byte[041f4b72] <- 00000048 
 
   arm-mem-LOAD  byte[041f5c0c] -> 00000003
   arm-mem-STORE byte[041f5c0c] <- 00000000 
   arm-mem-LOAD  byte[041f5c0c] -> 00000002
   arm-mem-STORE byte[041f5c0c] <- 00000000 
-}
 
-arm-mem-STORE byte[041f4dcc] <- 00000008        Begin command?
+arm-mem-STORE byte[041f4b72] <- 00000048 
 
-arm-mem-LOAD  byte[041f5c0c] -> 00000003        Acknowledge
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-arm-mem-LOAD  byte[041f5c0c] -> 00000002
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-
-arm-mem-STORE byte[041f4d91] <- 00000000        Point to firmware memory?
-
-arm-mem-LOAD  byte[041f5c0c] -> 00000003        Acknowledge
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-arm-mem-LOAD  byte[041f5c0c] -> 00000002
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-
-arm-mem-STORE byte[041f4d51] <- 00000001 
-
-arm-mem-LOAD  byte[041f5c0c] -> 00000003
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-arm-mem-LOAD  byte[041f5c0c] -> 00000002
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-
-arm-mem-STORE byte[041f4d51] <- 00000000 
-
-arm-mem-LOAD  byte[041f5c0c] -> 00000003
-arm-mem-STORE byte[041f5c0c] <- 00000000
-arm-mem-LOAD  byte[041f5c0c] -> 00000002
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-
-Read firmware {
-  arm-mem-LOAD  byte[041f4d52] -> 00000000     Trigger read
-
-  arm-mem-LOAD  byte[041f5c0c] -> 00000003     Acknowledge
+  arm-mem-LOAD  byte[041f5c0c] -> 00000003
   arm-mem-STORE byte[041f5c0c] <- 00000000 
-
-  arm-mem-LOAD  byte[041f5c08] -> <payload byte>
-
   arm-mem-LOAD  byte[041f5c0c] -> 00000002
   arm-mem-STORE byte[041f5c0c] <- 00000000 
-}
-
-arm-mem-STORE byte[041f4d51] <- 00000006 
-
-arm-mem-LOAD  byte[041f5c0c] -> 00000003
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-arm-mem-LOAD  byte[041f5c0c] -> 00000002
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-
-arm-mem-LOAD  byte[041f4dcc] -> 00000000
-
-arm-mem-LOAD  byte[041f5c0c] -> 00000003
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-
-arm-mem-LOAD  byte[041f5c08] -> 00000008
-
-arm-mem-LOAD  byte[041f5c0c] -> 00000002
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-
-arm-mem-STORE byte[041f4d51] <- 00000006 
-
-arm-mem-LOAD  byte[041f5c0c] -> 00000003
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-arm-mem-LOAD  byte[041f5c0c] -> 00000002
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-
-arm-mem-STORE byte[041f4dcc] <- 00000000 
-
-arm-mem-LOAD  byte[041f5c0c] -> 00000003
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-
-arm-mem-LOAD  word[04002078] -> 3ae1c0a8
-
-arm-mem-LOAD  byte[041f5c0c] -> 00000002
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-
-arm-mem-LOAD  byte[041f4d91] -> 00000000
-
-arm-mem-LOAD  byte[041f5c0c] -> 00000003
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-
-arm-mem-LOAD  byte[041f5c08] -> 00000001
-
-arm-mem-LOAD  byte[041f5c0c] -> 00000002
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-
-arm-mem-LOAD  byte[041f4b06] -> 00000000
-
-arm-mem-LOAD  byte[041f5c0c] -> 00000003
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-arm-mem-LOAD  byte[041f5c0c] -> 00000002
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-
-arm-mem-STORE byte[041f4b06] <- 0000000d 
-
-arm-mem-LOAD  byte[041f5c0c] -> 00000003
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-arm-mem-LOAD  byte[041f5c0c] -> 00000002
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-
-arm-mem-LOAD  byte[041f4b08] -> 00000000
-
-arm-mem-LOAD  byte[041f5c0c] -> 00000003
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-
-arm-mem-LOAD  byte[041f5c08] -> 0000000e
-
-arm-mem-LOAD  byte[041f5c0c] -> 00000002
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-
-arm-mem-STORE byte[041f4b08] <- 0000000a 
-
-arm-mem-LOAD  byte[041f5c0c] -> 00000003
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-arm-mem-LOAD  byte[041f5c0c] -> 00000002
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-
-arm-mem-STORE byte[041f5c44] <- 00000001 
-
-arm-mem-STORE byte[041f4b72] <- 00000000 
-arm-mem-STORE byte[041f4b72] <- 00000048 
-arm-mem-STORE byte[041f4b72] <- 00000048 
-arm-mem-STORE byte[041f4b0e] <- 00000001 
-arm-mem-STORE byte[041f4b32] <- 00000016 
-arm-mem-STORE byte[041f4b34] <- 00000008 
-arm-mem-STORE byte[041f4b35] <- 00000000 
-
-arm-mem-STORE byte[041f5c44] <- 00000003 
-
-arm-mem-LOAD  byte[041f5c0c] -> 00000013
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-
-arm-mem-STORE byte[041f5c44] <- 00000001 
-
-arm-mem-STORE byte[041f4b86] <- 00000000 
-arm-mem-STORE byte[041f4b86] <- 00000090 
-arm-mem-STORE byte[041f4b86] <- 00000090 
-arm-mem-STORE byte[041f4b0e] <- 00000002 
-arm-mem-STORE byte[041f4b33] <- 00000018 
-arm-mem-STORE byte[041f4b36] <- 00000088 
-arm-mem-STORE byte[041f4b37] <- 00000000 
-
-arm-mem-STORE byte[041f5c44] <- 00000003 
-
-arm-mem-LOAD  byte[041f5c0c] -> 00000013
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-
-arm-mem-LOAD  byte[041f5c0c] -> 00000002
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-
-arm-mem-STORE byte[041f4b72] <- 00000048 
-
-arm-mem-LOAD  byte[041f5c0c] -> 00000003
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-arm-mem-LOAD  byte[041f5c0c] -> 00000002
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-
-arm-mem-STORE byte[041f4b72] <- 00000048 
-
-arm-mem-LOAD  byte[041f5c0c] -> 00000003
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-arm-mem-LOAD  byte[041f5c0c] -> 00000002
-arm-mem-STORE byte[041f5c0c] <- 00000000 
 
 arm-mem-STORE byte[041f4b70] <- 00000000 
 
-arm-mem-LOAD  byte[041f5c0c] -> 00000003
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-arm-mem-LOAD  byte[041f5c0c] -> 00000002
-arm-mem-STORE byte[041f5c0c] <- 00000000 
+  arm-mem-LOAD  byte[041f5c0c] -> 00000003
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+  arm-mem-LOAD  byte[041f5c0c] -> 00000002
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
 
 arm-mem-STORE byte[041f4b71] <- 00000002 
 
-arm-mem-LOAD  byte[041f5c0c] -> 00000003
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-arm-mem-LOAD  byte[041f5c0c] -> 00000002
-arm-mem-STORE byte[041f5c0c] <- 00000000 
+  arm-mem-LOAD  byte[041f5c0c] -> 00000003
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+  arm-mem-LOAD  byte[041f5c0c] -> 00000002
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
 
 arm-mem-STORE byte[041f4b73] <- 00000094 
 
-arm-mem-LOAD  byte[041f5c0c] -> 00000003
-arm-mem-STORE byte[041f5c0c] <- 00000000 
-arm-mem-LOAD  byte[041f5c0c] -> 00000002
-arm-mem-STORE byte[041f5c0c] <- 00000000 
+  arm-mem-LOAD  byte[041f5c0c] -> 00000003
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
+  arm-mem-LOAD  byte[041f5c0c] -> 00000002
+  arm-mem-STORE byte[041f5c0c] <- 00000000 
 
 arm-mem-STORE byte[041f4b86] <- 00000090 
 

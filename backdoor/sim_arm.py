@@ -145,7 +145,7 @@ class SimARMMemory(object):
         self.skip_stores = {}
         self.patch_notes = {}
         self.patch_hle = {}
-        self.hle_handlers = [ 'break;' ]
+        self.hle_handlers = {}
 
         # Local RAM and cached flash, reads and writes don't go to hardware
         self.local_addresses = cStringIO.StringIO()
@@ -172,8 +172,9 @@ class SimARMMemory(object):
 
         # HLE marker, if we have one, will go on the last instruction in the patch.
         if hle:
-            self.patch_hle[thumb | (lines[-2].address & ~1)] = len(self.hle_handlers)
-            self.hle_handlers.append(hle)
+            name = 'hle_%08x' % address
+            self.hle_handlers[name] = '{%s; 0;}' % hle
+            self.patch_hle[thumb | (lines[-2].address & ~1)] = name
 
         # Populates icache
         self._load_assembly(address, lines, thumb=thumb)
@@ -401,35 +402,18 @@ class SimARMMemory(object):
                 self.instructions[addr] = instr
 
     def hle_init(self, code_address = pad):
-        """Install a C++ function to handle high-level emulation operations"""
-
-        compile(self.device, code_address, "hle_invoke(arg)", includes = dict(
-
-            sim_arm = '#include "sim_arm.h"',
-
-            hle_invoke = """
-                int hle_invoke(int arg) {
-                    switch (arg) {
-                        %s
-                    }
-                    return -1;
-                }
-            """ % '\n'.join([
-                'case %d: { %s; break; }' % v
-                for v in enumerate(self.hle_handlers)
-            ])
-
-        ))
+        """Install a C++ library to handle high-level emulation operations
+        """
+        self.hle_symbols = compile_library(self.device, code_address, self.hle_handlers, includes=includes)
         print "* Installed High Level Emulation handlers at %08x" % code_address
 
-    def hle_invoke(self, instruction, code_address = pad):
+    def hle_invoke(self, instruction):
         """Invoke the high-level emulation operation for an instruction
         Captures console output to the log.
         """
-
         cb = ConsoleBuffer(self.device)
         cb.discard()
-        self.device.blx(code_address | 1, instruction.hle)
+        self.device.blx(self.hle_symbols[instruction.hle], 0)
         logdata = cb.read(max_round_trips = None)
 
         # Prefix log lines, normalize trailing newline
