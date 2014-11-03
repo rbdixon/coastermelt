@@ -43,6 +43,7 @@ Getting Started
 
 * Get XCode, right?
 * Also this compiler. Put it in your path or something: [arm-none-eabi-gcc](https://launchpad.net/gcc-arm-embedded/+download)
+* Yet another weird compiler. With [homebrew](http://brew.sh), do `brew install sdcc`
 * You probably want to have [IPython](http://ipython.org/install.html) too. It's great, and the cool debug shell needs it.
 * You usually want to have **no disc** in the drive or have the tray ejected when you start working with it. Otherwise, the OS can keep us from claiming the device.
 * Run **make** here to build the patched firmware and the Python extensions

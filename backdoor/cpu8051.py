@@ -2,7 +2,7 @@
 
 # Tools for working with the 8051 coprocessor on the MT1939
 
-__all__ = [ 'cpu8051_boot' ]
+__all__ = [ 'cpu8051_boot', 'cpu8051_evalasm' ]
 
 from code import *
 from dump import *
@@ -20,3 +20,15 @@ def cpu8051_boot(d, firmware, address = pad):
         MT1939::CPU8051::firmware_install((uint8_t*) 0x%08x);
         MT1939::CPU8051::start();
     } ''' % address, address=code_address)
+
+
+def cpu8051_evalasm(d, code):
+    """Run a snippet of assembly code on the 8051
+    Returns the value of 'a'
+    """
+    return cpu8051_boot(d, assemble51_string(0, '''\
+        %(code)s
+        mov     dptr, #0x4d91
+        movx    @dptr, a
+        sjmp    .
+    ''' % locals()))

@@ -1,26 +1,36 @@
 #!/usr/bin/env python
 
 # Tools for working with code on the backdoored target machine.
-# Assemble, disassemble, and compile. Requires an ARM cross-compiler.
+# Assemble, disassemble, and compile.
+#
+# Requires an ARM cross-GCC for ARM, or SDCC for 8051.
 
 CC      = 'arm-none-eabi-gcc'
 OBJCOPY = 'arm-none-eabi-objcopy'
 OBJDUMP = 'arm-none-eabi-objdump'
+SDCC    = 'sdcc'
+
 
 __all__ = [
     # Code globals
     'pad', 'defines', 'includes',
 
-    # Compiler
-    'assemble_string', 'assemble', 'evalasm',
+    # ARM compiler
     'compile_string', 'compile', 'evalc',
     'compile_library_string', 'compile_library',
     'CodeError',
 
-    # Disassembler
+    # ARM assembler
+    'assemble_string', 'assemble', 'evalasm',
+
+    # ARM disassembler
     'disassemble_string', 'disassemble',
     'disassembly_lines', 'disassemble_context',
     'side_by_side_disassembly',
+
+    # 8051 support
+    'compile51_string',
+    'assemble51_string',
 
     # Instruction set
     'ldrpc_source_address', 'ldrpc_source_word',
@@ -607,3 +617,62 @@ def ldrpc_source_word(d, line):
     if address is not None:
         return d.peek(address)
 
+
+def compile51_string(address, code, defines = defines):
+    """Compile a stand-alone 8051 program
+
+    The 'defines' dictionary can define uint32_t constants that are
+    available even prior to the includes. To seamlessly bridge with Python
+    namespaces, things that aren't integers are ignored here.
+
+    It is the nature of SDCC that C and assembly are mostly interchangeable,
+    so we don't bother with a standalone assembler.
+    """
+    # So many files...
+    with temp_file_names('c asm hex lk lst map mem rel rst sym bin') as temp:
+
+        define_string = prepare_defines(defines, '#define %s 0x%08x')
+
+        with open(temp.c, 'w') as f:
+            f.write(define_string + '\n' + code)
+
+        compiler = subprocess.Popen([
+            SDCC, '-I', '../lib',
+            '-c', '--opt-code-size', '--nostdinc', temp.c,
+            ],
+            stderr = subprocess.STDOUT,
+            stdout = subprocess.PIPE)
+
+        output = compiler.communicate()[0]
+        if compiler.returncode != 0:
+            raise CodeError(output, temp.collect_text())
+
+        linker = subprocess.Popen([
+            SDCC, '-o', temp.hex,
+            '--code-loc', '0x%08x' % address,
+            '--nostdlib', temp.rel
+            ],
+            stderr = subprocess.STDOUT,
+            stdout = subprocess.PIPE)
+
+        output = linker.communicate()[0]
+        if linker.returncode != 0:
+            raise CodeError(output, temp.collect_text())
+
+        subprocess.check_call([ OBJCOPY, '-I', 'ihex', temp.hex, '-O', 'binary', temp.bin ])
+        with open(temp.bin, 'rb') as f:
+            return f.read()
+
+
+def assemble51_string(address, code, defines = defines):
+    """Assemble a stand-alone 8051 program
+    To avoid needing another tool, this uses SDCC's inline assembly.
+    For a little convenience, this allows ; as an instruction separator.
+    """
+    return compile51_string(address, '''\
+        void f() __naked {
+            __asm
+%s
+            __endasm ;
+        }
+    ''' % code.replace(';', '\n'), defines=defines)
