@@ -14,12 +14,8 @@ __all__ = [
 import sys, time
 from code import *
 from dump import *
+from target_memory import console_address
 
-# Our ring buffer is 64 KiB. The default location comes from
-# more guesswork and memsquares. It's 1MB above the default
-# pad, still in an area of DRAM that seems very lightly used.
-
-console_address = 0x1e50000
 
 includes['console'] = '#include "console.h"'
 defines['console_address'] = console_address

@@ -12,6 +12,7 @@ from IPython.core.error import UsageError
 
 import struct, sys, json, argparse, time
 from hilbert import hilbert
+import target_memory
 import remote
 
 from shell_functions import *
@@ -332,7 +333,7 @@ class ShellMagics(magic.Magics):
             ivt_set(d, args.vector, args.new_address)
 
     @magic.line_cell_magic
-    def ec(self, line, cell='', address=pad+0x100):
+    def ec(self, line, cell='', address=target_memory.shell_code):
         """Evaluate a 32-bit C++ expression on the target"""
         d = self.shell.user_ns['d']
         try:
@@ -341,7 +342,7 @@ class ShellMagics(magic.Magics):
             raise UsageError(str(e))
 
     @magic.line_cell_magic
-    def ecc(self, line, cell='', address=pad+0x100):
+    def ecc(self, line, cell='', address=target_memory.shell_code):
         """Evaluate a 32-bit C++ expression on the target, and immediately start a console"""
         d = self.shell.user_ns['d']
         try:
@@ -354,7 +355,7 @@ class ShellMagics(magic.Magics):
         console_mainloop(d)
 
     @magic.line_magic
-    def ea(self, line, address=pad+0x100, thumb=False):
+    def ea(self, line, address=target_memory.shell_code, thumb=False):
         """Evaluate an assembly one-liner
 
         This is an even more reduced and simplified counterpart to %asm,
@@ -384,7 +385,7 @@ class ShellMagics(magic.Magics):
         self.shell.write("r0 = 0x%08x, r1 = 0x%08x\n" % (r0, r1))
 
     @magic.line_magic
-    def tea(self, line, address=pad+0x100):
+    def tea(self, line, address=target_memory.shell_code):
         """Evaluate an assembly one-liner in Thumb mode
         This is a Thumb-mode variant of %ea
         """
@@ -393,7 +394,7 @@ class ShellMagics(magic.Magics):
     @magic.line_cell_magic
     @magic_arguments()
     @argument('hook_address', type=hexint)
-    @argument('handler_address', nargs='?', type=hexint_aligned, default=pad+0x100)
+    @argument('handler_address', nargs='?', type=hexint_aligned, default=target_memory.shell_code)
     @argument('-q', '--quiet', action='store_true', help="Just install the hook, don't talk about it")
     @argument('-R', '--reset', action='store_true', help="Reset the ARM before starting")
     @argument('-c', '--console', action='store_true', help='Immediately launch into a %%console after installing')
@@ -606,7 +607,7 @@ class ShellMagics(magic.Magics):
     @argument('-e', '--exit', action='store_true', help='Exit an existing bitbang debug session')
     @argument('-a', '--attach', action='store_true', help='Assume bitbang_backdoor() is already running, attach to it')
     @argument('-R', '--reset', action='store_true', help="Reset the ARM before starting")
-    @argument('--address', type=hexint_aligned, default=console_address-0x1000, help='Where to load the bitbang backdoor code. By default this goes just below the console buffer.')
+    @argument('--address', type=hexint_aligned, default=target_memory.bitbang_backdoor, help='Where to load the bitbang backdoor code. By default this goes just below the console buffer.')
     def bitbang(self, line):
         """Switch to a new debug channel based on a bitbang serial port
 

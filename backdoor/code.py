@@ -38,17 +38,7 @@ __all__ = [
 
 import os, random, re, struct, collections, subprocess
 from dump import *
-
-# Global scratchpad memory. This is the address of the biggest safest area of
-# read-write-execute RAM we can guesstimate about. This is provided as a
-# default location for the backdoor commands here to hastily bludgeon data
-# into. How did we find it? Guesswork! Also, staring at memsquares!
-#
-# This is halfway through DRAM, in a spot that seems to exhibit uninitialized
-# memory patterns even after quite a lot of time running memsquare.py
-# Hopefully our code won't get trashed by a SCSI packet!
-
-pad = 0x1e00000
+from target_memory import pad
 
 # Default global defines for C++ and assembly code we compile
 

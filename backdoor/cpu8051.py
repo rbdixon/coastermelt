@@ -9,6 +9,7 @@ __all__ = [
 
 from code import *
 from dump import *
+import target_memory
 
 
 def cpu8051_boot(d, firmware, address = pad):
@@ -37,7 +38,7 @@ def cpu8051_evalasm(d, code):
     ''' % locals()))
 
 
-def cpu8051_backdoor(d, address = pad):
+def cpu8051_backdoor(d, address = target_memory.cpu8051_backdoor):
     """Run a backdoor stub on the 8051 so we can control it remotely.
     Returns a library of ARM C++ functions for interacting with the stub.
     """
@@ -48,7 +49,7 @@ def cpu8051_backdoor(d, address = pad):
     #  01 <address low> <address high> -> <data>       XDATA read
     #  02 <address low> <address high> <data>          XDATA write
 
-    assert 1 == cpu8051_boot(d, compile51_string(0, '''\
+    words = words_from_string(compile51_string(0, '''\
 
         __xdata __at (0x4d91) unsigned char boot_status;
         __xdata __at (0x4b00) unsigned char command[0x10];
@@ -75,9 +76,14 @@ def cpu8051_backdoor(d, address = pad):
             }
         }
 
-        '''), address=address)
+        '''))
 
-    return compile_library(d, address, dict(
+    libstring, lib = compile_library_string(len(words)*4, dict(
+
+        start = '''{
+            MT1939::CPU8051::firmware_install((uint8_t*) 0x%(address)08x);
+            MT1939::CPU8051::start();
+        }''' % locals(),
 
         # peek(address) -> data
         # On timeout, returns ffffffff
@@ -98,12 +104,12 @@ def cpu8051_backdoor(d, address = pad):
             result;
         }''',
 
-        # poke( address | (data << 24) ) -> 0
+        # poke( address | (data << 16) ) -> 0
         # On timeout, returns ffffffff
         poke = '''{
             MT1939::CPU8051::cr_write(0x41f4b01, arg);
             MT1939::CPU8051::cr_write(0x41f4b02, arg >> 8);
-            MT1939::CPU8051::cr_write(0x41f4b03, arg >> 24);
+            MT1939::CPU8051::cr_write(0x41f4b03, arg >> 16);
             MT1939::CPU8051::cr_write(0x41f4b00, 2);
 
             SysTime deadline = SysTime::now() + (SysTime::hz/4);
@@ -119,3 +125,10 @@ def cpu8051_backdoor(d, address = pad):
         }''',
 
         ))
+
+    words += words_from_string(libstring)
+    poke_words(d, address, words)
+    status, _ = d.blx(lib['start'], 0)
+    if status != 1:
+        raise IOError("Failed to boot 8051 processor, status 0x%02x" % status)
+    return lib
