@@ -105,18 +105,6 @@ namespace CPU8051
         flags_reg = 0;
     }
 
-    void stop()
-    {
-        cr_write(0x41f4dcc, 8);     // Stop CPU
-        cr_write(0x41f4d91, 0);     // Clear boot status indicator
-    }
-
-    void start()
-    {
-        cr_write(0x41f4d51, 6);     // Turn off memory interface?
-        cr_write(0x41f4dcc, 0);     // Start CPU
-    }
-
     uint8_t status()
     {
         if (cr_read(0x41f4dcc) != 0) {
@@ -126,6 +114,26 @@ namespace CPU8051
             // Status register, set by firmware
             return cr_read(0x41f4d91);
         }
+    }
+
+    void stop()
+    {
+        cr_write(0x41f4dcc, 8);     // Stop CPU
+        cr_write(0x41f4d91, 0);     // Clear boot status indicator
+    }
+
+    uint8_t start()
+    {
+        cr_write(0x41f4d51, 6);     // Turn off memory interface?
+        cr_write(0x41f4dcc, 0);     // Start CPU
+
+        // Wait for boot, with a short timeout
+        SysTime deadline = SysTime::now() + (SysTime::hz / 4);
+        uint8_t result;
+        do {
+            result = status();
+        } while (result != 1 && SysTime::now().difference(deadline) < 0);
+        return result;
     }
 
     void firmware_write(uint8_t byte)
@@ -144,7 +152,7 @@ namespace CPU8051
         cr_write(0x41f4d51, 0);     // Release address reset        
     }
 
-    void firmware_install(const uint8_t *data, uint32_t length)
+    void firmware_install(const uint8_t *data, uint32_t length = 0x2000)
     {
         stop();
         firmware_rewind();

@@ -184,15 +184,3 @@ uint32_t invoke_encrypted_11000(uint32_t x = 0)
 	return result;
 }
 
-
-uint8_t cpu8051_firmware_probe(const uint8_t *image)
-{
-	// This is an experiment about the early communications between 8051 and ARM.
-	// When we boot an 8051 firmware image, the first sign of life is a value
-	// returned via register [41f4d91].
-
-    MT1939::CPU8051::firmware_install(image, 0x2000);
-    MT1939::CPU8051::start();
-    SysTime::wait_ms(100);
-    return MT1939::CPU8051::status();
-}

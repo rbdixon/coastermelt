@@ -36,3 +36,6 @@ auto& button_release_debounce_state = *(volatile uint32_t*) 0x1ffb288;
 // This is called ALL over the place with distinctive coded constants in r0.
 // Either a debug logging or inter-processor comms mechnism; either way very interesting
 auto ipc_logging_message = (void(*)(uint32_t code)) 0xf6025;
+
+// Firmware images
+auto ts01_8051 = (const uint8_t*) 0x17f800;

@@ -22,6 +22,7 @@ from console import *
 from hook import *
 from bitfuzz import *
 from bitbang import *
+from cpu8051 import *
 from hilbert import hilbert
 
 import IPython
