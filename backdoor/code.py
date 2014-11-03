@@ -608,7 +608,7 @@ def ldrpc_source_word(d, line):
         return d.peek(address)
 
 
-def compile51_string(address, code, defines = defines):
+def compile51_string(address, code, defines = defines, show_listing = False):
     """Compile a stand-alone 8051 program
 
     The 'defines' dictionary can define uint32_t constants that are
@@ -648,6 +648,9 @@ def compile51_string(address, code, defines = defines):
         output = linker.communicate()[0]
         if linker.returncode != 0:
             raise CodeError(output, temp.collect_text())
+
+        if show_listing:
+            print open(temp.rst).read()
 
         subprocess.check_call([ OBJCOPY, '-I', 'ihex', temp.hex, '-O', 'binary', temp.bin ])
         with open(temp.bin, 'rb') as f:

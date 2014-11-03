@@ -398,3 +398,73 @@ with open('plaintext.bin', 'wb') as f:
 
 	ROM:000136FC aAacs_auth_scra DCB "AACS_AUTH_SCRAMBLE_Oct 25 2010_END",0
 
+
+--------------------------
+USB co-processor (CPU8051)
+--------------------------
+
+
+bitbang -8 /dev/tty.usbserial-A400378p
+d8.start()
+
+	This gives us remote control over the 8051 processor's I/O bus. First we
+	have to get a path to communicate with the ARM that doesn't rely on the
+	8051 working- the bitbang interface. After switching to the bitbang serial
+	port, then we can use cpu8051_backdoor() to boot a backdoor firmware on
+	the 8051 and set up a library on the ARM that lets us quickly communicate
+	with it.
+
+
+bitbang /dev/tty.usbserial-A400378p
+%%ecc
+CPU8051::stop();
+for (u32 addr = 0x41f4000; addr <= 0x41f5fff; addr = (addr + 0x100) & ~0xff) {
+	console(addr); console(':');
+	while (1) {
+		int v = CPU8051::cr_read(addr, SysTime::future(0.05));
+		if (v < 0) break;
+		console(' '); console((uint8_t) v);
+		addr++;
+	}
+	println();
+}
+
+	We can scan the 8051's XDATA space for memory mapped I/O. Unmapped memory
+	will cause a timeout at the cr_read() level, which we can trap. If we
+	assume that memory is organized into 256-byte pages such that the first
+	byte of any partially-mapped page will be mapped, we can quickly get a
+	sense for where these mapped pages are.
+
+	The ranges above are adjusted to hilight the interesting region- all other
+	parts of the 16-bit address space, as tested with this function, appear to
+	be empty.
+
+	This function shows lots of mapped memory at 0x4b00:4eff, and no mapped
+	pages elsewhere.
+
+
+bitbang /dev/tty.usbserial-A400378p
+%%ecc
+CPU8051::stop();
+for (u32 addr = 0x41f4b00; addr <= 0x41f4eff; addr++) {
+	SysTime t0 = SysTime::now();
+	int v = CPU8051::cr_read(addr, SysTime::future(0.1));
+	u32 t = SysTime::now().difference(t0);
+	console(addr); console(": t="); console(t);
+	if (v >= 0) { console(' '); console((uint8_t) v); }
+	println();
+}
+
+	This is a more focused experiment that exhaustively searches the mapped pages
+	and includes data and access time in the output.
+
+	This experiment takes a few minutes to run; the console will time out, but
+	you can reconnect and the output should be in the buffer.
+
+	No significant differences in access times observed. Mapped regions take
+	20us to access, unmapped hit the full timeout.
+
+	Mapped regions:
+
+		041f4b00 - 041f4bff
+		041f4d00 - 041f4dff

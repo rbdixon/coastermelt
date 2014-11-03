@@ -19,7 +19,8 @@ def overlay_hook(d, hook_address, handler,
     includes = includes, defines = defines,
     handler_address = pad, va = 0x500000, verbose = False,
     replace_one_instruction = False, reset = False,
-    target_already_mapped = False
+    target_already_mapped = False,
+    show_asm_diff = False
     ):
     """Inject a C++ hook into Thumb code executing from Flash memory.
     All registers are bridged bi-directionally to C++ variables in the hook.
@@ -320,9 +321,9 @@ def overlay_hook(d, hook_address, handler,
         print "* ISR assembled to 0x%x bytes, loaded at 0x%x" % (isr_len, isr_address)
         print "* Hook at 0x%x, returning to 0x%x" % (hook_address, return_address)
         print "* RAM overlay, 0x%x bytes, loaded at 0x%x" % (ovl_size, ovl_address)
+    if show_asm_diff:
         print asm_diff
 
     # Most common failure mode I'm seeing now is that the overlay gets stolen or
     # the truncation bug just breaks things and the patch doesn't install.
     assert verify_asm.find('bkpt') >= 0
-

@@ -59,6 +59,10 @@ struct SysTime
         return *(volatile uint32_t*) 0x4002078;
     }
 
+    static SysTime future(float seconds) {
+        return now() + SysTime(hz * seconds);
+    }
+
     static void wait_ticks(unsigned n) {
         SysTime ref = now();
         while (now().difference(ref) < n+1);
@@ -67,44 +71,75 @@ struct SysTime
     static void wait_ms(unsigned n) {
         wait_ticks((uint64_t)n * hz / 1000);
     }
+
+    static bool is_past(SysTime other) {
+        return now().difference(other) >= 0;
+    }
 };
 
 
 namespace CPU8051
 {
-    // Read a coprocessor control register
-    uint8_t cr_read(uint32_t reg_addr)
+    // Read a coprocessor control register, -1 on timeout
+    int cr_read(uint32_t reg_addr, SysTime deadline)
     {
         auto trigger_reg = (volatile uint8_t*) reg_addr; 
         auto& flags_reg = *(volatile uint8_t*) 0x41f5c0c;
         auto& data_reg = *(volatile uint8_t*) 0x41f5c08;
 
-        while (flags_reg & 0xC);
+        while (flags_reg & 0xC) {
+            if (SysTime::is_past(deadline)) {
+                return -1;
+            }
+        }
         flags_reg = 0;
 
         (void) trigger_reg[0];
 
-        while (!(flags_reg & 1));
+        while (!(flags_reg & 1)) {
+            if (SysTime::is_past(deadline)) {
+                return -1;
+            }
+        }
         flags_reg = 0;
 
         return data_reg;
     }
 
     // Write to a coprocessor control register
-    void cr_write(uint32_t reg_addr, uint8_t value)
+    int cr_write(uint32_t reg_addr, uint8_t value, SysTime deadline)
     {
         auto data_reg = (volatile uint8_t*) reg_addr; 
         auto& flags_reg = *(volatile uint8_t*) 0x41f5c0c;
 
-        while (flags_reg & 0xC);
+        while (flags_reg & 0xC) {
+            if (SysTime::is_past(deadline)) {
+                return -1;
+            }
+        }
         flags_reg = 0;
 
         data_reg[0] = value;
 
-        while (!(flags_reg & 1));
+        while (!(flags_reg & 1)) {
+            if (SysTime::is_past(deadline)) {
+                return -1;
+            }
+        }
         flags_reg = 0;
+
+        return 0;
     }
 
+    // Default deadlines
+    int cr_read(uint32_t reg_addr) {
+        return cr_read(reg_addr, SysTime::future(0.25));
+    }
+    int cr_write(uint32_t reg_addr, uint8_t value) {
+        return cr_write(reg_addr, value, SysTime::future(0.25));
+    }
+
+    // Status: 0 = off, 1 = just booted, other values set by firmware
     uint8_t status()
     {
         if (cr_read(0x41f4dcc) != 0) {

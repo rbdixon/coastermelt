@@ -25,6 +25,7 @@ from hook import *
 from bitfuzz import *
 from bitbang import *
 from sim_arm import *
+from cpu8051 import *
 
 
 @magic.magics_class
@@ -343,8 +344,14 @@ class ShellMagics(magic.Magics):
 
     @magic.line_cell_magic
     def ecc(self, line, cell='', address=target_memory.shell_code):
-        """Evaluate a 32-bit C++ expression on the target, and immediately start a console"""
+        """Evaluate a 32-bit C++ expression on the target, and immediately start a console
+        To ensure we only display output that was generated during the command execution,
+        the console is sync'ed and unread output is discarded prior to running the command.
+        """
         d = self.shell.user_ns['d']
+
+        ConsoleBuffer(d).discard()
+
         try:
             return_value = evalc(d, line + cell, defines=all_defines(), includes=all_includes(), address=address, verbose=True)
         except CodeError, e:
@@ -607,6 +614,7 @@ class ShellMagics(magic.Magics):
     @argument('-e', '--exit', action='store_true', help='Exit an existing bitbang debug session')
     @argument('-a', '--attach', action='store_true', help='Assume bitbang_backdoor() is already running, attach to it')
     @argument('-R', '--reset', action='store_true', help="Reset the ARM before starting")
+    @argument('-8', '--cpu8051',action='store_true', help='Install the 8051 backdoor interface ("d8" in the shell)')
     @argument('--address', type=hexint_aligned, default=target_memory.bitbang_backdoor, help='Where to load the bitbang backdoor code. By default this goes just below the console buffer.')
     def bitbang(self, line):
         """Switch to a new debug channel based on a bitbang serial port
@@ -664,8 +672,6 @@ class ShellMagics(magic.Magics):
             d_remote.reset()
 
         else:
-            if not args.attach and d == d_bitbang:
-                raise UsageError("Already using the bitbang device")
             if not args.attach and not d_remote:
                 raise UsageError("No way in; if the target is already in bitbang mode, try -a")
             if not args.serial_port:
@@ -684,7 +690,11 @@ class ShellMagics(magic.Magics):
             self.shell.user_ns['d_bitbang'] = d_bitbang
             self.shell.user_ns['d'] = d_bitbang
 
-        self.shell.write('* Debug interface switched to %r\n' % self.shell.user_ns['d'])
+        d = self.shell.user_ns['d']
+        self.shell.write('* Debug interface switched to %r\n' % d)
+
+        if args.cpu8051:
+            self.shell.user_ns['d8'] = cpu8051_backdoor(d)
 
     @magic.line_magic
     @magic_arguments()

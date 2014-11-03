@@ -28,7 +28,7 @@ def bitbang_backdoor(d, handler_address, hook_address = 0x18ccc, verbose = False
     overlay_hook(d, hook_address, '''
 
         static int counter = 0;
-        const int ticks_per_loop = 1000;
+        const int ticks_per_loop = 100;
         const int loops = 1000;
 
         MT1939::SysTime::wait_ticks(ticks_per_loop);
