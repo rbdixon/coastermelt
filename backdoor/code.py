@@ -667,7 +667,6 @@ def compile51_string(address, code, defines = defines):
 def assemble51_string(address, code, defines = defines):
     """Assemble a stand-alone 8051 program
     To avoid needing another tool, this uses SDCC's inline assembly.
-    For a little convenience, this allows ; as an instruction separator.
     """
     return compile51_string(address, '''\
         void f() __naked {
@@ -675,4 +674,4 @@ def assemble51_string(address, code, defines = defines):
 %s
             __endasm ;
         }
-    ''' % code.replace(';', '\n'), defines=defines)
+    ''' % code, defines=defines)
