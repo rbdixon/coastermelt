@@ -5,7 +5,7 @@
 
 __all__ = [ 'bitbang_backdoor', 'BitbangDevice' ]
 
-import struct
+import struct, time
 from hook import *
 from code import *
 
@@ -153,11 +153,16 @@ class BitbangDevice:
 
     @_auto_retry
     @_maintain_sync
-    def blx(self, address, r0):
-        self._write(struct.pack('<BII', 0xb4, address, r0))
-        r0, r1, check = struct.unpack('<III', self.port.read(12))
-        self._check(check, r0, address)
-        return (r0, r1)
+    def blx(self, address, r0, timeout = 30):
+        savedTimeout = self.port.timeout
+        self.port.timeout = timeout
+        try:
+            self._write(struct.pack('<BII', 0xb4, address, r0))
+            r0, r1, check = struct.unpack('<III', self.port.read(12))
+            self._check(check, r0, address)
+            return (r0, r1)
+        finally:
+            self.port.timeout = savedTimeout
 
     @_auto_retry
     @_maintain_sync

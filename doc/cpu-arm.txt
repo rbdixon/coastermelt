@@ -193,14 +193,17 @@ Very rough notes, may be wildly wrong.
 
             4002108   uint32              - Clear upper half (ldrh/str) to ack interrupt
 
+            4002120
+
 4003000
 4004000
 4004800
 
 4010000     8051 Co-processor
             
-            4010000   uint8       Flags
-                                      1    Poll for bit=0 after logging to zr[c]
+            4010000   uint8       write FIFO
+            4010008   uint32      Write-1-to-clear?
+            4010009   uint8
 
 4011000     Coprocessor and encryption memory mapping control
             Possibly inter-processor message notification
@@ -357,17 +360,36 @@ Very rough notes, may be wildly wrong.
 4100000
 4100701
 
-41f0000     USB coprocessor (8051)
+41f0000     8051 Co-processor memory interface
 
             This looks like it might be an in-package serial bus.
 
-            41f4d50   uint8       FIFO, used for writing 8051 firmware image
+            The registers at 41f4_ follow a protocol where [41f5c0c] is used for
+            flow control and [41f5c08] performs delayed reads. This is probably how
+            they cross clock domains.
 
-            41f4dcc   uint8       Command?
+            41f4d50   uint8       Write to firmware memory
+            41f4d51   uint8       Flags
+                                      1   Force firmware address to 0 when asserted. Strobe high to reset address.
+                                      2   Disable firmware autoincrement?
+                                      4   0 during upload, 1 during normal operation (just before [41f4dcc]=0)
+
+            41f4d52   uint8       Read from firmware memory
+
+            41f4d91   uint8       read/write, status for something happening in firmware
+                                      - without firmware, fails check at 4bfd6
+                                      typical 0x59
+
+            41f4dcc   uint8       Flags
+                                      8   Processor held in reset? (Set during firmware install)
+
+            Bus control for registers in 41f4_
+
+            41f5c08   uint8       Read data
             41f5c0c   uint8       Flags
-                                      8   Busy #1,  wait for 0
-                                      4   Busy #1,  wait for 0
-                                      1   Busy #2,  wait for 1
+                                      8   Busy pre-result, wait for 0
+                                      4   Busy pre-result, wait for 0
+                                      1   Busy post-result, wait for 1
 
 4200000
 4201000    <--- waaay out there. Visible on memsquare, in the area that didn't

@@ -62,8 +62,8 @@ def simulate_arm(device):
     m.patch(0x4b6a8, '''
         bx      lr
     ''', hle='''
-        console("cpu8051_sync_read_from", r0);
-        r0 = cpu8051_sync_read_from(r0);
+        console("MT1939::CPU8051::cr_read", r0);
+        r0 = MT1939::CPU8051::cr_read(r0);
         println(" ->", r0);
     ''')
 
@@ -77,8 +77,8 @@ def simulate_arm(device):
     ''', hle='''
         uint32_t reg = 0x04000000 | ((r0 << 8) >> 8);
         uint8_t value = r0 >> 24;
-        println("cpu8051_sync_write_to", reg, value);
-        cpu8051_sync_write_to(reg, value);
+        println("MT1939::CPU8051::cr_write", reg, value);
+        MT1939::CPU8051::cr_write(reg, value);
     ''')
 
     # Don't bother copying 8051 firmware to DRAM (performance)
@@ -94,16 +94,16 @@ def simulate_arm(device):
         nop
         nop
     ''', hle='''
-        println("Installing 8051 firmware");
-        cpu8051_install_firmware(0x17f800, 0x2000);
+        println("MT1939::CPU8051::firmware_install");
+        MT1939::CPU8051::firmware_install((const uint8_t*) 0x17f800, 0x2000);
     ''')
 
     # This function checksums the 8051 firmware, verifies it, and writes to d51
     m.patch(0x4cfc0, '''
         pop     {r3-r7, pc}
     ''', hle='''
-        println("Firmware checksum = ", cpu8051_checksum_firmware());
-        cpu8051_sync_write_to(0x41f4d51, 6);
+        println("Firmware checksum = ", MT1939::CPU8051::firmware_checksum());
+        MT1939::CPU8051::cr_write(0x41f4d51, 6);
         r0 = 0;  // success
     ''')
 
