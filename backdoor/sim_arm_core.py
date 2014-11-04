@@ -588,7 +588,7 @@ class SimARM(object):
         setattr(self, name % 'vs', lambda i, fn=fn: (self.cpsrV     ) and fn(i))
         setattr(self, name % 'vc', lambda i, fn=fn: (not self.cpsrV ) and fn(i))
         setattr(self, name % 'hi', lambda i, fn=fn: (self.cpsrC and not self.cpsrZ ) and fn(i))
-        setattr(self, name % 'ls', lambda i, fn=fn: (self.cpsrZ and not self.cpsrC ) and fn(i))
+        setattr(self, name % 'ls', lambda i, fn=fn: (self.cpsrZ or not self.cpsrC ) and fn(i))
         setattr(self, name % 'ge', lambda i, fn=fn: (((not not self.cpsrN) == (not not self.cpsrV)) ) and fn(i))
         setattr(self, name % 'lt', lambda i, fn=fn: (((not not self.cpsrN) != (not not self.cpsrV)) ) and fn(i))
         setattr(self, name % 'gt', lambda i, fn=fn: (((not not self.cpsrN) == (not not self.cpsrV)) and not self.cpsrZ ) and fn(i))
