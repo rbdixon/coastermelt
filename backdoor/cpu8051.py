@@ -153,6 +153,7 @@ backdoor_8051 = '''\
 backdoor_arm_lib = '''\
     namespace backdoor {
     using namespace MT1939::CPU8051;
+    uint8_t buffer[256];
 
     bool set_status(uint8_t s, SysTime deadline)
     {
@@ -224,6 +225,18 @@ backdoor_arm_lib = '''\
             set_status(1, deadline)
         ) ? ( ((r1 << 7) & 0x80) | (r2 & 0x7F) ) : -1;
     }
+
+    uint8_t *xpeek_block(uint16_t addr, unsigned length)
+    {
+        for (unsigned i = 0; i != length; i++) {
+            int v = xpeek(addr + i);
+            if (v < 0) {
+                return 0;
+            }
+            buffer[i] = v;
+        }
+        return buffer;
+    }
 }'''
 
 
@@ -236,6 +249,7 @@ backdoor_arm_funcs = dict(
     cr_write = 'CPU8051::cr_write(0x041f0000 | (arg & 0xffff), arg >> 16)',
     xpeek = 'backdoor::xpeek(arg)',
     xpoke = 'backdoor::xpoke(arg, arg >> 16) ? 0 : -1',
+    xpeek_block = '(uint32_t) backdoor::xpeek_block(arg, arg >> 16)'
 )
 
 
@@ -247,11 +261,14 @@ class BackdoorDevice:
         self.d = d
         self.lib = lib
 
+    def _timeout(self):
+        raise IOError('Timeout waiting on 8051 backdoor\n\n' +
+            '--> You can (re)start the backdoor firmware with d8.start()')
+
     def _call_with_timeout(self, name, arg):
         v, _ = self.d.blx(self.lib[name], arg)
         if (v & 0xff) != v:
-            raise IOError('Timeout waiting on 8051 backdoor\n\n' +
-                '--> You can (re)start the backdoor firmware with d8.start()')
+            self._timeout()
         return v
 
     def start(self):
@@ -277,3 +294,13 @@ class BackdoorDevice:
     def xpoke(self, addr, data):
         self._call_with_timeout('xpoke', (addr & 0xffff) | ((data & 0xff) << 16))
 
+    def xpoke_bytes(self, addr, bytes):
+        for i, b in enumerate(bytes):
+            self.xpoke(addr + i, b)
+
+    def xpeek_block(self, addr, length = 0x100):
+        assert length <= 0x100
+        addr, _ = self.d.blx(self.lib['xpeek_block'], (addr & 0xffff) | (length << 16))
+        if addr == 0:
+            self._timeout()
+        return read_block(self.d, addr, length)

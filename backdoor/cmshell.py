@@ -49,6 +49,12 @@ You can script the device's SCSI interface too:
     sc 8 ff 00 ff        # Undocumented firmware version
     ALSO: reset, eject, sc_sense, sc_read, scsi_in, scsi_out
 
+With a hardware serial port, you can backdoor the 8051:
+
+    bitbang -8 /dev/tty.usb<tab>
+    wx8 4b50 a5
+    rx8 4d00
+
 Happy hacking!    -- Type 'thing?' for help on 'thing' or
 ~MeS`14              '?' for IPython, '%h' for this again.
 """

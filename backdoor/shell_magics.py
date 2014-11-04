@@ -48,6 +48,12 @@ class ShellMagics(magic.Magics):
         else:
             return p.text("0x%x" % n)
 
+    def _d8(self):
+        d8 = self.shell.user_ns.get('d8')
+        if not d8:
+            raise UsageError('Not connected to the 8051 backdoor. Try %bitbang -8')
+        return d8
+
     @magic.line_magic
     @magic_arguments()
     @argument('enabled', type=int, help='(0 | 1)')
@@ -68,6 +74,17 @@ class ShellMagics(magic.Magics):
         args = parse_argstring(self.rd, line)
         d = self.shell.user_ns['d']
         dump(d, args.address, args.size, fast=args.fast, check_fast=args.check_fast, addr_space=args.space)
+
+    @magic.line_magic
+    @magic_arguments()
+    @argument('address', type=hexint, help='Address to read from')
+    @argument('size', type=hexint, nargs='?', default=0x100, help='Number of bytes to read')
+    def rx8(self, line):
+        """Read block of XDATA memory from the 8051"""
+        args = parse_argstring(self.rx8, line)
+        d8 = self._d8()
+        block = d8.xpeek_block(args.address, args.size)
+        self.shell.write(hexdump(block, address=args.address & 0xffff))
 
     @magic.line_magic
     @magic_arguments()
@@ -130,6 +147,17 @@ class ShellMagics(magic.Magics):
         d = self.shell.user_ns['d']
         args.word.extend(map(hexint, cell.split()))
         poke_words(d, args.address, args.word)
+
+    @magic.line_cell_magic
+    @magic_arguments()
+    @argument('address', type=hexint_aligned, help='Hex address')
+    @argument('byte', type=hexint, nargs='*', help='Hex bytes')
+    def wx8(self, line, cell=''):
+        """Write hex bytes into 8051 XDATA memory"""
+        args = parse_argstring(self.wx8, line)
+        d8 = self._d8()
+        args.byte.extend(map(hexint, cell.split()))
+        d8.xpoke_bytes(args.address, args.byte)
 
     @magic.line_cell_magic
     @magic_arguments()
