@@ -69,8 +69,13 @@ Memory Regions
                   [4b06]  Flags
                   [4b08]  Flags
                   [4b0b]
+                  [4b0e]
 
                   [4b24]  Write to 13-byte USB command status buffer
+
+                  [4b32]
+                  [4b34]
+                  [4b35]
 
                   [4b50]
 

@@ -391,6 +391,8 @@ Very rough notes, may be wildly wrong.
                                       4   Busy pre-result, wait for 0
                                       1   Busy post-result, wait for 1
 
+            41f5c44   uint8
+
 4200000
 4201000    <--- waaay out there. Visible on memsquare, in the area that didn't
                 seem to even have a bus. Is this on some more-internal bus
