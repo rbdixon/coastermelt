@@ -71,6 +71,8 @@ Memory Regions
                   [4b0b]
                   [4b0e]
 
+                  [4b20]  Read 8-byte SETUP packet
+
                   [4b24]  Write to 13-byte USB command status buffer
 
                   [4b32]
