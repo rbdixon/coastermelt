@@ -9,19 +9,19 @@ Time
 
 ecc println(now())
 
-	This is a somewhat roundabout but convenient way to print the time.
-	Same formatting used by the default %hook
+    This is a somewhat roundabout but convenient way to print the time.
+    Same formatting used by the default %hook
 
 
 %%hook -Rc 18ccc
 println(now())
 
-	This installs a hook at the top of the ARM firmware's supervisor-mode main
-	loop. As fast as it can without blocking the rest of the firmware, that
-	hook will read the SoC's monotonic timer and write it to the console. The
-	-R switch has it reset the system first, a good idea to start the
-	experiment with a clean slate. And the -c command starts %console to watch
-	for the output until you stop it with ctrl-C.
+    This installs a hook at the top of the ARM firmware's supervisor-mode main
+    loop. As fast as it can without blocking the rest of the firmware, that
+    hook will read the SoC's monotonic timer and write it to the console. The
+    -R switch has it reset the system first, a good idea to start the
+    experiment with a clean slate. And the -c command starts %console to watch
+    for the output until you stop it with ctrl-C.
 
 
 %%hook -Rc 18ccc
@@ -30,9 +30,9 @@ auto t2 = now();
 println(t2.difference(t1));
 last = t2;
 
-	Hook the main loop, and print how many ticks has elapsed between
-	successive main loop iterations. It's such a tight loop that the
-	cost of the division in println_dec() makes a huge difference.
+    Hook the main loop, and print how many ticks has elapsed between
+    successive main loop iterations. It's such a tight loop that the
+    cost of the division in println_dec() makes a huge difference.
 
 
 -----------
@@ -42,10 +42,10 @@ Concurrency
 
 hook -Rscm "IRQ Vector" 40
 
-	You can hook interrupt handlers too, but many of them live in SRAM. If the
-	handler is in SRAM, normal hooking will fail and you'll need to use the
-	-s (--sram) option. This sadly doesn't work for DRAM or any of the regions
-	of memory above 8MB.
+    You can hook interrupt handlers too, but many of them live in SRAM. If the
+    handler is in SRAM, normal hooking will fail and you'll need to use the
+    -s (--sram) option. This sadly doesn't work for DRAM or any of the regions
+    of memory above 8MB.
 
 
 test_addr = 0x1ffb288
@@ -74,45 +74,45 @@ u32 sample_2 = test_word;
 if (sample_1 != sample_2) println(sample_1, sample_2);
 end_critical_section(psr);
 
-	Like above, but now we call the firmware's functions for disabling and
-	enabling interrupts. If we still see changes here, we know the values are
-	being modified by hardware and not an interrupt handler.
+    Like above, but now we call the firmware's functions for disabling and
+    enabling interrupts. If we still see changes here, we know the values are
+    being modified by hardware and not an interrupt handler.
 
 
 %%hook -Rc 78898
 console(now());
 println("  ", r0, r1);
 
-	This is a minimal logging hook for an IPC send-and-wait function used on
-	the ARM side. This writes to registers [4206010]=r1 and [4206000]=r0+900000,
-	then it waits for bit31=1 in [4206004].
-	
-	You can see a flurry of commands here (after the console reattaches) when
-	ejecting the tray, starting with it closed. The final command (22b, 7fff)
-	actually does the eject.
+    This is a minimal logging hook for an IPC send-and-wait function used on
+    the ARM side. This writes to registers [4206010]=r1 and [4206000]=r0+900000,
+    then it waits for bit31=1 in [4206004].
+    
+    You can see a flurry of commands here (after the console reattaches) when
+    ejecting the tray, starting with it closed. The final command (22b, 7fff)
+    actually does the eject.
 
 
 hook -bm "Eject over bitbang" 18eb4
 
-	Debugging the 8051, which is responsible for our USB backdoor pipe, may
-	require having yet another way in. For that we have the option of a
-	bitbang serial port. You can use %hook -b to send hook console output
-	directly to the serial port. In many cases, the -b and -c switches can be
-	interchangeable. Especially convenient if you keep a serial terminal open
-	next to your cmshell!
+    Debugging the 8051, which is responsible for our USB backdoor pipe, may
+    require having yet another way in. For that we have the option of a
+    bitbang serial port. You can use %hook -b to send hook console output
+    directly to the serial port. In many cases, the -b and -c switches can be
+    interchangeable. Especially convenient if you keep a serial terminal open
+    next to your cmshell!
 
-	For more information on the port and how to wire it, see bitbang.h.
+    For more information on the port and how to wire it, see bitbang.h.
 
-	tl;dr  It's 57600/8-N-1, 3.3v, RX comes from pin 10 of the TPIC1391.
+    tl;dr  It's 57600/8-N-1, 3.3v, RX comes from pin 10 of the TPIC1391.
 
 
 hook -Rb 213e6
 sc a ac
 
-	This is the beginning of the body function for IRQ vector 0x18, which seems
-	to be related to SCSI commands. Hooking it using the default console will
-	produce endless messages as it chases its own tail. With serial, you can see
-	it gives two hook messages per SCSI command.
+    This is the beginning of the body function for IRQ vector 0x18, which seems
+    to be related to SCSI commands. Hooking it using the default console will
+    produce endless messages as it chases its own tail. With serial, you can see
+    it gives two hook messages per SCSI command.
 
 
 ------------
@@ -136,11 +136,11 @@ watch 4002004 1
 
 hook -Rrcm "Eject button" 18eb4
 
-	This is a call site for the eject button handler in the ARM main loop,
-	called as a result of checking button_release_debounce_state (1ffb288).
-	With -r (replace) mode, this inhibits the usual button press behaviors and
-	lets you hook your own code up to the button, running a friendly main loop
-	context.
+    This is a call site for the eject button handler in the ARM main loop,
+    called as a result of checking button_release_debounce_state (1ffb288).
+    With -r (replace) mode, this inhibits the usual button press behaviors and
+    lets you hook your own code up to the button, running a friendly main loop
+    context.
 
 
 ---------
@@ -158,10 +158,10 @@ hook -Rcm "Top of main loop" 18ccc
 %%hook 18ccc
 *(vu32*)0x4002088 ^= 0x2000000
 
-	This is a simple mainloop heartbeat signal. As long as the hook is working,
-	the tray LED will glow dimly as it toggles every mainloop iteration. If you
-	have an oscilloscope on the board, you can see this signal on the mainboard's
-	flexcable at pin 51.
+    This is a simple mainloop heartbeat signal. As long as the hook is working,
+    the tray LED will glow dimly as it toggles every mainloop iteration. If you
+    have an oscilloscope on the board, you can see this signal on the mainboard's
+    flexcable at pin 51.
 
 
 ---------------------------
@@ -173,22 +173,22 @@ Unknown Hardware Device #xx
 
 hook -Rc 213f6
 
-	First decision byte in ISR loaded into r0. From this trace, it looks like
-	r0 is always 3, but I'd like to be sure:
+    First decision byte in ISR loaded into r0. From this trace, it looks like
+    r0 is always 3, but I'd like to be sure:
 
 
 %%hook -Rc 213f6
 if (r0 != 3) default_hook(regs)
 
-	This conditionally invokes the default hook handler (the one used for the
-	one-line version of hook) only if we see something surprising. This is a
-	really useful pattern for filtering streams of noisy information, and it
-	runs at the speed of the hook mechanism in native code, not limited by the
-	slow debug backdoor.
+    This conditionally invokes the default hook handler (the one used for the
+    one-line version of hook) only if we see something surprising. This is a
+    really useful pattern for filtering streams of noisy information, and it
+    runs at the speed of the hook mechanism in native code, not limited by the
+    slow debug backdoor.
 
-	This is silent at first, suggesting that the output is indeed always 3.
-	You need two things to help you trust a negative experamental result like
-	this one:
+    This is silent at first, suggesting that the output is indeed always 3.
+    You need two things to help you trust a negative experamental result like
+    this one:
 
     - It must not have crashed. This is why the console has the little "-\|/"
       spinner animation when it's idle. It's actually polling the console
@@ -218,15 +218,15 @@ SCSI Command Handling
 
 sc c ac
 
-	This sends the special command we've backdoored, SCSI 0xAC 'Get
-	Performance Data'. The returned value will be a performance.
+    This sends the special command we've backdoored, SCSI 0xAC 'Get
+    Performance Data'. The returned value will be a performance.
 
 
 dis c9600
 
-	This is the backdoor routine we patched into flash memory. It handles the
-	0xAC command above. It's a tempting patch target, since it's code in flash
-	that we wrote- but it needs to keep working for the debugger to function!
+    This is the backdoor routine we patched into flash memory. It handles the
+    0xAC command above. It's a tempting patch target, since it's code in flash
+    that we wrote- but it needs to keep working for the debugger to function!
 
 
 rd c9780 c
@@ -234,49 +234,49 @@ ovl c9780 3
 ec strcpy(0xc9780, "Hello World")
 sc c ac
 
-	You can have fun patching over the signature if you like :) This is
-	similar to using %wrf, but lets us easily enter the string as a string
-	instead of hex bytes.
+    You can have fun patching over the signature if you like :) This is
+    similar to using %wrf, but lets us easily enter the string as a string
+    instead of hex bytes.
 
 
 rdw 2000c00
 
-	This is an area of RAM that seems related to the communication between
-	8051 and ARM during the handling of SCSI commands. I'm not sure what the
-	most useful base address is for the region, since different code uses it a
-	little differently, as if it's several nested structures.
+    This is an area of RAM that seems related to the communication between
+    8051 and ARM during the handling of SCSI commands. I'm not sure what the
+    most useful base address is for the region, since different code uses it a
+    little differently, as if it's several nested structures.
 
 
 rd 02000eec 10
 
-	This is the SCSI CDB. Reading this will show you the CDB of the backdoor's
-	"block read" command we use to retrieve it. From the comments in patch.s:
+    This is the SCSI CDB. Reading this will show you the CDB of the backdoor's
+    "block read" command we use to retrieve it. From the comments in patch.s:
 
-	ac 6c 6f 63 [address/LE32] [wordcount/LE32] --> [data/LE32] * wordcount
+    ac 6c 6f 63 [address/LE32] [wordcount/LE32] --> [data/LE32] * wordcount
 
 
 rd 100
 sc 400   ac 6c 6f 63   0 1 0 0   0 1 0 0
 
-	This will first use the usual %rd command to look at some memory from
-	0x100, then we use the low level "block read" command to examine the same
-	area. We'll ask for 0x100 words (0x400 bytes), but the command currently
-	doesn't work for such long replies. This lets us see how it breaks, to
-	debug it. In the long SCSI reply you can see the packet starts out
-	correct, then it's blank for a while, then starts showing totally
-	different data!
+    This will first use the usual %rd command to look at some memory from
+    0x100, then we use the low level "block read" command to examine the same
+    area. We'll ask for 0x100 words (0x400 bytes), but the command currently
+    doesn't work for such long replies. This lets us see how it breaks, to
+    debug it. In the long SCSI reply you can see the packet starts out
+    correct, then it's blank for a while, then starts showing totally
+    different data!
 
-	The 'different' data below the zeroes change every time, and they appear
-	to be data structures related to internal management of other SCSI
-	commands.
+    The 'different' data below the zeroes change every time, and they appear
+    to be data structures related to internal management of other SCSI
+    commands.
 
-	The actual transfer length I'm seeing before the zeroes can change (this
-	causes issue #1 in the tracker) but it's usually 0x74 bytes or 0x1d words.
+    The actual transfer length I'm seeing before the zeroes can change (this
+    causes issue #1 in the tracker) but it's usually 0x74 bytes or 0x1d words.
 
-	Tried some related experiments: looking for bytes in the 2000c00 region
-	that related to the length of the reply, both in the 1d and the 4 word
-	states. No luck yet. Current theory is that the actual reply length is a
-	function of a protocol state machine operating in the 8051.
+    Tried some related experiments: looking for bytes in the 2000c00 region
+    that related to the length of the reply, both in the 1d and the 4 word
+    states. No luck yet. Current theory is that the actual reply length is a
+    function of a protocol state machine operating in the 8051.
 
 
 while True:
@@ -294,9 +294,9 @@ Console
 rd -f 1e5_ 1_
 cat result.log
 
-	See what was last in the console buffer, without the bother of reading it
-	as a FIFO. This is useful if the buffer overflowed or otherwise got
-	trashed and there's still data you want in it.
+    See what was last in the console buffer, without the bother of reading it
+    as a FIFO. This is useful if the buffer overflowed or otherwise got
+    trashed and there's still data you want in it.
 
 
 ------------
@@ -307,12 +307,12 @@ Cryptography
 dis -a 11000 c0
 rd 13720 200
 
-	There's an encrypted function at 11000 which handles something that's
-	necessary to initialize hardware. There's an unencrypted leader at 11000
-	including a msr which forces us into supervisor mode with interrupts off,
-	and a small nop sled. The encrypted code starts at 11080. At 13820 you can
-	see the end of the portion they're using, and the telltale repeating
-	blocks that would indicate ECB-mode encryption.
+    There's an encrypted function at 11000 which handles something that's
+    necessary to initialize hardware. There's an unencrypted leader at 11000
+    including a msr which forces us into supervisor mode with interrupts off,
+    and a small nop sled. The encrypted code starts at 11080. At 13820 you can
+    see the end of the portion they're using, and the telltale repeating
+    blocks that would indicate ECB-mode encryption.
 
 
 asmf 11080 .arm; ldr r1, =0x11100; ldr r0, [r1]; bx lr
@@ -321,82 +321,82 @@ ec invoke_encrypted_11000()
 asmf 11080 .arm; ldr r1, =0x13820; ldr r0, [r1]; bx lr
 ec invoke_encrypted_11000()
 
-	Fortunately we can still patch code that's being transparently decrypted.
-	The RAM overlays seem to sit above the decryption hardware in the memory
-	region arbitration scheme. Some of these addresses work, some don't- it
-	seems like they're doing something tricky to keep you from reading the
-	decrypted code remotely, but of course code still needs to read its own
-	literals.
+    Fortunately we can still patch code that's being transparently decrypted.
+    The RAM overlays seem to sit above the decryption hardware in the memory
+    region arbitration scheme. Some of these addresses work, some don't- it
+    seems like they're doing something tricky to keep you from reading the
+    decrypted code remotely, but of course code still needs to read its own
+    literals.
 
 
 with open('plaintext.bin', 'wb') as f:
-	for i in range(0, 0x1000, 4):
-		overlay_assemble(d, 0x11080, '.arm; ldr r0, [pc, %d]; bx lr' % i)
-		r = evalc(d, 'invoke_encrypted_11000()', includes=dict(_='#include "science_experiments.h"'))
-		print "%08x %08x" % (i, r)
-		f.write(struct.pack('<I', r))
+    for i in range(0, 0x1000, 4):
+        overlay_assemble(d, 0x11080, '.arm; ldr r0, [pc, %d]; bx lr' % i)
+        r = evalc(d, 'invoke_encrypted_11000()', includes=dict(_='#include "science_experiments.h"'))
+        print "%08x %08x" % (i, r)
+        f.write(struct.pack('<I', r))
 
-	We can compactly scout out the area and read anything we want from the
-	encrypted function except the first 8 bytes, reading one word at a time.
-
-
-with open('plaintext.bin', 'wb') as f:
-	for i in range(0, 0x1000, 4):
-		overlay_assemble(d, 0x11080, '.arm; ldr r0, [pc, %d]; bx lr' % i)
-		f.write(struct.pack('<I', blx(d, 0xf5025, 0)[0]))
-
-	A simpler version, using the firmware's existing invocation instead of
-	setting up the call ourselves.
+    We can compactly scout out the area and read anything we want from the
+    encrypted function except the first 8 bytes, reading one word at a time.
 
 
 with open('plaintext.bin', 'wb') as f:
-	for i in range(0, 0x1000/4):
-		overlay_assemble(d, 0x11080, '.arm; .rept %d; nop; .endr; ldr r0, [pc, 0]; bx lr' % i)
-		r, _ = blx(d, 0xf5025, 0)
-		print "%08x %08x" % (i, r)
-		f.write(struct.pack('<I', r))
+    for i in range(0, 0x1000, 4):
+        overlay_assemble(d, 0x11080, '.arm; ldr r0, [pc, %d]; bx lr' % i)
+        f.write(struct.pack('<I', blx(d, 0xf5025, 0)[0]))
 
-	A different version that slides the location we read from, instead of
-	reading farther and farther from the PC. I'm curious if the crypto
-	hardware makes a distinction.
+    A simpler version, using the firmware's existing invocation instead of
+    setting up the call ourselves.
 
-	This reads 7 words then crashes. Not sure why. Words read so far are
-	consistent with the earlier method.
+
+with open('plaintext.bin', 'wb') as f:
+    for i in range(0, 0x1000/4):
+        overlay_assemble(d, 0x11080, '.arm; .rept %d; nop; .endr; ldr r0, [pc, 0]; bx lr' % i)
+        r, _ = blx(d, 0xf5025, 0)
+        print "%08x %08x" % (i, r)
+        f.write(struct.pack('<I', r))
+
+    A different version that slides the location we read from, instead of
+    reading farther and farther from the PC. I'm curious if the crypto
+    hardware makes a distinction.
+
+    This reads 7 words then crashes. Not sure why. Words read so far are
+    consistent with the earlier method.
 
 
 for i in range(0, 0x40, 4):
-	overlay_assemble(d, 0x11080, '.arm; ldr r0, [pc, %d]; bx lr' % i)
-	r, _ = blx(d, 0xf5025, 0)
-	print "%08x %08x" % (i, r)
+    overlay_assemble(d, 0x11080, '.arm; ldr r0, [pc, %d]; bx lr' % i)
+    r, _ = blx(d, 0xf5025, 0)
+    print "%08x %08x" % (i, r)
 
 for i in range(0, 0x40, 4):
-	overlay_assemble(d, 0x11078, '.arm; nop; nop; ldr r0, [pc, %d]; bx lr' % i)
-	r, _ = blx(d, 0xf5025, 0)
-	print "%08x %08x" % (i, r)
+    overlay_assemble(d, 0x11078, '.arm; nop; nop; ldr r0, [pc, %d]; bx lr' % i)
+    r, _ = blx(d, 0xf5025, 0)
+    print "%08x %08x" % (i, r)
 
-	Different results; the first shows our plaintext starting at offset 8, as
-	before. The second should be the same except that we replace the last two
-	nops in flash with nops in the overlay. This breaks the decryption, and
-	instead we read ciphertext!
+    Different results; the first shows our plaintext starting at offset 8, as
+    before. The second should be the same except that we replace the last two
+    nops in flash with nops in the overlay. This breaks the decryption, and
+    instead we read ciphertext!
 
 
 with open('plaintext.bin', 'wb') as f:
-	for i in range(0, 0x4000, 4):
-		overlay_assemble(d, 0x11080, '.arm; ldr r0, =(0x11000 + %d); ldr r0, [r0]; bx lr' % i)
-		r, _ = blx(d, 0xf5025, 0)
-		print "%08x %08x" % (i, r)
-		f.write(struct.pack('<I', r))
+    for i in range(0, 0x4000, 4):
+        overlay_assemble(d, 0x11080, '.arm; ldr r0, =(0x11000 + %d); ldr r0, [r0]; bx lr' % i)
+        r, _ = blx(d, 0xf5025, 0)
+        print "%08x %08x" % (i, r)
+        f.write(struct.pack('<I', r))
 
-	Loops and branches seem problematic so memcpy is out, but we can use a
-	slightly longer probe function to read more plaintext data. This one gives
-	a complete dump except for a blind spot where the probe itself is at
-	11080.
+    Loops and branches seem problematic so memcpy is out, but we can use a
+    slightly longer probe function to read more plaintext data. This one gives
+    a complete dump except for a blind spot where the probe itself is at
+    11080.
 
-	Reveals lots of code actually, thumb and ARM, including some long
-	sequences that seem to be storing data tables or keys implicitly in the
-	code. Seems DRM related, this string appears in the resulting plaintext:
+    Reveals lots of code actually, thumb and ARM, including some long
+    sequences that seem to be storing data tables or keys implicitly in the
+    code. Seems DRM related, this string appears in the resulting plaintext:
 
-	ROM:000136FC aAacs_auth_scra DCB "AACS_AUTH_SCRAMBLE_Oct 25 2010_END",0
+    ROM:000136FC aAacs_auth_scra DCB "AACS_AUTH_SCRAMBLE_Oct 25 2010_END",0
 
 
 --------------------------
@@ -407,64 +407,77 @@ USB co-processor (CPU8051)
 bitbang -8 /dev/tty.usbserial-A400378p
 d8.start()
 
-	This gives us remote control over the 8051 processor's I/O bus. First we
-	have to get a path to communicate with the ARM that doesn't rely on the
-	8051 working- the bitbang interface. After switching to the bitbang serial
-	port, then we can use cpu8051_backdoor() to boot a backdoor firmware on
-	the 8051 and set up a library on the ARM that lets us quickly communicate
-	with it.
+    This gives us remote control over the 8051 processor's I/O bus. First we
+    have to get a path to communicate with the ARM that doesn't rely on the
+    8051 working- the bitbang interface. After switching to the bitbang serial
+    port, then we can use cpu8051_backdoor() to boot a backdoor firmware on
+    the 8051 and set up a library on the ARM that lets us quickly communicate
+    with it.
 
 
 bitbang /dev/tty.usbserial-A400378p
 %%ecc
 CPU8051::stop();
 for (u32 addr = 0x41f4000; addr <= 0x41f5fff; addr = (addr + 0x100) & ~0xff) {
-	console(addr); console(':');
-	while (1) {
-		int v = CPU8051::cr_read(addr, SysTime::future(0.05));
-		if (v < 0) break;
-		console(' '); console((uint8_t) v);
-		addr++;
-	}
-	println();
+    console(addr); console(':');
+    while (1) {
+        int v = CPU8051::cr_read(addr, SysTime::future(0.05));
+        if (v < 0) break;
+        console(' '); console((uint8_t) v);
+        addr++;
+    }
+    println();
 }
 
-	We can scan the 8051's XDATA space for memory mapped I/O. Unmapped memory
-	will cause a timeout at the cr_read() level, which we can trap. If we
-	assume that memory is organized into 256-byte pages such that the first
-	byte of any partially-mapped page will be mapped, we can quickly get a
-	sense for where these mapped pages are.
+    We can scan the 8051's XDATA space for memory mapped I/O. Unmapped memory
+    will cause a timeout at the cr_read() level, which we can trap. If we
+    assume that memory is organized into 256-byte pages such that the first
+    byte of any partially-mapped page will be mapped, we can quickly get a
+    sense for where these mapped pages are.
 
-	The ranges above are adjusted to hilight the interesting region- all other
-	parts of the 16-bit address space, as tested with this function, appear to
-	be empty.
+    The ranges above are adjusted to hilight the interesting region- all other
+    parts of the 16-bit address space, as tested with this function, appear to
+    be empty.
 
-	This function shows lots of mapped memory at 0x4b00:4eff, and no mapped
-	pages elsewhere.
+    This function shows lots of mapped memory at 0x4b00:4eff, and no mapped
+    pages elsewhere.
 
 
 bitbang /dev/tty.usbserial-A400378p
 %%ecc
 CPU8051::stop();
 for (u32 addr = 0x41f4b00; addr <= 0x41f4eff; addr++) {
-	SysTime t0 = SysTime::now();
-	int v = CPU8051::cr_read(addr, SysTime::future(0.1));
-	u32 t = SysTime::now().difference(t0);
-	console(addr); console(": t="); console(t);
-	if (v >= 0) { console(' '); console((uint8_t) v); }
-	println();
+    SysTime t0 = SysTime::now();
+    int v = CPU8051::cr_read(addr, SysTime::future(0.1));
+    u32 t = SysTime::now().difference(t0);
+    console(addr); console(": t="); console(t);
+    if (v >= 0) { console(' '); console((uint8_t) v); }
+    println();
 }
 
-	This is a more focused experiment that exhaustively searches the mapped pages
-	and includes data and access time in the output.
+    This is a more focused experiment that exhaustively searches the mapped pages
+    and includes data and access time in the output.
 
-	This experiment takes a few minutes to run; the console will time out, but
-	you can reconnect and the output should be in the buffer.
+    This experiment takes a few minutes to run; the console will time out, but
+    you can reconnect and the output should be in the buffer.
 
-	No significant differences in access times observed. Mapped regions take
-	20us to access, unmapped hit the full timeout.
+    No significant differences in access times observed. Mapped regions take
+    20us to access, unmapped hit the full timeout.
 
-	Mapped regions:
+    Mapped regions:
 
-		041f4b00 - 041f4bff
-		041f4d00 - 041f4dff
+        041f4b00 - 041f4bff
+        041f4d00 - 041f4dff
+
+
+bitbang /dev/tty.usbserial-A400378p -8
+for i in range(0x100):
+    ipy.write('\n')
+    for addr in (0x4b00 + i, 0x4d00 + i):
+        d8.cr_write(addr, 0x55)
+        a = d8.cr_read(addr)
+        d8.cr_write(addr, 0xaa)
+        b = d8.cr_read(addr)
+        ipy.write('  %04x: %02x' % (addr, a ^ b))
+
+

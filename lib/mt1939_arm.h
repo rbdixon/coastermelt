@@ -205,6 +205,12 @@ namespace CPU8051
         }
         return sum;
     }
+
+    int start(const uint8_t *data, uint32_t length = 0x2000)
+    {
+        firmware_install(data, length);
+        return start();
+    }
 };
 
 
