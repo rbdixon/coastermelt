@@ -188,3 +188,85 @@ USB device descriptor:
 000c4b0: 77 ee 77 ee dd bb dd ab 77 ee 77 ee dd bb dd bb  w.w.....w.w.....
 000c4c0: 77 ee 77 ee dd bb dd bb 77 ee 77 ee dd ab dd bb  w.w.....w.w.....
 ...
+
+
+=================
+Interrupt Handler
+=================
+
+The USB interrupt is multiplexed onto vector 0x18.
+
+At 1f320, the handler checks flags registers:
+
+   [4040064]  masked with 3008, nonzero
+   [4040078]  masked with 80000, nonzero, low byte saved
+
+Using the USB debug interface with the backdoor for log output, we can trace
+the IRQ handler. This prints the values of [4040064] and [4040078] when the
+conditions match:
+
+%%hook -b 1f32a
+console(SysTime::now());
+println(" : usb irq", r0, r1);
+
+For a single USB storage round-trip (%sc a ac) there are two IRQs:
+
+  57.032,054 : usb irq 00000000 00080000  <- Storage OUT received
+  57.041,933 : usb irq 00002000 00000000  <- Final IN ack'ed 10ms later
+
+When enumerating the device with USB Prober:
+
+ 161.511,552 : usb irq 00000000 00080000
+ 161.521,556 : usb irq 00002000 00000000
+ 168.903,245 : usb irq 00001000 00000000
+ 168.914,541 : usb irq 00001000 00000000
+ 168.925,647 : usb irq 00001000 00000000
+ 168.936,794 : usb irq 00001000 00000000
+ 168.947,952 : usb irq 00001000 00000000
+ 168.959,173 : usb irq 00001000 00000000
+ 168.970,294 : usb irq 00001000 00000000
+ 168.981,492 : usb irq 00001000 00000000
+ 168.992,691 : usb irq 00001000 00000000
+ 169.003,892 : usb irq 00001000 00000000
+ 169.014,923 : usb irq 00001000 00000000
+ 169.026,041 : usb irq 00001000 00000000
+ 169.037,210 : usb irq 00001000 00000000
+ 169.048,328 : usb irq 00001000 00000000
+ 169.059,467 : usb irq 00001000 00000000
+ 169.070,491 : usb irq 00001000 00000000
+ 169.081,596 : usb irq 00001000 00000000
+ 169.092,687 : usb irq 00001000 00000000
+ 169.103,839 : usb irq 00001000 00000000
+ 169.114,887 : usb irq 00001000 00000000
+ 169.126,249 : usb irq 00001000 00000000
+ 169.137,477 : usb irq 00001000 00000000
+ 169.148,532 : usb irq 00001000 00000000
+ 169.159,713 : usb irq 00001000 00000000
+ 169.170,850 : usb irq 00001000 00000000
+
+%%hook 1f32a
+console(SysTime::now());
+bitbang_console();
+SysTime::wait_ms(2000);
+println(" : usb irq", r0, r1);
+bitbang_console();
+
+  This slows down the USB traffic enough to clearly show what the IRQ bits are
+  for, if one has access to a real-time USB log.
+
+
+These interrupts end up at usb_handle_irq_1f29c
+  r0 = [4040064] (SETUP, IN flags)
+  r1 = [4040078] (OUT flag and endpoint)
+
+Looking at the OUT handler at d7d86
+
+Stores data about the incoming packet at 2000ee4
+
+In [192]: rd 2000ee4 20
+ 32 / 32 bytes read 
+                                  Begin SCSI CDB
+                                  v
+02000ee4  10 00 00 00 80 00 0c ac ac 6c 6f 63 e4 0e 00 02   .........loc....
+02000ef4  04 00 00 00 10 00 00 00 00 ff ff ff 00 00 ff ff   ................
+

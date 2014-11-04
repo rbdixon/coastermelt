@@ -302,6 +302,17 @@ Very rough notes, may be wildly wrong.
 4041000
 4042000     - SCSI response pipe
 
+            4040064   uint32      USB Interrupt Flags, write-to-clear
+                                  checking for mask 0x3008
+
+                                    1000    SETUP completed
+                                    2000    IN completed
+
+            4040078   uint32      USB event interrupt
+
+                                    80000   OUT completed
+                                       xx   endpoint?
+
             40400a5   uint8       Bits 1F cleared prior to PIO transfer
             40400a8   uint32      Byte FIFO register for PIO (non-DMA)
                                   Used by cmd03 Request Sense and some others.
