@@ -54,19 +54,38 @@ Memory Regions
   128 bytes, from 00 to 7F.
 
 - XDATA
+  (Partially mapped to ARM memory at 41f0000)
 
-  4100 - 41ff 'A'      Inter-processor communications?
-                       Debug serial port?
+  4100 - 41ff     Shared MMIO
 
-                        [4180]  Write FIFO
-                        [4181]  On init, write 1C D4 here
-                        [4185]  Busy flag
+                  [4180]  Write IPC? FIFO
+                  [4181]  On init, write 1C D4 here
+                  [4185]  IPC? FIFO busy flag
 
-  4b00 - 4cff 'K'      Shared memory?
+  4b00 - 4cff     Shared MMIO
 
-  4d00 - 4dff 'M'      USB Controller?
+                  [4b24]  Write to USB buffer
+                  [4b72]  USB buffer control flags
 
-                        [4d90]
+  4d00 - 4dff     Shared MMIO
+
+                  [4d0c]
+
+                  [4db2]  Reset control?
+                            30 -> delay -> 20 -> 30 -> longer delay -> 20
+
+                  [4d50]  Write to firmware memory
+                  [4d51]  Firmware memory read/write flags
+                  [4d52]  Read from firmware memory
+
+                  [4d70]  SCSI CDB
+
+                  [4d90]  Firmware-defined opcode byte
+                  [4d91]  Firmware-defined status byte
+
+                  [4dcc]  Processor reset flags
+
+  8000 - 81ff     Local RAM
 
 
 Inter-Processor Communication

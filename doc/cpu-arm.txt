@@ -360,7 +360,7 @@ Very rough notes, may be wildly wrong.
 4100000
 4100701
 
-41f0000     8051 Co-processor memory interface
+41f0000     8051 XDATA memory interface
 
             This looks like it might be an in-package serial bus.
 
@@ -376,9 +376,7 @@ Very rough notes, may be wildly wrong.
 
             41f4d52   uint8       Read from firmware memory
 
-            41f4d91   uint8       read/write, status for something happening in firmware
-                                      - without firmware, fails check at 4bfd6
-                                      typical 0x59
+            41f4d91   uint8       Firmware boot status
 
             41f4dcc   uint8       Flags
                                       8   Processor held in reset? (Set during firmware install)
