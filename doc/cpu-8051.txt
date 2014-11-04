@@ -64,11 +64,17 @@ Memory Regions
 
   4b00 - 4cff     Shared MMIO - USB
 
+                  [4b01]
                   [4b04]
                   [4b06]  Flags
                   [4b08]  Flags
+                  [4b0b]
 
                   [4b24]  Write to 13-byte USB command status buffer
+
+                  [4b50]
+
+                  [4b63]
 
                   [4b70]  
                   [4b71]  
@@ -84,14 +90,38 @@ Memory Regions
                   [4b88]
 
                   [4b94]
+                  [4b95]
+                  [4b98]
+                  [4b9c]
+                  [4b9d]
+                  [4b9e]
+                  [4b9f]
+
+                  [4bc0]
+                  [4bc1]
+                  [4bc2]
+                  [4bc3]
+                  [4bc4]
+                  [4bc5]
+                  [4bc6]
+                  [4bc7]
+                  [4bc8]
+                  [4bc9]
+                  [4bca]
+
+                  [4bd2]
+                  [4bd3]
+                  [4bd9]
+                  [4bde]
+
                   [4bf4]
 
   4d00 - 4dff     Shared MMIO
 
+                  [4d01]
+                  [4d03]
+                  [4d04]
                   [4d0c]
-
-                  [4db2]  Reset control?
-                            30 -> delay -> 20 -> 30 -> longer delay -> 20
 
                   [4d50]  Write to firmware memory
                   [4d51]  Firmware memory read/write flags
@@ -102,7 +132,18 @@ Memory Regions
                   [4d90]  Firmware-defined opcode byte
                   [4d91]  Firmware-defined status byte
 
+                  [4db2]  Reset control?
+                            30 -> delay -> 20 -> 30 -> longer delay -> 20
+
+                  [4da5]
+                  [4dad]
+                  [4db1]
+
                   [4dcc]  Processor reset flags
+
+                  [4dd0]
+                  [4dd1]
+                  [4dd4]
 
   8000 - 81ff     Local RAM
 
