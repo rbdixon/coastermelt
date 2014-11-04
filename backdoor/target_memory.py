@@ -22,6 +22,11 @@ shell_code = 0x1e40000
 bitbang_backdoor = 0x1e48000
 cpu8051_backdoor = 0x1e49000
 
+# Bounce buffer for getting data to/from other CPUs via the ARM
+
+bounce_buffer      = 0x1e4f000
+bounce_buffer_size = 0x1000
+
 # Our ring buffer is 64 KiB. The default location comes from
 # more guesswork and memsquares. It's 1MB above the default
 # pad, still in an area of DRAM that seems very lightly used.

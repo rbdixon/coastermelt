@@ -54,8 +54,13 @@ def cpu8051_backdoor(d,
     code_address = address + 4 * len(words)
     libstring, lib = compile_library_string(code_address,
         backdoor_arm_funcs,
-        includes = dict(includes, backdoor = backdoor_arm_lib),
-        defines = dict(defines, backdoor_firmware = address))
+        includes = dict(includes,
+            backdoor = backdoor_arm_lib
+        ),
+        defines = dict(defines,
+            backdoor_firmware = address,
+            bounce_buffer_address = target_memory.bounce_buffer
+        ))
     words += words_from_string(libstring)
 
     # Upload data to the device and start the CPU
@@ -153,7 +158,7 @@ backdoor_8051 = '''\
 backdoor_arm_lib = '''\
     namespace backdoor {
     using namespace MT1939::CPU8051;
-    uint8_t buffer[256];
+    auto bounce_buffer = (uint8_t*) bounce_buffer_address;
 
     bool set_status(uint8_t s, SysTime deadline)
     {
@@ -233,9 +238,9 @@ backdoor_arm_lib = '''\
             if (v < 0) {
                 return 0;
             }
-            buffer[i] = v;
+            bounce_buffer[i] = v;
         }
-        return buffer;
+        return bounce_buffer;
     }
 }'''
 
@@ -299,7 +304,7 @@ class BackdoorDevice:
             self.xpoke(addr + i, b)
 
     def xpeek_block(self, addr, length = 0x100):
-        assert length <= 0x100
+        assert length <= target_memory.bounce_buffer_size
         addr, _ = self.d.blx(self.lib['xpeek_block'], (addr & 0xffff) | (length << 16))
         if addr == 0:
             self._timeout()
