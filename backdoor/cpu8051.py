@@ -38,13 +38,13 @@ def cpu8051_evalasm(d, code):
 
 def cpu8051_backdoor(d,
     address = target_memory.cpu8051_backdoor,
-    verbose = True, show_listing = False):
+    verbose = True, show_listing = False, start_cpu = True):
     
     """Run a backdoor stub on the 8051 so we can control it remotely.
 
-    Returns a library of ARM C++ functions for interacting with the stub. Does
-    not modify the 8051 CPU state unless directed. Install the 8051 debug stub
-    with the start() method.
+    Returns a library of ARM C++ functions for interacting with the stub.
+    If start_cpu is True, we restart the 8051 running the debug stub firmware.
+    If it's false, we leave the 8051 as-is.
     """
     # Compile 8051 firmware backdoor
     bd51string = compile51_string(0, backdoor_8051, show_listing=show_listing)
@@ -60,13 +60,19 @@ def cpu8051_backdoor(d,
 
     # Upload data to the device and start the CPU
     poke_words(d, address, words)
+    bd = BackdoorDevice(d, lib)
 
     if verbose:
         print "* 8051 backdoor is 0x%x bytes, loaded at 0x%x" % (len(bd51string), address)
         print "* ARM library is 0x%x bytes, loaded at 0x%x" % (len(libstring), code_address)
 
-    # Python access to the C++ ARM library
-    return BackdoorDevice(d, lib)
+    if start_cpu:
+        bd.start()
+        if verbose:
+            print "* 8051 backdoor running"
+
+    # Device object for interacting with the 8051 via Python
+    return bd
 
 
 # This is an 8051 program to run on the MCU, compiled with SDCC. We read
