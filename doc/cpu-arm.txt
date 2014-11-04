@@ -217,7 +217,9 @@ Very rough notes, may be wildly wrong.
                                       4    Set after polling [4011088]
                                       2    Set / op / clear in app_main
 
-            4011010   uint8       Poll while (bit6==0), then while (bit7==1)
+            4011010   uint8       Flags
+                                      8    Wait for 0 (second)
+                                      4    Wait for 1 (first)
 
             4011040   uint32      Flags
                                       1    Set while booting app firmware, in bootloader

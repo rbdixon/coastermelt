@@ -33,6 +33,7 @@ def simulate_arm(device):
     m.skip(0x04030f40, "Stack memory region")
     m.skip(0x04030f44, "Stack memory region")
 
+    m.local_ram(0x1c00000, 0x1c2ffff)
     m.local_ram(0x1f00000, 0x200ffff)
 
     # Test the HLE subsystem early    
@@ -62,8 +63,8 @@ def simulate_arm(device):
     m.patch(0x4b6a8, '''
         bx      lr
     ''', hle='''
-        console("MT1939::CPU8051::cr_read", r0);
-        r0 = MT1939::CPU8051::cr_read(r0);
+        console("CPU8051::cr_read ", r0);
+        r0 = CPU8051::cr_read(r0);
         println(" ->", r0);
     ''')
 
@@ -77,8 +78,9 @@ def simulate_arm(device):
     ''', hle='''
         uint32_t reg = 0x04000000 | ((r0 << 8) >> 8);
         uint8_t value = r0 >> 24;
-        println("MT1939::CPU8051::cr_write", reg, value);
-        MT1939::CPU8051::cr_write(reg, value);
+        console("CPU8051::cr_write", reg);
+        println(" <-", value);
+        CPU8051::cr_write(reg, value);
     ''')
 
     # Don't bother copying 8051 firmware to DRAM (performance)
@@ -94,16 +96,16 @@ def simulate_arm(device):
         nop
         nop
     ''', hle='''
-        println("MT1939::CPU8051::firmware_install");
-        MT1939::CPU8051::firmware_install((const uint8_t*) 0x17f800, 0x2000);
+        println("CPU8051::firmware_install");
+        CPU8051::firmware_install((const uint8_t*) 0x17f800, 0x2000);
     ''')
 
     # This function checksums the 8051 firmware, verifies it, and writes to d51
     m.patch(0x4cfc0, '''
         pop     {r3-r7, pc}
     ''', hle='''
-        println("Firmware checksum = ", MT1939::CPU8051::firmware_checksum());
-        MT1939::CPU8051::cr_write(0x41f4d51, 6);
+        println("Firmware checksum = ", CPU8051::firmware_checksum());
+        CPU8051::cr_write(0x41f4d51, 6);
         r0 = 0;  // success
     ''')
 

@@ -1,0 +1,370 @@
+HLE: Skipped copying 8051 firmware to DRAM			Installing 8051 firmware
+HLE: CPU8051::firmware_install
+arm-prefetch [0004cfbe]
+HLE: Firmware checksum =  0000b94f
+arm-prefetch [0004bf62]
+arm-prefetch [0004c258]
+
+HLE: CPU8051::cr_read  041f4dcc -> 00000008
+arm-prefetch [0004b6d2]
+HLE: CPU8051::cr_write 041f4d51 <- 00000006			Start CPU
+HLE: CPU8051::cr_write 041f4dcc <- 00000000
+
+arm-prefetch [00054b80]
+arm-mem-LOAD  word[04002078] -> 948c5381
+
+HLE: CPU8051::cr_read  041f4d91 -> 00000001			Reading boot status, 8051 has started up
+
+arm-prefetch [000d7470]
+arm-prefetch [000d786c]
+arm-prefetch [00178a14]
+arm-prefetch [000d756e]
+arm-prefetch [000d694c]
+arm-prefetch [000d6c6c]
+arm-prefetch [0004caae]
+arm-prefetch [0004cd2c]
+
+HLE: CPU8051::cr_read  041f4b06 -> 0000000f
+HLE: CPU8051::cr_write 041f4b06 <- 0000000d
+HLE: CPU8051::cr_read  041f4b08 -> 0000000e
+HLE: CPU8051::cr_write 041f4b08 <- 0000000a
+
+arm-mem-LOAD  byte[041f5c0c] -> 00000002
+arm-mem-STORE byte[041f5c0c] <- 00000000 
+arm-mem-STORE byte[041f5c44] <- 00000001 
+
+arm-mem-STORE byte[041f4b72] <- 00000000 
+arm-mem-STORE byte[041f4b72] <- 00000048 
+arm-mem-STORE byte[041f4b72] <- 00000048 
+arm-mem-STORE byte[041f4b0e] <- 00000001 
+arm-mem-STORE byte[041f4b32] <- 00000016 
+arm-mem-STORE byte[041f4b34] <- 00000008 
+arm-mem-STORE byte[041f4b35] <- 00000000 
+
+arm-mem-STORE byte[041f5c44] <- 00000003 
+arm-mem-LOAD  byte[041f5c0c] -> 00000013
+arm-mem-STORE byte[041f5c0c] <- 00000000 
+arm-mem-STORE byte[041f5c44] <- 00000001 
+
+arm-mem-STORE byte[041f4b86] <- 00000000 
+arm-mem-STORE byte[041f4b86] <- 00000090 
+arm-mem-STORE byte[041f4b86] <- 00000090 
+arm-mem-STORE byte[041f4b0e] <- 00000002 
+arm-mem-STORE byte[041f4b33] <- 00000018 
+arm-mem-STORE byte[041f4b36] <- 00000088 
+arm-mem-STORE byte[041f4b37] <- 00000000 
+
+arm-mem-STORE byte[041f5c44] <- 00000003 
+arm-mem-LOAD  byte[041f5c0c] -> 00000013
+arm-mem-STORE byte[041f5c0c] <- 00000000 
+arm-prefetch [0004ce30]
+
+HLE: CPU8051::cr_write 041f4b72 <- 00000048
+HLE: CPU8051::cr_write 041f4b72 <- 00000048
+HLE: CPU8051::cr_write 041f4b70 <- 00000000
+HLE: CPU8051::cr_write 041f4b71 <- 00000002
+HLE: CPU8051::cr_write 041f4b73 <- 00000094
+HLE: CPU8051::cr_write 041f4b86 <- 00000090
+HLE: CPU8051::cr_write 041f4b86 <- 00000090
+HLE: CPU8051::cr_write 041f4b84 <- 00000000
+HLE: CPU8051::cr_write 041f4b85 <- 0000001a
+HLE: CPU8051::cr_write 041f4b87 <- 000000a0
+
+arm-prefetch [0004f48c]
+arm-mem-LOAD  word[04040074] -> 00000000
+arm-mem-STORE word[04040074] <- 00000000 
+arm-prefetch [0004ca2e]
+
+HLE: CPU8051::cr_write 041f4b06 <- 00000000
+HLE: CPU8051::cr_write 041f4b08 <- 00000000
+HLE: CPU8051::cr_write 041f4b0b <- 00000000
+HLE: CPU8051::cr_write 041f4b04 <- 00000000
+HLE: CPU8051::cr_write 041f4b94 <- 00000000
+HLE: CPU8051::cr_read  041f4bf4 -> 00000000
+HLE: CPU8051::cr_write 041f4bf4 <- 00000000
+
+arm-mem-LOAD  word[04040060] -> 0082321b
+
+HLE: CPU8051::cr_read  041f4b01 -> 00000073
+HLE: CPU8051::cr_write 041f4b01 <- 00000033
+HLE: CPU8051::cr_read  041f4bd2 -> 00000000
+HLE: CPU8051::cr_write 041f4bd2 <- 0000000b
+HLE: CPU8051::cr_read  041f4bc7 -> 00000008
+HLE: CPU8051::cr_write 041f4bc7 <- 00000068
+
+arm-mem-STORE word[04040060] <- 0082121b 
+arm-prefetch [000d68de]
+arm-prefetch [000d6c64]
+arm-prefetch [0004d2f4]
+
+HLE: CPU8051::cr_write 041f4dd0 <- 0000000e
+HLE: CPU8051::cr_read  041f4dd1 -> 00000000
+HLE: CPU8051::cr_write 041f4dd1 <- 00000001
+HLE: CPU8051::cr_read  041f4dd0 -> 0000000e
+
+arm-prefetch [0004d0ba]
+
+HLE: CPU8051::cr_write 041f4dd0 <- 0000000f
+HLE: CPU8051::cr_read  041f4dd4 -> 000000b3
+HLE: CPU8051::cr_read  041f4dd4 -> 000000b3
+
+arm-prefetch [00175d70]
+arm-prefetch [00175d48]
+arm-prefetch [00175a44]
+
+HLE: CPU8051::cr_write 041f4dd0 <- 000000fe
+HLE: CPU8051::cr_read  041f4dd0 -> 000000fe
+HLE: CPU8051::cr_write 041f4dd0 <- 000000fe
+HLE: CPU8051::cr_read  041f4dd1 -> 00000001
+HLE: CPU8051::cr_write 041f4dd1 <- 00000000
+HLE: CPU8051::cr_read  041f4dd1 -> 00000000
+HLE: CPU8051::cr_write 041f4dd1 <- 00000001
+HLE: CPU8051::cr_read  041f4dd0 -> 000000fe
+HLE: CPU8051::cr_write 041f4dd0 <- 000000ff
+HLE: CPU8051::cr_read  041f4dd4 -> 000000ab
+
+arm-prefetch [0004d1b8]
+
+HLE: CPU8051::cr_read  041f4dd4 -> 000000ab
+
+arm-prefetch [00175898]
+arm-prefetch [0017479c]
+arm-prefetch [001745bc]
+arm-prefetch [001746c4]
+
+HLE: CPU8051::cr_write 041f4dd0 <- 000000fe
+HLE: CPU8051::cr_read  041f4dd0 -> 000000fe
+HLE: CPU8051::cr_write 041f4dd0 <- 000000fe
+HLE: CPU8051::cr_read  041f4dd1 -> 00000001
+HLE: CPU8051::cr_write 041f4dd1 <- 00000000
+
+arm-prefetch [0004c7c0]
+arm-prefetch [0004c9cc]
+arm-mem-LOAD  word[040410e0] -> 00010120
+arm-mem-STORE word[040410e0] <- 00010120 
+arm-mem-LOAD  word[04041004] -> 005a0000
+arm-mem-STORE word[04041004] <- 005a0000 
+arm-mem-LOAD  word[04041014] -> 904a7000
+arm-mem-STORE word[04041014] <- 904a7000 
+arm-mem-LOAD  word[040410e4] -> 00000401
+
+HLE: CPU8051::cr_read  041f4bc7 -> 00000068
+HLE: CPU8051::cr_write 041f4bc7 <- 00000068
+HLE: CPU8051::cr_read  041f4bc8 -> 00000004
+HLE: CPU8051::cr_write 041f4bc8 <- 00000004
+HLE: CPU8051::cr_read  041f4bca -> 00000084
+HLE: CPU8051::cr_write 041f4bca <- 00000084
+HLE: CPU8051::cr_read  041f4b01 -> 00000023
+HLE: CPU8051::cr_write 041f4b01 <- 00000023
+
+arm-mem-STORE word[040410e4] <- 00000401 
+arm-prefetch [0004d3f2]
+
+HLE: CPU8051::cr_write 041f4da5 <- 00000015
+HLE: CPU8051::cr_write 041f4dad <- 00000003
+HLE: CPU8051::cr_write 041f4db1 <- 0000002a
+
+arm-prefetch [0004cbb4]
+
+HLE: CPU8051::cr_read  041f4bd2 -> 0000000b
+HLE: CPU8051::cr_write 041f4bd2 <- 0000000f
+HLE: CPU8051::cr_read  041f4bd3 -> 000000d5
+HLE: CPU8051::cr_write 041f4bd3 <- 000000d5
+HLE: CPU8051::cr_read  041f4bd3 -> 000000d5
+HLE: CPU8051::cr_write 041f4bd3 <- 000000d5
+
+arm-mem-LOAD  word[04002028] -> 000800fa
+arm-mem-STORE word[04002028] <- 000800fa 
+arm-mem-LOAD  byte[0400202e] -> 00000001
+
+HLE: CPU8051::cr_read  041f4b50 -> 0000000d
+HLE: CPU8051::cr_write 041f4b50 <- 0000000d
+
+arm-mem-LOAD  word[04002028] -> 000800fa
+arm-mem-STORE word[04002028] <- 0008000a 
+arm-mem-LOAD  byte[0400202e] -> 00000001
+
+HLE: CPU8051::cr_read  041f4bc9 -> 00000028
+HLE: CPU8051::cr_write 041f4bc9 <- 00000028
+HLE: CPU8051::cr_read  041f4bc1 -> 00000040
+HLE: CPU8051::cr_write 041f4bc1 <- 00000040
+HLE: CPU8051::cr_write 041f4bc2 <- 0000005c
+HLE: CPU8051::cr_read  041f4bc4 -> 00000024
+HLE: CPU8051::cr_write 041f4bc4 <- 00000024
+HLE: CPU8051::cr_write 041f4bc5 <- 00000024
+HLE: CPU8051::cr_write 041f4bc6 <- 00000001
+HLE: CPU8051::cr_read  041f4bca -> 00000084
+HLE: CPU8051::cr_write 041f4bca <- 00000084
+HLE: CPU8051::cr_write 041f4bd9 <- 00000029
+HLE: CPU8051::cr_write 041f4bde <- 00000040
+HLE: CPU8051::cr_read  041f4bd2 -> 0000000f
+HLE: CPU8051::cr_write 041f4bd2 <- 0000000b
+
+arm-mem-LOAD  word[04002028] -> 0008000a
+arm-mem-STORE word[04002028] <- 000800fa 
+arm-mem-LOAD  byte[0400202e] -> 00000001
+
+HLE: CPU8051::cr_read  041f4bc0 -> 00000082
+
+arm-prefetch [0004ccb2]
+
+HLE: CPU8051::cr_write 041f4bc0 <- 00000082
+
+arm-mem-LOAD  word[04040074] -> 00000000
+arm-mem-STORE word[04040074] <- 00000000 
+arm-prefetch [0004bf46]
+arm-prefetch [0004c254]
+
+HLE: CPU8051::cr_write 041f4b94 <- 00000000
+
+arm-mem-LOAD  word[04040060] -> 0082121b
+arm-mem-STORE word[04040060] <- 0082121b 
+arm-mem-LOAD  word[040400cc] -> 0e1c01b4
+arm-mem-STORE word[040400cc] <- 0e1c01b4 
+arm-mem-LOAD  word[040400d4] -> 00037401
+arm-mem-STORE word[040400d4] <- 00037401 
+arm-prefetch [000d776e]
+arm-prefetch [000d6c60]
+arm-prefetch [000d7a12]
+arm-prefetch [000d7b18]
+arm-prefetch [000d7de6]
+arm-prefetch [000d7ee4]
+arm-mem-LOAD  word[04040074] -> 00000000
+
+HLE: CPU8051::cr_write 041f4b06 <- 00000000
+HLE: CPU8051::cr_write 041f4b08 <- 00000000
+HLE: CPU8051::cr_write 041f4b0b <- 00000000
+HLE: CPU8051::cr_write 041f4b04 <- 00000000
+HLE: CPU8051::cr_write 041f4b94 <- 00000000
+HLE: CPU8051::cr_read  041f4bf4 -> 00000000
+HLE: CPU8051::cr_write 041f4bf4 <- 00000000
+
+arm-mem-STORE word[04040074] <- 00000000 
+arm-mem-LOAD  word[04040060] -> 0082121b
+
+HLE: CPU8051::cr_read  041f4dcc -> 00000000
+HLE: CPU8051::cr_read  041f4d91 -> 00000001
+HLE: CPU8051::cr_read  041f4b01 -> 00000023
+HLE: CPU8051::cr_write 041f4b01 <- 00000023
+HLE: CPU8051::cr_read  041f4bd2 -> 0000000b
+HLE: CPU8051::cr_write 041f4bd2 <- 0000000b
+HLE: CPU8051::cr_read  041f4bc7 -> 00000068
+HLE: CPU8051::cr_write 041f4bc7 <- 00000068
+
+arm-mem-STORE word[04040060] <- 0082121b 
+arm-prefetch [0004bc96]
+arm-prefetch [0004be80]
+
+HLE: CPU8051::cr_write 041f4d01 <- 00000004
+
+arm-mem-LOAD  byte[041f5c00] -> 00000002
+
+HLE: CPU8051::cr_read  041f4bf4 -> 00000000
+HLE: CPU8051::cr_write 041f4bf4 <- 00000001
+HLE: CPU8051::cr_read  041f4bf4 -> 00000001
+HLE: CPU8051::cr_write 041f4bf4 <- 00000000
+
+arm-mem-STORE byte[041f5c00] <- 00000006 
+arm-mem-LOAD  byte[041f5c00] -> 00000002
+
+HLE: CPU8051::cr_write 041f4d01 <- 00000003
+HLE: CPU8051::cr_write 041f4d03 <- 0000000c
+HLE: CPU8051::cr_write 041f4d04 <- 00000046
+HLE: CPU8051::cr_write 041f4b94 <- 00000000
+HLE: CPU8051::cr_write 041f4b98 <- 00000000
+HLE: CPU8051::cr_write 041f4b9c <- 00000000
+HLE: CPU8051::cr_write 041f4b9d <- 00000000
+HLE: CPU8051::cr_write 041f4b9e <- 00000000
+HLE: CPU8051::cr_write 041f4b9f <- 00000000
+HLE: CPU8051::cr_write 041f4b95 <- 00000006
+HLE: CPU8051::cr_write 041f4b73 <- 00000094
+HLE: CPU8051::cr_write 041f4b87 <- 000000a0
+
+arm-mem-STORE byte[041f5c00] <- 0000001a 
+arm-mem-LOAD  word[04040074] -> 00000000
+
+HLE: CPU8051::cr_write 041f4b0b <- 00000007
+HLE: CPU8051::cr_write 041f4b63 <- 00000001
+HLE: CPU8051::cr_write 041f4b06 <- 00000001
+
+arm-mem-STORE word[04040074] <- 00000000 
+arm-mem-LOAD  word[04040060] -> 0082121b
+arm-mem-STORE word[04040060] <- 0082121b 
+arm-prefetch [0004f47c]
+arm-mem-LOAD  word[04040060] -> 0082121b
+
+HLE: CPU8051::cr_write 041f4b72 <- 00000048
+HLE: CPU8051::cr_write 041f4b72 <- 00000048
+HLE: CPU8051::cr_write 041f4b70 <- 00000000
+HLE: CPU8051::cr_write 041f4b71 <- 00000002
+HLE: CPU8051::cr_write 041f4b73 <- 00000094
+HLE: CPU8051::cr_write 041f4b86 <- 00000090
+HLE: CPU8051::cr_write 041f4b86 <- 00000090
+HLE: CPU8051::cr_write 041f4b84 <- 00000000
+HLE: CPU8051::cr_write 041f4b85 <- 0000001a
+HLE: CPU8051::cr_write 041f4b87 <- 000000a0
+HLE: CPU8051::cr_read  041f4bd2 -> 0000000b
+HLE: CPU8051::cr_write 041f4bd2 <- 00000000
+HLE: CPU8051::cr_read  041f4bc7 -> 00000068
+HLE: CPU8051::cr_write 041f4bc7 <- 00000008
+HLE: CPU8051::cr_read  041f4b01 -> 00000023
+
+arm-mem-STORE word[04040060] <- 0082121b 
+arm-prefetch [0004cbac]
+HLE: CPU8051::cr_write 041f4b01 <- 00000063
+arm-mem-LOAD  word[04002058] -> 00000000
+arm-mem-STORE word[04002058] <- 00000000 
+
+arm-prefetch [0008aca2]
+arm-prefetch [0008b050]
+arm-prefetch [0003de84]
+arm-mem-LOAD  word[04002234] -> 00000000
+arm-mem-STORE word[04002234] <- 00000000 
+arm-mem-LOAD  word[04002208] -> 00000000
+arm-mem-STORE word[04002208] <- 00000000 
+arm-mem-LOAD  word[04002088] -> 03010101
+arm-mem-STORE word[04002088] <- 03010101 (skipped: LED / Solenoid GPIOs, breaks bitbang backdoor)
+arm-mem-LOAD  word[04002240] -> 11132020
+arm-mem-STORE word[04002240] <- 11132020 
+arm-mem-LOAD  word[04002088] -> 03010101
+arm-mem-STORE word[04002088] <- 03010101 (skipped: LED / Solenoid GPIOs, breaks bitbang backdoor)
+arm-mem-LOAD  word[04002088] -> 03010101
+arm-mem-STORE word[04002088] <- 03010101 (skipped: LED / Solenoid GPIOs, breaks bitbang backdoor)
+arm-prefetch [000cd328]
+arm-prefetch [000cd428]
+arm-mem-LOAD  word[04010008] -> 0000f014
+arm-mem-STORE byte[04010000] <- 000000eb 
+arm-mem-STORE byte[04010000] <- 0000002f 
+arm-mem-STORE byte[04010000] <- 000000e3 
+arm-mem-STORE byte[04010000] <- 000000fa 
+arm-mem-STORE byte[04010000] <- 00000000 
+arm-mem-STORE byte[04010000] <- 00000000 
+arm-mem-STORE byte[04010000] <- 00000000 
+arm-mem-STORE byte[04010000] <- 00000001 
+arm-mem-STORE byte[04010000] <- 00000000 
+arm-mem-STORE byte[04010000] <- 00000000 
+arm-mem-STORE byte[04010000] <- 00000000 
+arm-mem-STORE byte[04010000] <- 00000000 
+arm-mem-STORE byte[04010000] <- 00000014 
+arm-mem-LOAD  byte[04010009] -> 000000f0
+arm-mem-STORE byte[04010009] <- 000000f1 
+arm-mem-LOAD  word[04000020] -> 00000008
+arm-mem-STORE word[04000020] <- 00000005 
+arm-mem-LOAD  word[04010008] -> 0000f014
+arm-mem-STORE byte[04010000] <- 000000e3 
+arm-mem-STORE byte[04010000] <- 00000030 
+arm-mem-STORE byte[04010000] <- 000000e2 
+arm-mem-STORE byte[04010000] <- 000000aa 
+arm-mem-STORE byte[04010000] <- 0000001c 
+arm-mem-LOAD  byte[04010009] -> 000000f0
+
+HLE: overlay_flash_with_ram 00168620 (stub)
+arm-mem-STORE byte[04010009] <- 000000f1 
+arm-prefetch [00168928]
+arm-mem-LOAD  word[04002078] -> 9524e751
+arm-prefetch [00168d44]
+arm-prefetch [0018e000]
+arm-prefetch [0018e0f9]
+arm-prefetch [00168710]
+arm-prefetch [00168a24]
+arm-prefetch [00168838]

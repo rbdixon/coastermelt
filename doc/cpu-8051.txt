@@ -62,10 +62,29 @@ Memory Regions
                   [4181]  On init, write 1C D4 here
                   [4185]  IPC? FIFO busy flag
 
-  4b00 - 4cff     Shared MMIO
+  4b00 - 4cff     Shared MMIO - USB
 
-                  [4b24]  Write to USB buffer
-                  [4b72]  USB buffer control flags
+                  [4b04]
+                  [4b06]  Flags
+                  [4b08]  Flags
+
+                  [4b24]  Write to 13-byte USB command status buffer
+
+                  [4b70]  
+                  [4b71]  
+                  [4b72]  Write trigger for USB reply at [4b24]
+                  [4b73]  
+
+                  [4bf7]  Error response?
+
+                  [4b84]
+                  [4b85]
+                  [4b86]
+                  [4b87]
+                  [4b88]
+
+                  [4b94]
+                  [4bf4]
 
   4d00 - 4dff     Shared MMIO
 
