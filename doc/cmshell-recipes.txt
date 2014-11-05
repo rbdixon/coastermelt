@@ -115,6 +115,27 @@ sc a ac
     it gives two hook messages per SCSI command.
 
 
+%%hook -b f6024
+println(r0, r1, r2, r3);
+
+    The firmware has what seems to be a built-in debug trace mechanism.
+    I'm not sure where the output normally goes, but we can capture it with
+    a hook! This generates a lot of output and often makes the drive unusably slow.
+
+
+ec ((int(*)(int, int))(0xd1da9))(0x18e000, 0x1f77000)
+
+    Might load DSP firmware, but maybe this is just decompressing ARM firmware?
+    First arg is source, second is dest. Writes lots of code, over 64kB.
+
+
+ec ((double(*)(double, double))(0x17505c))(5.0, 0.5)*1000
+
+    There's a software floating point library! Blech. This multiplies two doubles.
+    To display the result, we multiply *1000 before it gets cast back to an int.
+    Returns 0x9c4 == 2500 == 2.5 * 1000
+
+
 ------------
 Eject Button
 ------------
@@ -479,5 +500,4 @@ for i in range(0x100):
         d8.cr_write(addr, 0xaa)
         b = d8.cr_read(addr)
         ipy.write('  %04x: %02x' % (addr, a ^ b))
-
 
