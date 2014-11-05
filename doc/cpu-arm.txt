@@ -370,7 +370,14 @@ Very rough notes, may be wildly wrong.
 
 40d0200
 
-4100000
+4100000     Debug trace interface
+
+            (Used by logging func f6024, verified non-essential to operation)
+
+            4010000   uint8       FIFO, byte output
+            4010008   uint32      Flags? (read before writing)
+            4010009   uint8       Acknowledge? (read after writing)
+
 4100701
 
 41f0000     8051 XDATA memory interface
