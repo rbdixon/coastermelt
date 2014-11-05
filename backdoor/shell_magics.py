@@ -429,7 +429,7 @@ class ShellMagics(magic.Magics):
     @magic.line_cell_magic
     @magic_arguments()
     @argument('hook_address', type=hexint)
-    @argument('handler_address', nargs='?', type=hexint_aligned, default=target_memory.shell_code)
+    @argument('handler_address', nargs='?', type=hexint_aligned, default=target_memory.hook_code)
     @argument('-q', '--quiet', action='store_true', help="Just install the hook, don't talk about it")
     @argument('-R', '--reset', action='store_true', help="Reset the ARM before starting")
     @argument('-c', '--console', action='store_true', help='Immediately launch into a %%console after installing')

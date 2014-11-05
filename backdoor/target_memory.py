@@ -17,6 +17,10 @@ pad = 0x1e00000
 
 shell_code = 0x1e40000
 
+# Slightly longer-lived code for %hook
+
+hook_code  = 0x1e44000
+
 # Backdoor stubs
 
 bitbang_backdoor = 0x1e48000
