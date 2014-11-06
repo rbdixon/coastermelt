@@ -200,7 +200,7 @@ Very rough notes, may be wildly wrong.
 4004800
 
 4010000     8051 Co-processor
-            
+
             4010000   uint8       write FIFO
             4010008   uint32      Write-1-to-clear?
             4010009   uint8
@@ -317,7 +317,7 @@ Very rough notes, may be wildly wrong.
             40400a8   uint32      Byte FIFO register for PIO (non-DMA)
                                   Used by cmd03 Request Sense and some others.
             40400d4   uint32      Byte in bits 15:8, set prior to transfer. PIO: 0x01__
-            
+
             4042154   uint32      Pre-initiation write
                                      DMA: size, after pointer written to [40300e8]
                                      PIO: Before other MMIO writes, &= 1
@@ -412,10 +412,69 @@ Very rough notes, may be wildly wrong.
             41f5c44   uint8
 
 4200000
-4201000    <--- waaay out there. Visible on memsquare, in the area that didn't
-                seem to even have a bus. Is this on some more-internal bus
-                than the other peripherals? Is the 64MB timing thing caused by
-                some other issue?
+4201000
+
 4204000
+
+4206000     Stepper motor controller
+
+            This seems to be a fairly high-level hardware motor controller,
+            probably with a way to set up acceleration rates and such. The
+            following commands, with the right initialization, on each
+            issuance will cause the pickup sled to move about a centimeter
+            away from the spindle motor.
+
+                %wr 4206000 a10200
+                %wr 4206010 c646
+
+                %wr 4206000 910200
+                %wr 4206010 c600
+
+                %wr 4206000 910200
+
+            ----
+
+            4206000   uint32      Flags + number in [23c, b60]
+
+                                  800000
+                                  400000
+                                  200000
+                                  100000
+                                   10000
+
+            4206004
+
+            4206010   uint32      number in [0, ffff]
+            4206014   uint32      number in [0, f500]
+            4206018   uint32      number in [17, b16e]
+            420601c   uint32      number in [0, 3d00]
+            4206020   uint32      number in [0, 3000]
+            4206024   uint32      number in [0, 7dbe]
+
+            4206080
+            4206084
+            420608c
+
+            420610c   uint32      508
+            4206114
+            4206204
+            4206208
+
+            4206280
+            4206284
+
+            42062a8
+            42062ac
+
+            4206300
+
+            4206308
+            420630c
+            4206310
+            4206314
+            4206318
+
+            420640c
+
 420c000
 

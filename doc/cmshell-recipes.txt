@@ -86,7 +86,7 @@ println("  ", r0, r1);
     This is a minimal logging hook for an IPC send-and-wait function used on
     the ARM side. This writes to registers [4206010]=r1 and [4206000]=r0+900000,
     then it waits for bit31=1 in [4206004].
-    
+
     You can see a flurry of commands here (after the console reattaches) when
     ejecting the tray, starting with it closed. The final command (22b, 7fff)
     actually does the eject.
@@ -500,4 +500,29 @@ for i in range(0x100):
         d8.cr_write(addr, 0xaa)
         b = d8.cr_read(addr)
         ipy.write('  %04x: %02x' % (addr, a ^ b))
+
+
+-------------
+ARM Simulator
+-------------
+
+
+bitbang -a /dev/tty.usbserial-A400378p
+sim -c
+
+    To help with untangling ARM firmware, there's a simple simulator. It needs
+    access via the bitbang backdoor, then you can set it loose.
+
+
+sim -c -b 18cc8
+
+    You may want to run until the top of the next main loop iteration.
+
+
+sim -S main-loop-quiesced
+sim -L main-loop-quiesced
+
+    This is also a good place to save state, since it takes a while to boot.
+    This can't save hardware state, but we can try to match the state the real
+    hardware is in when we start simulation.
 

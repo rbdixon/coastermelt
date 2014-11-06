@@ -330,7 +330,7 @@ Totals:
   650 mA    Reading CD-ROM at high speed
   700 mA    Reading BD-R at high speed
   850 mA    Bringing spindle up to speed, looking for disc
- 1000 mA    Approx maximum observed
+ 1220 mA    Writing BD-R while accelerating spindle
 
 Components:
 
