@@ -109,6 +109,7 @@ class SimARMMemory(object):
         self.patch_notes = {}
         self.patch_hle = {}
         self.hle_handlers = {}
+        self.hooks = {}
 
         # Local RAM and cached flash, reads and writes don't go to hardware
         self.local_addresses = cStringIO.StringIO()
@@ -157,6 +158,12 @@ class SimARMMemory(object):
             # Remove cached instructions, so when they're reloaded our HLE patch will be applied
             if hle_addr in self.instructions:
                 del self.instructions[hle_addr]
+
+    def hook(self, address, fn):
+        """At a particular address, invoke fn(arm)
+        Hooks run after both the simulator proper and the HLE runs.
+        """
+        self.hooks[address & ~1] = fn
 
     def save_state(self, filebase):
         """Save state to disk, using files beginning with 'filebase'"""
@@ -476,27 +483,43 @@ class SimARM(object):
         with open(filebase + '.core', 'r') as f:
             self.state = json.load(f)
 
-    def step(self):
+    def step(self, repeat = 1):
         """Step the simulated ARM by one instruction"""
-        self.step_count += 1
         regs = self.regs
-        instr = self.memory.fetch(regs[15], self.thumb)
-        self._branch = None
+        while repeat > 0:
+            repeat -= 1
+            self.step_count += 1
 
-        if self.thumb:
-            regs[15] = (instr.next_address + 3) & ~3
-        else:
-            regs[15] += 8
+            hook = self.memory.hooks.get(regs[15], None)
+            instr = self.memory.fetch(regs[15], self.thumb)
+            self._branch = None
 
-        try:
-            getattr(self, 'op_' + instr.op.split('.', 1)[0])(instr)
-            regs[15] = self._branch or instr.next_address
-        except:
-            regs[15] = instr.address
-            raise
+            if self.thumb:
+                regs[15] = (instr.next_address + 3) & ~3
+            else:
+                regs[15] += 8
 
-        if instr.hle:
-            regs[0] = self.memory.hle_invoke(instr, regs[0])
+            try:
+
+                # The op_ function does some precalculation and returns a function that
+                # actually runs the operation. We cache the latter function.
+                try:
+                    opfunc = instr.opfunc
+                except AttributeError:
+                    opfunc = instr.opfunc = getattr(self, 'op_' + instr.op.split('.', 1)[0])(instr)
+
+                opfunc()
+                regs[15] = self._branch or instr.next_address
+
+            except:
+                # If we don't finish, point the PC at that instruction
+                regs[15] = instr.address
+                raise
+
+            if instr.hle:
+                regs[0] = self.memory.hle_invoke(instr, regs[0])
+            if hook:
+                hook(self)
 
     def get_next_instruction(self):
         return self.memory.fetch(self.regs[15], self.thumb)
@@ -513,7 +536,7 @@ class SimARM(object):
     def summary_line(self):
         up_next = self.get_next_instruction()
         return "%s %s >%08x %5s %-8s %s" % (
-            str(self.step_count).rjust(8, '.'),
+            str(self.step_count).rjust(12, '.'),
             self.flags_string(),
             up_next.address,
             self.memory.note(up_next.address),
@@ -552,47 +575,51 @@ class SimARM(object):
         if memop == 'ld' and mode =='ed': impl = 'ib'
         if memop == 'ld' and mode =='ea': impl = 'db'
 
-        def fn(i):
+        def op_fn(i):
             left, right = i.args.split(', ', 1)
             assert right[0] == '{'
             writeback = left.endswith('!')
             left = self.reg_numbers[left.strip('!')]
-            addr = self.regs[left]            
-    
-            for r in right.strip('{}').split(', '):
-                if impl == 'ib': addr += 4
-                if impl == 'db': addr -= 4
-                if memop == 'st':
-                    self.memory.store(addr, self.regs[self.reg_numbers[r]])
-                else:
-                    self._dstpc(r, self.memory.load(addr))
-                if impl == 'ia': addr += 4
-                if impl == 'da': addr -= 4
-    
-            if writeback:
-                self.regs[left] = addr
 
-        setattr(self, 'op_' + memop + 'm' + mode, fn)
-        self._generate_condition_codes(fn, 'op_' + memop + 'm%s' + mode)
-        self._generate_condition_codes(fn, 'op_' + memop + 'm' + mode + '%s')
+            def fn():
+                addr = self.regs[left]            
+        
+                for r in right.strip('{}').split(', '):
+                    if impl == 'ib': addr += 4
+                    if impl == 'db': addr -= 4
+                    if memop == 'st':
+                        self.memory.store(addr, self.regs[self.reg_numbers[r]])
+                    else:
+                        self._dstpc(r, self.memory.load(addr))
+                    if impl == 'ia': addr += 4
+                    if impl == 'da': addr -= 4
+        
+                if writeback:
+                    self.regs[left] = addr
+
+            return fn
+
+        setattr(self, 'op_' + memop + 'm' + mode, op_fn)
+        self._generate_condition_codes(op_fn, 'op_' + memop + 'm%s' + mode)
+        self._generate_condition_codes(op_fn, 'op_' + memop + 'm' + mode + '%s')
 
     def _generate_condition_codes(self, fn, name):
-        setattr(self, name % 'eq', lambda i, fn=fn: (self.cpsrZ     ) and fn(i))
-        setattr(self, name % 'ne', lambda i, fn=fn: (not self.cpsrZ ) and fn(i))
-        setattr(self, name % 'cs', lambda i, fn=fn: (self.cpsrC     ) and fn(i))
-        setattr(self, name % 'hs', lambda i, fn=fn: (self.cpsrC     ) and fn(i))
-        setattr(self, name % 'cc', lambda i, fn=fn: (not self.cpsrC ) and fn(i))
-        setattr(self, name % 'lo', lambda i, fn=fn: (not self.cpsrC ) and fn(i))
-        setattr(self, name % 'mi', lambda i, fn=fn: (self.cpsrN     ) and fn(i))
-        setattr(self, name % 'pl', lambda i, fn=fn: (not self.cpsrN ) and fn(i))
-        setattr(self, name % 'vs', lambda i, fn=fn: (self.cpsrV     ) and fn(i))
-        setattr(self, name % 'vc', lambda i, fn=fn: (not self.cpsrV ) and fn(i))
-        setattr(self, name % 'hi', lambda i, fn=fn: (self.cpsrC and not self.cpsrZ ) and fn(i))
-        setattr(self, name % 'ls', lambda i, fn=fn: (self.cpsrZ or not self.cpsrC ) and fn(i))
-        setattr(self, name % 'ge', lambda i, fn=fn: (((not self.cpsrN) == (not self.cpsrV)) ) and fn(i))
-        setattr(self, name % 'lt', lambda i, fn=fn: (((not self.cpsrN) != (not self.cpsrV)) ) and fn(i))
-        setattr(self, name % 'gt', lambda i, fn=fn: (((not self.cpsrN) == (not self.cpsrV)) and not self.cpsrZ ) and fn(i))
-        setattr(self, name % 'le', lambda i, fn=fn: (((not self.cpsrN) != (not self.cpsrV)) or self.cpsrZ      ) and fn(i))
+        setattr(self, name % 'eq', lambda i: lambda fn=fn(i): (self.cpsrZ     ) and fn())
+        setattr(self, name % 'ne', lambda i: lambda fn=fn(i): (not self.cpsrZ ) and fn())
+        setattr(self, name % 'cs', lambda i: lambda fn=fn(i): (self.cpsrC     ) and fn())
+        setattr(self, name % 'hs', lambda i: lambda fn=fn(i): (self.cpsrC     ) and fn())
+        setattr(self, name % 'cc', lambda i: lambda fn=fn(i): (not self.cpsrC ) and fn())
+        setattr(self, name % 'lo', lambda i: lambda fn=fn(i): (not self.cpsrC ) and fn())
+        setattr(self, name % 'mi', lambda i: lambda fn=fn(i): (self.cpsrN     ) and fn())
+        setattr(self, name % 'pl', lambda i: lambda fn=fn(i): (not self.cpsrN ) and fn())
+        setattr(self, name % 'vs', lambda i: lambda fn=fn(i): (self.cpsrV     ) and fn())
+        setattr(self, name % 'vc', lambda i: lambda fn=fn(i): (not self.cpsrV ) and fn())
+        setattr(self, name % 'hi', lambda i: lambda fn=fn(i): (self.cpsrC and not self.cpsrZ ) and fn())
+        setattr(self, name % 'ls', lambda i: lambda fn=fn(i): (self.cpsrZ or not self.cpsrC ) and fn())
+        setattr(self, name % 'ge', lambda i: lambda fn=fn(i): (((not self.cpsrN) == (not self.cpsrV)) ) and fn())
+        setattr(self, name % 'lt', lambda i: lambda fn=fn(i): (((not self.cpsrN) != (not self.cpsrV)) ) and fn())
+        setattr(self, name % 'gt', lambda i: lambda fn=fn(i): (((not self.cpsrN) == (not self.cpsrV)) and not self.cpsrZ ) and fn())
+        setattr(self, name % 'le', lambda i: lambda fn=fn(i): (((not self.cpsrN) != (not self.cpsrV)) or self.cpsrZ      ) and fn())
         setattr(self, name % 'al', fn)
 
     def _reg_or_literal(self, s):
@@ -662,404 +689,531 @@ class SimARM(object):
 
     def op_ldr(self, i):
         left, right = i.args.split(', ', 1)
-        self._dstpc(left, self.memory.load(self._reladdr(right)))
+        def fn():
+            self._dstpc(left, self.memory.load(self._reladdr(right)))
+        return fn
 
     def op_ldrh(self, i):
         left, right = i.args.split(', ', 1)
-        self._dstpc(left, self.memory.load_half(self._reladdr(right)))
+        def fn():
+            self._dstpc(left, self.memory.load_half(self._reladdr(right)))
+        return fn
 
     def op_ldrb(self, i):
         left, right = i.args.split(', ', 1)
-        self._dstpc(left, self.memory.load_byte(self._reladdr(right)))
+        def fn():
+            self._dstpc(left, self.memory.load_byte(self._reladdr(right)))
+        return fn
 
     def op_str(self, i):
         left, right = i.args.split(', ', 1)
-        self.memory.store(self._reladdr(right), self.regs[self.reg_numbers[left]])
+        def fn():
+            self.memory.store(self._reladdr(right), self.regs[self.reg_numbers[left]])
+        return fn
 
     def op_strh(self, i):
         left, right = i.args.split(', ', 1)
-        self.memory.store_half(self._reladdr(right), 0xffff & self.regs[self.reg_numbers[left]])
+        def fn():
+            self.memory.store_half(self._reladdr(right), 0xffff & self.regs[self.reg_numbers[left]])
+        return fn
 
     def op_strb(self, i):
         left, right = i.args.split(', ', 1)
-        self.memory.store_byte(self._reladdr(right), 0xff & self.regs[self.reg_numbers[left]])
+        def fn():
+            self.memory.store_byte(self._reladdr(right), 0xff & self.regs[self.reg_numbers[left]])
+        return fn
 
     def op_push(self, i):
         reglist = i.args.strip('{}').split(', ')
-        sp = self.regs[13] - 4 * len(reglist)
-        self.regs[13] = sp
-        for i in range(len(reglist)):
-            self.memory.store(sp + 4 * i, self.regs[self.reg_numbers[reglist[i]]])
+        def fn():
+            sp = self.regs[13] - 4 * len(reglist)
+            self.regs[13] = sp
+            for i in range(len(reglist)):
+                self.memory.store(sp + 4 * i, self.regs[self.reg_numbers[reglist[i]]])
+        return fn
 
     def op_pop(self, i):
         reglist = i.args.strip('{}').split(', ')
-        sp = self.regs[13]
-        for i in range(len(reglist)):
-            self._dstpc(reglist[i], self.memory.load(sp + 4 * i))
-        self.regs[13] = sp + 4 * len(reglist)
+        def fn():
+            sp = self.regs[13]
+            for i in range(len(reglist)):
+                self._dstpc(reglist[i], self.memory.load(sp + 4 * i))
+            self.regs[13] = sp + 4 * len(reglist)
+        return fn
 
     def op_bx(self, i):
         if i.args in self.reg_numbers:
-            r = self.regs[self.reg_numbers[i.args]]
-            self._branch = r & ~1
-            self.thumb = r & 1
+            def fn():
+                r = self.regs[self.reg_numbers[i.args]]
+                self._branch = r & ~1
+                self.thumb = r & 1
+            return fn
         else:
-            r = int(i.args, 0)
-            self._branch = r & ~1
-            self.thumb = not self.thumb
+            def fn():
+                r = int(i.args, 0)
+                self._branch = r & ~1
+                self.thumb = not self.thumb
+            return fn
 
     def op_bl(self, i):
-        self.regs[14] = i.next_address | self.thumb
-        self._branch = self._reg_or_target(i.args)
+        def fn():
+            self.regs[14] = i.next_address | self.thumb
+            self._branch = self._reg_or_target(i.args)
+        return fn
 
     def op_blx(self, i):
-        self.regs[14] = i.next_address | self.thumb
         if i.args in self.reg_numbers:
-            r = self.regs[self.reg_numbers[i.args]]
-            self._branch = r & 0xfffffffe
-            self.thumb = r & 1
+            rn = self.reg_numbers[i.args]
+            def fn():
+                self.regs[14] = i.next_address | self.thumb
+                r = self.regs[rn]
+                self._branch = r & 0xfffffffe
+                self.thumb = r & 1
+            return fn
         else:
             r = int(i.args, 0)
-            self._branch = r & 0xfffffffe
-            self.thumb = not self.thumb
+            def fn():
+                self.regs[14] = i.next_address | self.thumb
+                self._branch = r & 0xfffffffe
+                self.thumb = not self.thumb
+            return fn
 
     def op_b(self, i):
-        self._branch = int(i.args, 0)
+        dest = int(i.args, 0)
+        def fn():
+            self._branch = dest
+        return fn
 
     def op_nop(self, i):
-        pass
+        def fn():
+            pass
+        return fn
 
     def op_mov(self, i):
         dst, src = i.args.split(', ', 1)
-        s, _ = self._shifter(src)
-        self._dstpc(dst, s)
+        def fn():
+            s, _ = self._shifter(src)
+            self._dstpc(dst, s)
+        return fn
 
     def op_movs(self, i):
         dst, src = i.args.split(', ', 1)
-        r, self.cpsrC = self._shifter(src)
-        self.cpsrZ = r == 0
-        self.cpsrN = (r >> 31) & 1
-        self._dstpc(dst, r)
+        def fn():
+            r, self.cpsrC = self._shifter(src)
+            self.cpsrZ = r == 0
+            self.cpsrN = (r >> 31) & 1
+            self._dstpc(dst, r)
+        return fn
 
     def op_mvn(self, i):
         dst, src = i.args.split(', ', 1)
-        r, _ = self._shifter(src)
-        self._dstpc(dst, r ^ 0xffffffff)
+        def fn():
+            r, _ = self._shifter(src)
+            self._dstpc(dst, r ^ 0xffffffff)
+        return fn
 
     def op_mvns(self, i):
         dst, src = i.args.split(', ', 1)
-        r, self.csprC = self._shifter(src)
-        r = r ^ 0xffffffff
-        self.cpsrZ = r == 0
-        self.cpsrN = (r >> 31) & 1
-        self._dstpc(dst, r)
+        def fn():
+            r, self.csprC = self._shifter(src)
+            r = r ^ 0xffffffff
+            self.cpsrZ = r == 0
+            self.cpsrN = (r >> 31) & 1
+            self._dstpc(dst, r)
+        return fn
 
     def op_bic(self, i):
         dst, src0, src1 = self._3arg(i)
-        s, _ = self._shifter(src1)
-        r = self.regs[self.reg_numbers[src0]] & ~s
-        self._dstpc(dst, r)
+        def fn():
+            s, _ = self._shifter(src1)
+            r = self.regs[self.reg_numbers[src0]] & ~s
+            self._dstpc(dst, r)
+        return fn
 
     def op_bics(self, i):
         dst, src0, src1 = self._3arg(i)
-        s, _ = self._shifter(src1)
-        r = self.regs[self.reg_numbers[src0]] & ~s
-        self.cpsrZ = r == 0
-        self.cpsrN = (r >> 31) & 1
-        self._dstpc(dst, r)
+        def fn():
+            s, _ = self._shifter(src1)
+            r = self.regs[self.reg_numbers[src0]] & ~s
+            self.cpsrZ = r == 0
+            self.cpsrN = (r >> 31) & 1
+            self._dstpc(dst, r)
+        return fn
 
     def op_orr(self, i):
         dst, src0, src1 = self._3arg(i)
-        s, _ = self._shifter(src1)
-        r = self.regs[self.reg_numbers[src0]] | s
-        self._dstpc(dst, r)
+        def fn():
+            s, _ = self._shifter(src1)
+            r = self.regs[self.reg_numbers[src0]] | s
+            self._dstpc(dst, r)
+        return fn
 
     def op_orrs(self, i):
         dst, src0, src1 = self._3arg(i)
-        s, self.cpsrC = self._shifter(src1)
-        r = self.regs[self.reg_numbers[src0]] | s
-        self.cpsrZ = r == 0
-        self.cpsrN = (r >> 31) & 1
-        self._dstpc(dst, r)
+        def fn():
+            s, self.cpsrC = self._shifter(src1)
+            r = self.regs[self.reg_numbers[src0]] | s
+            self.cpsrZ = r == 0
+            self.cpsrN = (r >> 31) & 1
+            self._dstpc(dst, r)
+        return fn
 
     def op_and(self, i):
         dst, src0, src1 = self._3arg(i)
-        s, _ = self._shifter(src1)
-        r = self.regs[self.reg_numbers[src0]] & s
-        self._dstpc(dst, r)
+        def fn():
+            s, _ = self._shifter(src1)
+            r = self.regs[self.reg_numbers[src0]] & s
+            self._dstpc(dst, r)
+        return fn
 
     def op_ands(self, i):
         dst, src0, src1 = self._3arg(i)
-        s, self.cpsrC = self._shifter(src1)
-        r = self.regs[self.reg_numbers[src0]] & s
-        self.cpsrZ = r == 0
-        self.cpsrN = (r >> 31) & 1
-        self._dstpc(dst, r)
+        def fn():
+            s, self.cpsrC = self._shifter(src1)
+            r = self.regs[self.reg_numbers[src0]] & s
+            self.cpsrZ = r == 0
+            self.cpsrN = (r >> 31) & 1
+            self._dstpc(dst, r)
+        return fn
 
     def op_tst(self, i):
         src0, src1 = i.args.split(', ', 1)
-        s, self.cpsrC = self._shifter(src1)
-        r = self.regs[self.reg_numbers[src0]] & s
-        self.cpsrZ = r == 0
-        self.cpsrN = (r >> 31) & 1
+        def fn():
+            s, self.cpsrC = self._shifter(src1)
+            r = self.regs[self.reg_numbers[src0]] & s
+            self.cpsrZ = r == 0
+            self.cpsrN = (r >> 31) & 1
+        return fn
 
     def op_teq(self, i):
         src0, src1 = i.args.split(', ', 1)
-        s, self.cpsrC = self._shifter(src1)
-        r = self.regs[self.reg_numbers[src0]] ^ s
-        self.cpsrZ = r == 0
-        self.cpsrN = (r >> 31) & 1
+        def fn():
+            s, self.cpsrC = self._shifter(src1)
+            r = self.regs[self.reg_numbers[src0]] ^ s
+            self.cpsrZ = r == 0
+            self.cpsrN = (r >> 31) & 1
+        return fn
 
     def op_eor(self, i):
         dst, src0, src1 = self._3arg(i)
-        s, _ = self._shifter(src1)
-        r = self.regs[self.reg_numbers[src0]] ^ s
-        self._dstpc(dst, r)
+        def fn():
+            s, _ = self._shifter(src1)
+            r = self.regs[self.reg_numbers[src0]] ^ s
+            self._dstpc(dst, r)
+        return fn
 
     def op_eors(self, i):
         dst, src0, src1 = self._3arg(i)
-        s, self.cpsrC = self._shifter(src1)
-        r = self.regs[self.reg_numbers[src0]] ^ s
-        self.cpsrZ = r == 0
-        self.cpsrN = (r >> 31) & 1
-        self._dstpc(dst, r)
-        
+        def fn():
+            s, self.cpsrC = self._shifter(src1)
+            r = self.regs[self.reg_numbers[src0]] ^ s
+            self.cpsrZ = r == 0
+            self.cpsrN = (r >> 31) & 1
+            self._dstpc(dst, r)
+        return fn
+
     def op_add(self, i):
         dst, src0, src1 = self._3arg(i)
-        s, _ = self._shifter(src1)
-        r = self.regs[self.reg_numbers[src0]] + s
-        self._dstpc(dst, r)
+        def fn():
+            s, _ = self._shifter(src1)
+            r = self.regs[self.reg_numbers[src0]] + s
+            self._dstpc(dst, r)
+        return fn
 
     def op_adds(self, i):
         dst, src0, src1 = self._3arg(i)
-        a = self.regs[self.reg_numbers[src0]]
-        b, _ = self._shifter(src1)
-        r = a + b
-        self.cpsrN = (r >> 31) & 1
-        self.cpsrZ = not (r & 0xffffffff)
-        self.cpsrC = r > 0xffffffff
-        self.cpsrV = ((a >> 31) & 1) == ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1) and ((b >> 31) & 1) != ((r >> 31) & 1)
-        self._dstpc(dst, r)
+        def fn():
+            a = self.regs[self.reg_numbers[src0]]
+            b, _ = self._shifter(src1)
+            r = a + b
+            self.cpsrN = (r >> 31) & 1
+            self.cpsrZ = not (r & 0xffffffff)
+            self.cpsrC = r > 0xffffffff
+            self.cpsrV = ((a >> 31) & 1) == ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1) and ((b >> 31) & 1) != ((r >> 31) & 1)
+            self._dstpc(dst, r)
+        return fn
 
     def op_adc(self, i):
         dst, src0, src1 = self._3arg(i)
-        s, _ = self._shifter(src1)
-        r = self.regs[self.reg_numbers[src0]] + s + (self.cpsrC & 1)
-        self._dstpc(dst, r)
+        def fn():
+            s, _ = self._shifter(src1)
+            r = self.regs[self.reg_numbers[src0]] + s + (self.cpsrC & 1)
+            self._dstpc(dst, r)
+        return fn
 
     def op_adcs(self, i):
         dst, src0, src1 = self._3arg(i)
-        a = self.regs[self.reg_numbers[src0]]
-        b, _ = self._shifter(src1)
-        r = a + b + (self.cpsrC & 1)
-        self.cpsrN = (r >> 31) & 1
-        self.cpsrZ = not (r & 0xffffffff)
-        self.cpsrC = r > 0xffffffff
-        self.cpsrV = ((a >> 31) & 1) == ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1) and ((b >> 31) & 1) != ((r >> 31) & 1)
-        self._dstpc(dst, r)
+        def fn():
+            a = self.regs[self.reg_numbers[src0]]
+            b, _ = self._shifter(src1)
+            r = a + b + (self.cpsrC & 1)
+            self.cpsrN = (r >> 31) & 1
+            self.cpsrZ = not (r & 0xffffffff)
+            self.cpsrC = r > 0xffffffff
+            self.cpsrV = ((a >> 31) & 1) == ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1) and ((b >> 31) & 1) != ((r >> 31) & 1)
+            self._dstpc(dst, r)
+        return fn
 
     def op_sub(self, i):
         dst, src0, src1 = self._3arg(i)
-        s, _ = self._shifter(src1)
-        r = self.regs[self.reg_numbers[src0]] - s
-        self._dstpc(dst, r)
+        def fn():
+            s, _ = self._shifter(src1)
+            r = self.regs[self.reg_numbers[src0]] - s
+            self._dstpc(dst, r)
+        return fn
 
     def op_subs(self, i):
         dst, src0, src1 = self._3arg(i)
-        a = self.regs[self.reg_numbers[src0]]
-        b, _ = self._shifter(src1)
-        r = a - b
-        self.cpsrN = (r >> 31) & 1
-        self.cpsrZ = not (r & 0xffffffff)
-        self.cpsrC = (a & 0xffffffff) >= (b & 0xffffffff)
-        self.cpsrV = ((a >> 31) & 1) != ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1)
-        self._dstpc(dst, r)
+        def fn():
+            a = self.regs[self.reg_numbers[src0]]
+            b, _ = self._shifter(src1)
+            r = a - b
+            self.cpsrN = (r >> 31) & 1
+            self.cpsrZ = not (r & 0xffffffff)
+            self.cpsrC = (a & 0xffffffff) >= (b & 0xffffffff)
+            self.cpsrV = ((a >> 31) & 1) != ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1)
+            self._dstpc(dst, r)
+        return fn
 
     def op_sbc(self, i):
         dst, src0, src1 = self._3arg(i)
-        s, _ = self._shifter(src1)
-        r = self.regs[self.reg_numbers[src0]] - s + self.cpsrC - 1
-        self._dstpc(dst, r)
+        def fn():
+            s, _ = self._shifter(src1)
+            r = self.regs[self.reg_numbers[src0]] - s + self.cpsrC - 1
+            self._dstpc(dst, r)
+        return fn
 
     def op_sbcs(self, i):
         dst, src0, src1 = self._3arg(i)
-        a = self.regs[self.reg_numbers[src0]]
-        b, _ = self._shifter(src1)
-        r = a - b + self.cpsrC - 1
-        self.cpsrN = (r >> 31) & 1
-        self.cpsrZ = not (r & 0xffffffff)
-        self.cpsrC = (a & 0xffffffff) >= (b & 0xffffffff)
-        self.cpsrV = ((a >> 31) & 1) != ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1)
-        self._dstpc(dst, r)
+        def fn():
+            a = self.regs[self.reg_numbers[src0]]
+            b, _ = self._shifter(src1)
+            r = a - b + self.cpsrC - 1
+            self.cpsrN = (r >> 31) & 1
+            self.cpsrZ = not (r & 0xffffffff)
+            self.cpsrC = (a & 0xffffffff) >= (b & 0xffffffff)
+            self.cpsrV = ((a >> 31) & 1) != ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1)
+            self._dstpc(dst, r)
+        return fn
 
     def op_rsb(self, i):
         dst, src0, src1 = self._3arg(i)
-        s, _ = self._shifter(src1)
-        r = s - self.regs[self.reg_numbers[src0]]
-        self._dstpc(dst, r)
+        def fn():
+            s, _ = self._shifter(src1)
+            r = s - self.regs[self.reg_numbers[src0]]
+            self._dstpc(dst, r)
+        return fn
 
     def op_rsbs(self, i):
         dst, src0, src1 = self._3arg(i)
-        b = self.regs[self.reg_numbers[src0]]
-        a, _ = self._shifter(src1)
-        r = a - b
-        self.cpsrN = (r >> 31) & 1
-        self.cpsrZ = not (r & 0xffffffff)
-        self.cpsrC = (a & 0xffffffff) >= (b & 0xffffffff)
-        self.cpsrV = ((a >> 31) & 1) != ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1)
-        self._dstpc(dst, r)
+        def fn():
+            b = self.regs[self.reg_numbers[src0]]
+            a, _ = self._shifter(src1)
+            r = a - b
+            self.cpsrN = (r >> 31) & 1
+            self.cpsrZ = not (r & 0xffffffff)
+            self.cpsrC = (a & 0xffffffff) >= (b & 0xffffffff)
+            self.cpsrV = ((a >> 31) & 1) != ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1)
+            self._dstpc(dst, r)
+        return fn
 
     def op_cmp(self, i):
         src0, src1 = i.args.split(', ', 1)
-        a = self.regs[self.reg_numbers[src0]]
-        b, _ = self._shifter(src1)
-        r = a - b
-        self.cpsrN = (r >> 31) & 1
-        self.cpsrZ = not (r & 0xffffffff)
-        self.cpsrC = (a & 0xffffffff) >= (b & 0xffffffff)
-        self.cpsrV = ((a >> 31) & 1) != ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1)
+        def fn():
+            a = self.regs[self.reg_numbers[src0]]
+            b, _ = self._shifter(src1)
+            r = a - b
+            self.cpsrN = (r >> 31) & 1
+            self.cpsrZ = not (r & 0xffffffff)
+            self.cpsrC = (a & 0xffffffff) >= (b & 0xffffffff)
+            self.cpsrV = ((a >> 31) & 1) != ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1)
+        return fn
 
     def op_cmn(self, i):
         src0, src1 = i.args.split(', ', 1)
-        a = self.regs[self.reg_numbers[src0]]
-        b, _ = self._shifter(src1)
-        r = a + b
-        self.cpsrN = (r >> 31) & 1
-        self.cpsrZ = not (r & 0xffffffff)
-        self.cpsrC = r > 0xffffffff
-        self.cpsrV = ((a >> 31) & 1) == ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1) and ((b >> 31) & 1) != ((r >> 31) & 1)
+        def fn():
+            a = self.regs[self.reg_numbers[src0]]
+            b, _ = self._shifter(src1)
+            r = a + b
+            self.cpsrN = (r >> 31) & 1
+            self.cpsrZ = not (r & 0xffffffff)
+            self.cpsrC = r > 0xffffffff
+            self.cpsrV = ((a >> 31) & 1) == ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1) and ((b >> 31) & 1) != ((r >> 31) & 1)
+        return fn
 
     def op_lsl(self, i):
         dst, src0, src1 = self._3arg(i)
-        r, _ = lsl(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
-        self._dstpc(dst, r)
+        def fn():
+            r, _ = lsl(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
+            self._dstpc(dst, r)
+        return fn
 
     def op_lsls(self, i):
         dst, src0, src1 = self._3arg(i)
-        r, self.cpsrC = lsl(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
-        self.cpsrZ = not (r & 0xffffffff)
-        self.cpsrN = (r >> 31) & 1
-        self._dstpc(dst, r)
+        def fn():
+            r, self.cpsrC = lsl(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
+            self.cpsrZ = not (r & 0xffffffff)
+            self.cpsrN = (r >> 31) & 1
+            self._dstpc(dst, r)
+        return fn
 
     def op_lsr(self, i):
         dst, src0, src1 = self._3arg(i)
-        r, _ = lsr(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
-        self._dstpc(dst, r)
+        def fn():
+            r, _ = lsr(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
+            self._dstpc(dst, r)
+        return fn
 
     def op_lsrs(self, i):
         dst, src0, src1 = self._3arg(i)
-        r, self.cpsrC = lsr(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
-        self.cpsrZ = not (r & 0xffffffff)
-        self.cpsrN = (r >> 31) & 1
-        self._dstpc(dst, r)
+        def fn():
+            r, self.cpsrC = lsr(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
+            self.cpsrZ = not (r & 0xffffffff)
+            self.cpsrN = (r >> 31) & 1
+            self._dstpc(dst, r)
+        return fn
 
     def op_asr(self, i):
         dst, src0, src1 = self._3arg(i)
-        r, _ = asr(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
-        self._dstpc(dst, r)
+        def fn():
+            r, _ = asr(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
+            self._dstpc(dst, r)
+        return fn
 
     def op_asrs(self, i):
         dst, src0, src1 = self._3arg(i)
-        r, self.cpsrC = asr(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
-        self.cpsrZ = r == 0
-        self.cpsrN = (r >> 31) & 1
-        self._dstpc(dst, r)
+        def fn():
+            r, self.cpsrC = asr(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
+            self.cpsrZ = r == 0
+            self.cpsrN = (r >> 31) & 1
+            self._dstpc(dst, r)
+        return fn
 
     def op_ror(self, i):
         dst, src0, src1 = self._3arg(i)
-        r, _ = ror(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
-        self._dstpc(dst, r)
+        def fn():
+            r, _ = ror(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
+            self._dstpc(dst, r)
+        return fn
 
     def op_rors(self, i):
         dst, src0, src1 = self._3arg(i)
-        r, self.csprC = ror(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
-        self.cpsrZ = r == 0
-        self.cpsrN = (r >> 31) & 1
-        self._dstpc(dst, r)
+        def fn():
+            r, self.csprC = ror(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
+            self.cpsrZ = r == 0
+            self.cpsrN = (r >> 31) & 1
+            self._dstpc(dst, r)
+        return fn
 
     def op_rol(self, i):
         dst, src0, src1 = self._3arg(i)
-        r, _ = rol(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
-        self._dstpc(dst, r)
+        def fn():
+            r, _ = rol(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
+            self._dstpc(dst, r)
+        return fn
 
     def op_rols(self, i):
         dst, src0, src1 = self._3arg(i)
-        r, self.cpsrC = rol(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
-        self.cpsrZ = r == 0
-        self.cpsrN = (r >> 31) & 1
-        self._dstpc(dst, r)
+        def fn():
+            r, self.cpsrC = rol(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1))
+            self.cpsrZ = r == 0
+            self.cpsrN = (r >> 31) & 1
+            self._dstpc(dst, r)
+        return fn
 
     def op_rrx(self, i):
         dst, src0, src1 = self._3arg(i)
-        r, _ = rrx(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1), self.cpsrC)
-        self._dstpc(dst, r)
+        def fn():
+            r, _ = rrx(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1), self.cpsrC)
+            self._dstpc(dst, r)
+        return fn
 
     def op_rrxs(self, i):
         dst, src0, src1 = self._3arg(i)
-        r, self.cpsrC = rrx(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1), self.cpsrC)
-        self.cpsrZ = r == 0
-        self.cpsrN = (r >> 31) & 1
-        self._dstpc(dst, r)
+        def fn():
+            r, self.cpsrC = rrx(self.regs[self.reg_numbers[src0]], self._reg_or_literal(src1), self.cpsrC)
+            self.cpsrZ = r == 0
+            self.cpsrN = (r >> 31) & 1
+            self._dstpc(dst, r)
+        return fn
 
     def op_mul(self, i):
         dst, src0, src1 = self._3arg(i)
-        a = self.regs[self.reg_numbers[src0]]
-        b, _ = self._shifter(src1)
-        r = a * b
-        self.cpsrN = (r >> 31) & 1
-        self.cpsrZ = not (r & 0xffffffff)
-        self._dstpc(dst, r)
+        def fn():
+            a = self.regs[self.reg_numbers[src0]]
+            b, _ = self._shifter(src1)
+            r = a * b
+            self.cpsrN = (r >> 31) & 1
+            self.cpsrZ = not (r & 0xffffffff)
+            self._dstpc(dst, r)
+        return fn
 
     def op_muls(self, i):
         dst, src0, src1 = self._3arg(i)
-        a = self.regs[self.reg_numbers[src0]]
-        b, _ = self._shifter(src1)
-        r = a * b
-        self._dstpc(dst, r)
+        def fn():
+            a = self.regs[self.reg_numbers[src0]]
+            b, _ = self._shifter(src1)
+            r = a * b
+            self._dstpc(dst, r)
+        return fn
 
     def op_mla(self, i):
         dst, Rm, Rs, Rn = i.args.split(', ')
-        r = self.regs[self.reg_numbers[Rm]] * self.regs[self.reg_numbers[Rs]] + self.regs[self.reg_numbers[Rn]]
-        self._dstpc(dst, r)
+        def fn():
+            r = self.regs[self.reg_numbers[Rm]] * self.regs[self.reg_numbers[Rs]] + self.regs[self.reg_numbers[Rn]]
+            self._dstpc(dst, r)
+        return fn
 
     def op_mlas(self, i):
         dst, Rm, Rs, Rn = i.args.split(', ')
-        r = self.regs[self.reg_numbers[Rm]] * self.regs[self.reg_numbers[Rs]] + self.regs[self.reg_numbers[Rn]]
-        self.cpsrN = (r >> 31) & 1
-        self.cpsrZ = not (r & 0xffffffff)
-        self._dstpc(dst, r)
+        def fn():
+            r = self.regs[self.reg_numbers[Rm]] * self.regs[self.reg_numbers[Rs]] + self.regs[self.reg_numbers[Rn]]
+            self.cpsrN = (r >> 31) & 1
+            self.cpsrZ = not (r & 0xffffffff)
+            self._dstpc(dst, r)
+        return fn
 
     def op_umull(self, i):
         dstLo, dstHi, Rm, Rs = i.args.split(', ')
-        r = self.regs[self.reg_numbers[Rm]] * self.regs[self.reg_numbers[Rs]]
-        self._dstpc(dstLo, r)
-        self._dstpc(dstHi, r >> 32)
+        def fn():
+            r = self.regs[self.reg_numbers[Rm]] * self.regs[self.reg_numbers[Rs]]
+            self._dstpc(dstLo, r)
+            self._dstpc(dstHi, r >> 32)
+        return fn
 
     def op_umulls(self, i):
         dstLo, dstHi, Rm, Rs = i.args.split(', ')
-        r = self.regs[self.reg_numbers[Rm]] * self.regs[self.reg_numbers[Rs]]
-        self.cpsrN = (r >> 64) & 1
-        self.cpsrZ = not r
-        self._dstpc(dstLo, r)
-        self._dstpc(dstHi, r >> 32)
+        def fn():
+            r = self.regs[self.reg_numbers[Rm]] * self.regs[self.reg_numbers[Rs]]
+            self.cpsrN = (r >> 64) & 1
+            self.cpsrZ = not r
+            self._dstpc(dstLo, r)
+            self._dstpc(dstHi, r >> 32)
+        return fn
 
     def op_msr(self, i):
         """Stub"""
         dst, src = i.args.split(', ')
+        def fn():
+            pass
+        return fn
 
     def op_mrs(self, i):
         """Stub"""
         dst, src = i.args.split(', ')
-        self.regs[self.reg_numbers[dst]] = 0x5d5d5d5d
+        def fn():
+            self.regs[self.reg_numbers[dst]] = 0x5d5d5d5d
+        return fn
 
     def op_clz(self, i):
         dst, src = i.args.split(', ', 1)
-        r, _ = self._shifter(src)
-        i = 0
-        while i < 32:
-            if r & (1 << i):
-                break
-            else:
-                i += 1
-        self._dstpc(dst, i)
-
+        def fn():
+            r, _ = self._shifter(src)
+            i = 0
+            while i < 32:
+                if r & (1 << i):
+                    break
+                else:
+                    i += 1
+            self._dstpc(dst, i)
+        return fn

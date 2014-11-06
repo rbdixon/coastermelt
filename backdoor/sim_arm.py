@@ -109,4 +109,17 @@ def simulate_arm(device):
         r0 = 0;  // success
     ''')
 
+    # Autostep through the firmware decompression code; it's very slow with tracing on.
+    m.hook(0x168928, autostep_until(0x1d8d04, 'firmware decompression function'))
+
     return SimARM(m)
+
+
+def autostep_until(breakpoint, message):
+    """Return a hook function that continuously steps until the breakpoint"""
+    def fn(arm):
+        print "SIM: autostep until %08x, %s" % (breakpoint, message)
+        while arm.regs[15] != breakpoint:
+            arm.step()
+    return fn
+
