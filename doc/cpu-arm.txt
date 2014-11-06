@@ -424,10 +424,15 @@ Very rough notes, may be wildly wrong.
             issuance will cause the pickup sled to move about a centimeter
             away from the spindle motor.
 
+            Possibly an auto-reset on error? After leaving in 500mA state for
+            some seconds, the same commands will not produce motor movement.
+            These commands seem fairly high-level, like they're executing
+            something that's been set up elsewhere.
+
                 %wr 4206000 a10200
                 %wr 4206010 c646
 
-                %wr 4206000 910200
+                %wr 4206000 910200    <- Current up to 500mA, motor moves all at once
                 %wr 4206010 c600
 
                 %wr 4206000 910200    <- Drops current from ~500mA to 270mA
