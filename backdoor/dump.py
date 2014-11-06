@@ -5,7 +5,8 @@ import sys, struct, time
 # Or import as a library for higher level dumping functions.
 
 __all__ = [
-    'words_from_string', 'poke_words', 'poke_words_from_string',
+    'words_from_string',
+    'poke_words', 'poke_words_from_string', 'poke_bytes',
     'read_block', 'scsi_read_buffer',
     'hexdump', 'hexdump_words',
     'dump', 'dump_words',
@@ -69,6 +70,17 @@ def poke_words(d, address, words, verbose = True, reporting_interval = 0.1):
     l = len(words)
     for i, w in enumerate(words):
         d.poke(address + 4*i, w)
+        progress.update(i+1, l)
+    progress.complete(l, l)
+
+
+def poke_bytes(d, address, bytes, verbose = True, reporting_interval = 0.1):
+    """Send a block of bytes (VERY slowly)"""
+    progress = progress_reporter('bytes sent',
+        enabled=verbose, reporting_interval=reporting_interval)
+    l = len(bytes)
+    for i, w in enumerate(bytes):
+        d.poke_byte(address + i, w)
         progress.update(i+1, l)
     progress.complete(l, l)
 

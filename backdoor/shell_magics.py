@@ -113,7 +113,7 @@ class ShellMagics(magic.Magics):
             : rd c9720 50
             000c9720  ac 42 4c 58 ac 6c 6f 63 ac 65 65 42 ac 6f 6b 42   .BLX.loc.eeB.okB
             000c9730  e6 0c 00 02 a8 00 04 04 c0 46 c0 46 c0 46 c0 46   .........F.F.F.F
-            000c9740  7e 4d 65 53 60 31 34 20 76 2e 30 32 20 20 20 20   ~MeS`14 v.02    
+            000c9740  7e 4d 65 53 60 31 34 20 76 2e 30 32 20 20 20 20   ~MeS`14 v.02
             000c9750  53 1c 0b 60 16 70 0a 68 53 1c 0b 60 16 70 0a 68   S..`.p.hS..`.p.h
             000c9760  53 1c 0b 60 16 70 0a 68 53 1c 0b 60 16 70 29 88   S..`.p.hS..`.p).
 
@@ -122,7 +122,7 @@ class ShellMagics(magic.Magics):
             : rd c9720 50
             000c9720  ac 42 4c 58 ac 6c 6f 63 ac 65 65 42 ac 6f 6b 42   .BLX.loc.eeB.okB
             000c9730  e6 0c 00 02 a8 00 04 04 c0 46 c0 46 c0 46 c0 46   .........F.F.F.F
-            000c9740  55 55 55 55 60 31 34 20 76 2e 30 32 20 20 20 20   UUUU`14 v.02    
+            000c9740  55 55 55 55 60 31 34 20 76 2e 30 32 20 20 20 20   UUUU`14 v.02
             000c9750  53 1c 0b 60 16 70 0a 68 53 1c 0b 60 16 70 0a 68   S..`.p.hS..`.p.h
             000c9760  53 1c 0b 60 16 70 0a 68 53 1c 0b 60 16 70 29 88   S..`.p.hS..`.p).
 
@@ -150,7 +150,18 @@ class ShellMagics(magic.Magics):
 
     @magic.line_cell_magic
     @magic_arguments()
-    @argument('address', type=hexint_aligned, help='Hex address')
+    @argument('address', type=hexint, help='Hex address')
+    @argument('byte', type=hexint, nargs='*', help='Hex bytes')
+    def wrb(self, line, cell=''):
+        """Write hex bytes into ARM memory"""
+        args = parse_argstring(self.wrb, line)
+        d = self.shell.user_ns['d']
+        args.byte.extend(map(hexint, cell.split()))
+        poke_bytes(d, args.address, args.byte)
+
+    @magic.line_cell_magic
+    @magic_arguments()
+    @argument('address', type=hexint, help='Hex address')
     @argument('byte', type=hexint, nargs='*', help='Hex bytes')
     def wx8(self, line, cell=''):
         """Write hex bytes into 8051 XDATA memory"""
@@ -442,7 +453,7 @@ class ShellMagics(magic.Magics):
     @argument('--console-buffer', type=hexint_aligned, metavar='HEX', default=console_address, help='Specify a different address for the console_buffer_t data structure')
     def hook(self, line, cell=None):
         """Inject a C++ hook into Thumb code executing from Flash memory.
- 
+
         In line mode, this uses the "default hook" which logs to the console.
 
         In cell mode, you can write C++ statements that interact with the
@@ -765,6 +776,9 @@ class ShellMagics(magic.Magics):
             state = 'INIT'
             arm.copy_registers_to(ns)
 
+            # Simulator shouldn't see the overlay, make sure this is off
+            overlay_set(d, None)
+
         arm.memory.logfile = logfile
 
         if args.load:
@@ -782,6 +796,10 @@ class ShellMagics(magic.Magics):
 
         min_timestamp = 0
 
+        # Capture 'print' output from hook functions
+        saved_stdout = sys.stdout
+        sys.stdout = Tee(self.shell, logfile)
+
         try:
             while True:
                 if steps > 0:
@@ -795,7 +813,7 @@ class ShellMagics(magic.Magics):
                 if now >= min_timestamp:
                     self.shell.write('[%4s] %-70s %s\n' % (state, arm.summary_line(), arm.register_trace_line(8)))
                     min_timestamp = now + 0.25
-               
+
                 # Write detailed output to log file
                 logfile.write('# %-70s %s\n' % (arm.summary_line(), arm.register_trace_line()))
                 assert logfile == arm.memory.logfile
@@ -808,4 +826,15 @@ class ShellMagics(magic.Magics):
                     self.shell.write(arm.register_trace())
                     break
         finally:
+            sys.stdout = saved_stdout
             logfile.flush()
+
+
+class Tee(object):
+    def __init__(self, *files):
+        self.files = files
+
+    def write(self, s):
+        for f in self.files:
+            f.write(s)
+

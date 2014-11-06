@@ -188,13 +188,31 @@ class SimARMMemory(object):
     def note(self, address):
         return self.patch_notes.get(address & ~1, '')
 
+    def log_replayable_write(self, address, data, size):
+        # In addition to the human-friendly "arm-mem" logs, we log in a replayable format
+        # Returns the next address, to make fills easy.
+        if size == 'word':
+            self.logfile.write("%%wr %x %x\n" % (address, data))
+            return address + 4
+        elif size == 'byte':
+            self.logfile.write("%%wrb %x %x\n" % (address, data))
+            return address + 1
+        elif size == 'half':
+            self.logfile.write("%%wrb %x %x\n" % (address, data & 0xff))
+            self.logfile.write("%%wrb %x %x\n" % (address + 1, data >> 8))
+            return address + 2
+
     def log_store(self, address, data, size='word', message=''):
         if self.logfile:
             self.logfile.write("arm-mem-STORE %4s[%08x] <- %08x %s\n" % (size, address, data, message))
+            self.log_replayable_write(address, data, size)
 
     def log_fill(self, address, pattern, count, size='word'):
         if self.logfile:
             self.logfile.write("arm-mem-FILL  %4s[%08x] <- %08x * %04x\n" % (size, address, pattern, count))
+            while count > 0:
+                count -= 1
+                address = self.log_replayable_write(address, pattern, size)
 
     def log_load(self, address, data, size='word'):
         if self.logfile:
@@ -232,9 +250,9 @@ class SimARMMemory(object):
                 self.device.poke(address, pattern)
 
             elif size == 2:
-                self.log_store(address, data, 'half')
-                self.device.poke_byte(address, data & 0xff)
-                self.device.poke_byte(address + 1, data >> 8)
+                self.log_store(address, pattern, 'half')
+                self.device.poke_byte(address, pattern & 0xff)
+                self.device.poke_byte(address + 1, pattern >> 8)
 
             else:
                 assert size == 1
@@ -457,19 +475,21 @@ class SimARM(object):
         self.regs[14] = 0xffffffff
         self.step_count = 0
 
-    _state_fields = ('regs', 'thumb', 'cpsrV', 'cpsrC', 'cpsrZ', 'cpsrN', 'step_count')
+    _state_fields = ('thumb', 'cpsrV', 'cpsrC', 'cpsrZ', 'cpsrN', 'step_count')
 
     @property
     def state(self):
         d = {}
         for name in self._state_fields:
             d[name] = getattr(self, name)
+        d['regs'] = self.regs[:]
         return d
 
     @state.setter
     def state(self, value):
         for name in self._state_fields:
             setattr(self, name, value[name])
+        self.regs[:] = value['regs']
 
     def save_state(self, filebase):
         """Save state to disk, using files beginning with 'filebase'"""
@@ -483,8 +503,10 @@ class SimARM(object):
         with open(filebase + '.core', 'r') as f:
             self.state = json.load(f)
 
-    def step(self, repeat = 1):
-        """Step the simulated ARM by one instruction"""
+    def step(self, repeat = 1, breakpoint = None):
+        """Step the simulated ARM by one or more instructions
+        Stops when the repeat count is exhausted or we hit a breakpoint.
+        """
         regs = self.regs
         while repeat > 0:
             repeat -= 1
@@ -510,6 +532,8 @@ class SimARM(object):
 
                 opfunc()
                 regs[15] = self._branch or instr.next_address
+                if regs[15] == breakpoint:
+                    return
 
             except:
                 # If we don't finish, point the PC at that instruction
@@ -519,6 +543,7 @@ class SimARM(object):
             if instr.hle:
                 regs[0] = self.memory.hle_invoke(instr, regs[0])
             if hook:
+                # Hooks can do anything including reentrantly step()'ing
                 hook(self)
 
     def get_next_instruction(self):
@@ -730,6 +755,17 @@ class SimARM(object):
         aF = self._reladdr(right)
         def fn():
             dF(self.memory.load_half(aF()))
+        return fn
+
+    def op_ldrsh(self, i):
+        left, right = i.args.split(', ', 1)
+        dF = self._dstpc(left)
+        aF = self._reladdr(right)
+        def fn():
+            r = self.memory.load_half(aF())
+            if r & 0x8000:
+                r |= 0xffff0000
+            dF(r)
         return fn
 
     def op_ldrb(self, i):
@@ -1363,4 +1399,27 @@ class SimARM(object):
                 else:
                     i += 1
             dF(i)
+        return fn
+
+    def op_neg(self, i):
+        dst, src = i.args.split(', ', 1)
+        sF = self._shifter(src)
+        dF = self._dstpc(dst)
+        def fn():
+            dF(-sF()[0])
+        return fn
+
+    def op_negs(self, i):
+        dst, src = i.args.split(', ', 1)
+        sF = self._shifter(src)
+        dF = self._dstpc(dst)
+        def fn():
+            a = 0
+            b, _ = sF()
+            r = a - b
+            self.cpsrN = (r >> 31) & 1
+            self.cpsrZ = not (r & 0xffffffff)
+            self.cpsrC = (a & 0xffffffff) >= (b & 0xffffffff)
+            self.cpsrV = ((a >> 31) & 1) != ((b >> 31) & 1) and ((a >> 31) & 1) != ((r >> 31) & 1)
+            dF(r)
         return fn

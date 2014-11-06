@@ -430,7 +430,7 @@ Very rough notes, may be wildly wrong.
                 %wr 4206000 910200
                 %wr 4206010 c600
 
-                %wr 4206000 910200
+                %wr 4206000 910200    <- Drops current from ~500mA to 270mA
 
             ----
 

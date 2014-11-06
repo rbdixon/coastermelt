@@ -153,7 +153,7 @@ class BitbangDevice:
 
     @_auto_retry
     @_maintain_sync
-    def blx(self, address, r0, timeout = 30):
+    def blx(self, address, r0 = 0, timeout = 30):
         savedTimeout = self.port.timeout
         self.port.timeout = timeout
         try:

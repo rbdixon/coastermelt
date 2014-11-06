@@ -25,6 +25,7 @@ def simulate_arm(device):
     """
     m = SimARMMemory(device)
 
+    # These only exist during boot; after we hit the main loop, all skips are cleared.
     m.skip(0x04001000, "Reset control?")
     m.skip(0x04002088, "LED / Solenoid GPIOs, breaks bitbang backdoor")
     m.skip(0x04030f04, "Memory region control flags")
@@ -36,7 +37,7 @@ def simulate_arm(device):
     m.local_ram(0x1c00000, 0x1c2ffff)
     m.local_ram(0x1f00000, 0x200ffff)
 
-    # Test the HLE subsystem early    
+    # Test the HLE subsystem early
     m.patch(0x168530, 'nop', thumb=False, hle='println("----==== W H O A ====----")')
 
     # Stub out a loop during init that seems to be spinning with a register read inside (performance)
@@ -110,7 +111,60 @@ def simulate_arm(device):
     ''')
 
     # Autostep through the firmware decompression code; it's very slow with tracing on.
-    m.hook(0x168928, autostep_until(0x1d8d04, 'firmware decompression function'))
+    m.hook(0x168928, autostep_until(0x168d04, 'firmware decompression function'))
+
+    # Use some hook functions to multiplex the main loop and IRQ handlers, to
+    # make this easier to follow (and avoid implementing real interrupts
+
+    def fn(arm):
+        # Clear all our skips when we hit the main loop
+        arm.memory.skip_stores.clear()
+
+        # First ISR, 0x18
+        print "SIM: isr_18"
+        arm.irq_saved = arm.state
+        arm.regs[15] = 0x158
+        arm.regs[13] = 0x20009d0
+        arm.thumb = False
+    m.hook(0x18cc8, fn)
+
+    def fn(arm):
+        # Next ISR
+        print "SIM: isr_1c"
+        arm.regs[15] = 0x22114
+        arm.regs[13] = 0x20009d0
+        arm.thumb = False
+    m.hook(0x190, fn)
+
+    def fn(arm):
+        # Return to the main loop
+        print "SIM: main loop"
+        arm.state = arm.irq_saved
+    m.hook(0x2203e, fn)
+    m.hook(0x22138, fn)
+
+    # Our simulation goes way too slow to use the real timer directly; for the
+    # low-level code this doesn't seem to be a problem, but it throws the
+    # higher-level functions into an infinite loop if the timer advances too
+    # quickly. The higher level functions use a routine at 8519c to read a
+    # 16-bit timer at a selected frequency. To help simulation coverage, this
+    # returns an integer that advances by 1 every time it's read.
+
+    sim_clock = [0]
+    rates = ('512*1024 Hz', '16*1024 Hz', '1024 Hz')
+    def fn(arm):
+        sim_clock[0] = (sim_clock[0] + 1) & 0xffff
+        print "SIM: Fake clock %04x (requested rate %s)" % (sim_clock[0], rates[arm.regs[0]])
+        arm.regs[0] = sim_clock[0]
+    m.patch(0x8519c, 'bx lr')
+    m.hook(0x8519c, fn)
+
+    # Thought that would fix this function at c045e which I'm calling
+    # fancy_delay() for now. It reads some data structures to calculate a
+    # delay, but it does some fancy things with compensating for 16-bit timer
+    # rollover and it generally seems like it won't work right at all in
+    # simulation. Stub it.
+    m.patch(0xc0460, 'pop {r3-r7, pc}')
 
     return SimARM(m)
 
@@ -120,6 +174,8 @@ def autostep_until(breakpoint, message):
     def fn(arm):
         print "SIM: autostep until %08x, %s" % (breakpoint, message)
         while arm.regs[15] != breakpoint:
-            arm.step()
+            arm.step(repeat=1000000, breakpoint=breakpoint)
+            print "SIM: still autostepping..."
+        print "SIM: autostep breakpoint reached"
     return fn
 

@@ -12,8 +12,8 @@ Internal _ are ignored so you can use them as separators.
 
     rd 1ff_ 100
     wr _ 1febb
-    ALSO: rdw, fill, watch, find, bitset, bitfuzz
-          peek, poke, read_block
+    ALSO: rdw, wrb, fill, watch, find
+          bitset, bitfuzz, peek, poke, read_block
 
 Disassemble, assemble, and invoke ARM assembly:
 
