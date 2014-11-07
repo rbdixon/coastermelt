@@ -39,7 +39,7 @@ def cpu8051_evalasm(d, code):
 def cpu8051_backdoor(d,
     address = target_memory.cpu8051_backdoor,
     verbose = True, show_listing = False, start_cpu = True):
-    
+
     """Run a backdoor stub on the 8051 so we can control it remotely.
 
     Returns a library of ARM C++ functions for interacting with the stub.
@@ -91,9 +91,9 @@ def cpu8051_backdoor(d,
 #    00        CPU off
 #    01        Idle
 #
-#    02        addr_low = data 
+#    02        addr_low = data
 #    03        addr_low = data | 0x80
-#    04        addr_high = data 
+#    04        addr_high = data
 #    05        addr_high = data | 0x80
 #    06        XDATA[addr] = data
 #    07        XDATA[addr] = data | 0x80
@@ -104,7 +104,7 @@ def cpu8051_backdoor(d,
 #    71        complete, high data bit = 1
 #
 #    80..ff    Store low 7 data bits
-#    
+#
 backdoor_8051 = '''\
     typedef unsigned char uint8_t;
     #define XADDR ((__xdata unsigned char *)( addr_low | (addr_high << 8) ))
@@ -120,7 +120,7 @@ backdoor_8051 = '''\
 
         irq_enable = 0;
         status = 1;
-        
+
         while (1) {
             s = status;
 
