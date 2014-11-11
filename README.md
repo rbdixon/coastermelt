@@ -10,7 +10,7 @@ The **coastermelt** project is an effort to make open source firmware for creati
 
 Still TOTALLY NOT REAL YET. Just a pie-in-the-sky reverse engineering effort. When details come along that I can publicize, they'll go here for now. Eventually this repo will become an open source firmware, I hope.
 
-Video: [Coastermelt Part 1](https://vimeo.com/110257380)
+Video channel – https://vimeo.com/channels/coastermelt
 
 
 What it has
@@ -46,7 +46,7 @@ Getting Started
 * Yet another weird compiler. With [homebrew](http://brew.sh), do `brew install sdcc`
 * You probably want to have [IPython](http://ipython.org/install.html) too. It's great, and the cool debug shell needs it.
 * You usually want to have **no disc** in the drive or have the tray ejected when you start working with it. Otherwise, the OS can keep us from claiming the device.
-* Run **make** here to build the patched firmware and the Python extensions
+* Run **make** in the `backdoor` directory to build the patched firmware and the Python extensions
 * If you're paranoid like me, **make disassemble** will show you the damage
 * If you're ready to toast your drive, run **make flash**
 
