@@ -8,9 +8,9 @@
 
 The **coastermelt** project is an effort to make open source firmware for creatively repurposing BD-R drives.
 
-Still TOTALLY NOT REAL YET. Just a pie-in-the-sky reverse engineering effort. When details come along that I can publicize, they'll go here for now. Eventually this repo will become an open source firmware, I hope.
+Follow the video channel:  https://vimeo.com/channels/coastermelt
 
-Video channel – https://vimeo.com/channels/coastermelt
+The new firmware is still not real yet, this project is still in the early stages of reverse engineering.
 
 
 What it has
