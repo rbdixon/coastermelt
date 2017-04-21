@@ -1,5 +1,5 @@
 FIRMWARE_NAME := SE-506CB_TS01
-FIRMWARE_URL  := "http://www.tsstodd.com/TotalLib/popup/Download.asp?path=fwdownload&lang=eng&fname=SE-506CB_TS01.exe"
+FIRMWARE_URL  := "https://web-beta.archive.org/web/20150320122911/http://www.tsstodd.com/TotalLib/popup/Download.asp?path=fwdownload&lang=eng&fname=SE-506CB_TS01.exe"
 
 PATCH_ADDR := 0xC9600
 PATCH_BIN := bin/patch.bin
